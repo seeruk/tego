@@ -1,0 +1,103 @@
+edition = "2024";
+package yirapb.v1;
+
+import "google/protobuf/struct.proto";
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1;yirapbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1";
+
+enum TicketStatus {
+  option (tego.enum) = {
+    name: "TicketStatus"
+    comment: "TicketStatus is the current lifecycle state of a ticket."
+    underlying_type: ENUM_UNDERLYING_TYPE_UINT
+  };
+
+  TICKET_STATUS_UNSPECIFIED = 0;
+  TICKET_STATUS_OPEN = 1 [(tego.enum_value) = {
+    name: "TicketStatusOpen"
+    comment: "TicketStatusOpen means work can begin."
+    uint: 1
+  }];
+  TICKET_STATUS_IN_PROGRESS = 2;
+  TICKET_STATUS_CLOSED = 3;
+}
+
+message Ticket {
+  string id = 1 [(tego.field) = {
+    tags: { key: "json", value: "id,omitempty" }
+  }];
+
+  string title = 2 [(tego.field).json_tag = { value: "title", omitempty: true }];
+
+  string description = 3;
+  TicketStatus status = 4;
+  NullablePerson assignee = 5;
+  Person author = 6;
+  string version = 7;
+  map<string, string> metadata = 8;
+  map<string, Person> watchers_by_role = 9;
+  map<string, TicketStatus> workflow_statuses = 10;
+  repeated string watcher_ids = 11;
+}
+
+message UpdateTicketRequest {
+  string id = 1;
+  TicketInput input = 2;
+}
+
+message TicketInput {
+  option (tego.message).fields_omittable = true;
+
+  string title = 2;
+  string description = 3;
+  TicketStatus status = 4;
+  Person assignee = 5 [(tego.field).nullable = true];
+
+  // Required fields would not be generated as omittable.
+  string version = 6 [(tego.field).omittable = false];
+}
+
+message Person {
+  string first_name = 1;
+  string last_name = 2;
+}
+
+message People {
+  repeated Person people = 1;
+}
+
+message NullablePerson {
+  oneof value {
+    Person person = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}
+
+message NullablePeople {
+  repeated NullablePerson people = 1;
+}
+
+message NullableNullablePeople {
+  oneof value {
+    NullablePeople people = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}
+
+// People []*Person
+
+message TicketsByPeople {
+  message Map {
+    Person key = 1;
+    repeated NullableNullablePeople value = 2;
+  }
+
+  repeated Map entries = 1;
+}
+
+// Need to check if key type is comparable with recursive check, of what would be generated in the
+// final Go code:
+//
+// TicketsByPeopleMap map[Person][]*[]*Ticket

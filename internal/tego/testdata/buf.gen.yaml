@@ -1,0 +1,13 @@
+version: v2
+
+plugins:
+- local: protoc-gen-tego-capture
+  out: .
+  opt:
+  - path=internal/tego/testdata/yira.codegenreq.bin
+  strategy: all
+
+inputs:
+- directory: .
+  paths:
+  - proto/yirapb/v1/yira.proto
