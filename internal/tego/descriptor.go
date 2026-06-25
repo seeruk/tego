@@ -172,12 +172,12 @@ func BuildDescriptorIndex(plugin *protogen.Plugin) (*DescriptorIndex, error) {
 	}
 
 	for _, file := range plugin.Files {
-		if err := builder.registerFile(file); err != nil {
+		if err := builder.indexFile(file); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := builder.resolveFields(); err != nil {
+	if err := builder.finalizeFields(); err != nil {
 		return nil, err
 	}
 
@@ -190,7 +190,7 @@ type descriptorIndexBuilder struct {
 	fields       []*ProtoField
 }
 
-func (b *descriptorIndexBuilder) registerFile(desc *protogen.File) error {
+func (b *descriptorIndexBuilder) indexFile(desc *protogen.File) error {
 	path := desc.Desc.Path()
 	if _, exists := b.index.FilesByPath[path]; exists {
 		return fmt.Errorf("duplicate proto file %q", path)
@@ -208,7 +208,7 @@ func (b *descriptorIndexBuilder) registerFile(desc *protogen.File) error {
 	b.index.FilesByPath[path] = file
 
 	for _, enum := range desc.Enums {
-		registered, err := b.registerEnum(file, nil, enum)
+		registered, err := b.indexEnum(file, nil, enum)
 		if err != nil {
 			return err
 		}
@@ -216,7 +216,7 @@ func (b *descriptorIndexBuilder) registerFile(desc *protogen.File) error {
 	}
 
 	for _, message := range desc.Messages {
-		registered, err := b.registerMessage(file, nil, message)
+		registered, err := b.indexMessage(file, nil, message)
 		if err != nil {
 			return err
 		}
@@ -226,7 +226,7 @@ func (b *descriptorIndexBuilder) registerFile(desc *protogen.File) error {
 	return nil
 }
 
-func (b *descriptorIndexBuilder) registerEnum(file *ProtoFile, parent *ProtoMessage, desc *protogen.Enum) (*ProtoEnum, error) {
+func (b *descriptorIndexBuilder) indexEnum(file *ProtoFile, parent *ProtoMessage, desc *protogen.Enum) (*ProtoEnum, error) {
 	fullName := desc.Desc.FullName()
 	if _, exists := b.index.EnumsByName[fullName]; exists {
 		return nil, fmt.Errorf("duplicate proto enum %q", fullName)
@@ -261,7 +261,7 @@ func (b *descriptorIndexBuilder) registerEnum(file *ProtoFile, parent *ProtoMess
 	return enum, nil
 }
 
-func (b *descriptorIndexBuilder) registerMessage(file *ProtoFile, parent *ProtoMessage, desc *protogen.Message) (*ProtoMessage, error) {
+func (b *descriptorIndexBuilder) indexMessage(file *ProtoFile, parent *ProtoMessage, desc *protogen.Message) (*ProtoMessage, error) {
 	fullName := desc.Desc.FullName()
 	if _, exists := b.index.MessagesByName[fullName]; exists {
 		return nil, fmt.Errorf("duplicate proto message %q", fullName)
@@ -279,7 +279,7 @@ func (b *descriptorIndexBuilder) registerMessage(file *ProtoFile, parent *ProtoM
 	b.index.MessagesByName[fullName] = message
 
 	for _, oneof := range desc.Oneofs {
-		registered, err := b.registerOneof(file, message, oneof)
+		registered, err := b.indexOneof(file, message, oneof)
 		if err != nil {
 			return nil, err
 		}
@@ -287,12 +287,12 @@ func (b *descriptorIndexBuilder) registerMessage(file *ProtoFile, parent *ProtoM
 	}
 
 	for _, field := range desc.Fields {
-		registered := b.registerField(file, message, field)
+		registered := b.indexField(file, message, field)
 		message.Fields = append(message.Fields, registered)
 	}
 
 	for _, enum := range desc.Enums {
-		registered, err := b.registerEnum(file, message, enum)
+		registered, err := b.indexEnum(file, message, enum)
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +300,7 @@ func (b *descriptorIndexBuilder) registerMessage(file *ProtoFile, parent *ProtoM
 	}
 
 	for _, nested := range desc.Messages {
-		registered, err := b.registerMessage(file, message, nested)
+		registered, err := b.indexMessage(file, message, nested)
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +310,7 @@ func (b *descriptorIndexBuilder) registerMessage(file *ProtoFile, parent *ProtoM
 	return message, nil
 }
 
-func (b *descriptorIndexBuilder) registerField(file *ProtoFile, parent *ProtoMessage, desc *protogen.Field) *ProtoField {
+func (b *descriptorIndexBuilder) indexField(file *ProtoFile, parent *ProtoMessage, desc *protogen.Field) *ProtoField {
 	field := &ProtoField{
 		FullName:    desc.Desc.FullName(),
 		Name:        desc.Desc.Name(),
@@ -328,7 +328,7 @@ func (b *descriptorIndexBuilder) registerField(file *ProtoFile, parent *ProtoMes
 	return field
 }
 
-func (b *descriptorIndexBuilder) registerOneof(file *ProtoFile, parent *ProtoMessage, desc *protogen.Oneof) (*ProtoOneof, error) {
+func (b *descriptorIndexBuilder) indexOneof(file *ProtoFile, parent *ProtoMessage, desc *protogen.Oneof) (*ProtoOneof, error) {
 	fullName := desc.Desc.FullName()
 	if _, exists := b.oneofsByName[fullName]; exists {
 		return nil, fmt.Errorf("duplicate proto oneof %q", fullName)
@@ -346,16 +346,16 @@ func (b *descriptorIndexBuilder) registerOneof(file *ProtoFile, parent *ProtoMes
 	return oneof, nil
 }
 
-func (b *descriptorIndexBuilder) resolveFields() error {
+func (b *descriptorIndexBuilder) finalizeFields() error {
 	for _, field := range b.fields {
-		if err := b.resolveField(field); err != nil {
+		if err := b.finalizeField(field); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (b *descriptorIndexBuilder) resolveField(field *ProtoField) error {
+func (b *descriptorIndexBuilder) finalizeField(field *ProtoField) error {
 	desc := field.Desc.Desc
 
 	if field.Desc.Oneof != nil {
@@ -387,12 +387,12 @@ func (b *descriptorIndexBuilder) resolveField(field *ProtoField) error {
 			return fmt.Errorf("field %q: map field has no map entry message", field.FullName)
 		}
 
-		field.MapKey = protoFieldByName(field.Message, protoreflect.Name("key"))
+		field.MapKey = protoFieldByName(field.Message, "key")
 		if field.MapKey == nil {
 			return fmt.Errorf("field %q: map entry message %q has no key field", field.FullName, field.Message.FullName)
 		}
 
-		field.MapValue = protoFieldByName(field.Message, protoreflect.Name("value"))
+		field.MapValue = protoFieldByName(field.Message, "value")
 		if field.MapValue == nil {
 			return fmt.Errorf("field %q: map entry message %q has no value field", field.FullName, field.Message.FullName)
 		}

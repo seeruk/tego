@@ -26,10 +26,16 @@ enum TicketStatus {
 
 message Ticket {
   string id = 1 [(tego.field) = {
-    tags: { key: "json", value: "id,omitempty" }
+    tags: {
+      key: "json"
+      value: "id,omitempty"
+    }
   }];
 
-  string title = 2 [(tego.field).json_tag = { value: "title", omitempty: true }];
+  string title = 2 [(tego.field).json_tag = {
+    value: "title"
+    omitempty: true
+  }];
 
   string description = 3;
   TicketStatus status = 4;
@@ -73,6 +79,11 @@ message NullablePerson {
     Person person = 1;
     google.protobuf.NullValue null = 2;
   }
+}
+
+message NullablePersonValue {
+  Person value = 1;
+  bool valid = 2;
 }
 
 message NullablePeople {

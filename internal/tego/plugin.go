@@ -22,6 +22,13 @@ func RunPlugin(plugin *protogen.Plugin) error {
 		return fmt.Errorf("build descriptor index: %w", err)
 	}
 
+	si, err := BuildShapeIndex(di)
+	if err != nil {
+		return fmt.Errorf("build shape index: %w", err)
+	}
+
+	fmt.Println(len(si.Nullables))
+
 	for path, file := range di.FilesByPath {
 		if !file.Generate {
 			continue

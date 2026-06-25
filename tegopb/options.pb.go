@@ -187,7 +187,8 @@ type EnumOptions struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name           *string                `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Comment        *string                `protobuf:"bytes,2,opt,name=comment"`
-	xxx_hidden_UnderlyingType EnumUnderlyingType     `protobuf:"varint,3,opt,name=underlying_type,json=underlyingType,enum=tego.EnumUnderlyingType"`
+	xxx_hidden_Omit           bool                   `protobuf:"varint,3,opt,name=omit"`
+	xxx_hidden_UnderlyingType EnumUnderlyingType     `protobuf:"varint,4,opt,name=underlying_type,json=underlyingType,enum=tego.EnumUnderlyingType"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -239,9 +240,16 @@ func (x *EnumOptions) GetComment() string {
 	return ""
 }
 
+func (x *EnumOptions) GetOmit() bool {
+	if x != nil {
+		return x.xxx_hidden_Omit
+	}
+	return false
+}
+
 func (x *EnumOptions) GetUnderlyingType() EnumUnderlyingType {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
 			return x.xxx_hidden_UnderlyingType
 		}
 	}
@@ -250,17 +258,22 @@ func (x *EnumOptions) GetUnderlyingType() EnumUnderlyingType {
 
 func (x *EnumOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *EnumOptions) SetComment(v string) {
 	x.xxx_hidden_Comment = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *EnumOptions) SetOmit(v bool) {
+	x.xxx_hidden_Omit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
 func (x *EnumOptions) SetUnderlyingType(v EnumUnderlyingType) {
 	x.xxx_hidden_UnderlyingType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *EnumOptions) HasName() bool {
@@ -277,11 +290,18 @@ func (x *EnumOptions) HasComment() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *EnumOptions) HasUnderlyingType() bool {
+func (x *EnumOptions) HasOmit() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *EnumOptions) HasUnderlyingType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
 func (x *EnumOptions) ClearName() {
@@ -294,8 +314,13 @@ func (x *EnumOptions) ClearComment() {
 	x.xxx_hidden_Comment = nil
 }
 
-func (x *EnumOptions) ClearUnderlyingType() {
+func (x *EnumOptions) ClearOmit() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Omit = false
+}
+
+func (x *EnumOptions) ClearUnderlyingType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_UnderlyingType = EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UNSPECIFIED
 }
 
@@ -306,6 +331,8 @@ type EnumOptions_builder struct {
 	Name *string
 	// comment is used to override the comment to be added to the corresponding generated Go type.
 	Comment *string
+	// omit indicates that this enum should not generate a corresponding Go type.
+	Omit *bool
 	// underlying_type is used to specify the underlying type of the enum generated in Go. By default,
 	// Tego will generate uint-based enums.
 	UnderlyingType *EnumUnderlyingType
@@ -316,15 +343,19 @@ func (b0 EnumOptions_builder) Build() *EnumOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Comment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_Comment = b.Comment
 	}
+	if b.Omit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Omit = *b.Omit
+	}
 	if b.UnderlyingType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
 		x.xxx_hidden_UnderlyingType = *b.UnderlyingType
 	}
 	return m0
@@ -334,6 +365,7 @@ type EnumValueOptions struct {
 	state                  protoimpl.MessageState   `protogen:"opaque.v1"`
 	xxx_hidden_Name        *string                  `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Comment     *string                  `protobuf:"bytes,2,opt,name=comment"`
+	xxx_hidden_Omit        bool                     `protobuf:"varint,3,opt,name=omit"`
 	xxx_hidden_Value       isEnumValueOptions_Value `protobuf_oneof:"value"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
@@ -386,6 +418,13 @@ func (x *EnumValueOptions) GetComment() string {
 	return ""
 }
 
+func (x *EnumValueOptions) GetOmit() bool {
+	if x != nil {
+		return x.xxx_hidden_Omit
+	}
+	return false
+}
+
 func (x *EnumValueOptions) GetUint() uint64 {
 	if x != nil {
 		if x, ok := x.xxx_hidden_Value.(*enumValueOptions_Uint); ok {
@@ -415,12 +454,17 @@ func (x *EnumValueOptions) GetString() string {
 
 func (x *EnumValueOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *EnumValueOptions) SetComment(v string) {
 	x.xxx_hidden_Comment = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *EnumValueOptions) SetOmit(v bool) {
+	x.xxx_hidden_Omit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
 func (x *EnumValueOptions) SetUint(v uint64) {
@@ -447,6 +491,13 @@ func (x *EnumValueOptions) HasComment() bool {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *EnumValueOptions) HasOmit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *EnumValueOptions) HasValue() bool {
@@ -490,6 +541,11 @@ func (x *EnumValueOptions) ClearComment() {
 	x.xxx_hidden_Comment = nil
 }
 
+func (x *EnumValueOptions) ClearOmit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Omit = false
+}
+
 func (x *EnumValueOptions) ClearValue() {
 	x.xxx_hidden_Value = nil
 }
@@ -513,9 +569,9 @@ func (x *EnumValueOptions) ClearString() {
 }
 
 const EnumValueOptions_Value_not_set_case case_EnumValueOptions_Value = 0
-const EnumValueOptions_Uint_case case_EnumValueOptions_Value = 3
-const EnumValueOptions_Int_case case_EnumValueOptions_Value = 4
-const EnumValueOptions_String__case case_EnumValueOptions_Value = 5
+const EnumValueOptions_Uint_case case_EnumValueOptions_Value = 4
+const EnumValueOptions_Int_case case_EnumValueOptions_Value = 5
+const EnumValueOptions_String__case case_EnumValueOptions_Value = 6
 
 func (x *EnumValueOptions) WhichValue() case_EnumValueOptions_Value {
 	if x == nil {
@@ -540,6 +596,8 @@ type EnumValueOptions_builder struct {
 	Name *string
 	// comment is used to override the comment to be added to the corresponding generated Go constant.
 	Comment *string
+	// omit indicates that this enum value should not generate a corresponding Go constant.
+	Omit *bool
 	// value is used to override the value of the corresponding generated Go constant. The oneof value
 	// used must match the underlying type of the enum, or be left unset to use the default value.
 
@@ -555,12 +613,16 @@ func (b0 EnumValueOptions_builder) Build() *EnumValueOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Comment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_Comment = b.Comment
+	}
+	if b.Omit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Omit = *b.Omit
 	}
 	if b.Uint != nil {
 		x.xxx_hidden_Value = &enumValueOptions_Uint{*b.Uint}
@@ -589,15 +651,15 @@ type isEnumValueOptions_Value interface {
 }
 
 type enumValueOptions_Uint struct {
-	Uint uint64 `protobuf:"varint,3,opt,name=uint,oneof"`
+	Uint uint64 `protobuf:"varint,4,opt,name=uint,oneof"`
 }
 
 type enumValueOptions_Int struct {
-	Int int64 `protobuf:"varint,4,opt,name=int,oneof"`
+	Int int64 `protobuf:"varint,5,opt,name=int,oneof"`
 }
 
 type enumValueOptions_String_ struct {
-	String_ string `protobuf:"bytes,5,opt,name=string,oneof"`
+	String_ string `protobuf:"bytes,6,opt,name=string,oneof"`
 }
 
 func (*enumValueOptions_Uint) isEnumValueOptions_Value() {}
@@ -611,13 +673,19 @@ type MessageOptions struct {
 	xxx_hidden_Name            *string                `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Comment         *string                `protobuf:"bytes,2,opt,name=comment"`
 	xxx_hidden_GoType          *GoType                `protobuf:"bytes,3,opt,name=go_type,json=goType"`
-	xxx_hidden_FieldsOmittable bool                   `protobuf:"varint,4,opt,name=fields_omittable,json=fieldsOmittable"`
-	xxx_hidden_Omit            bool                   `protobuf:"varint,5,opt,name=omit"`
+	xxx_hidden_Omit            bool                   `protobuf:"varint,4,opt,name=omit"`
+	xxx_hidden_FieldsOmittable bool                   `protobuf:"varint,5,opt,name=fields_omittable,json=fieldsOmittable"`
+	xxx_hidden_InferShape      bool                   `protobuf:"varint,6,opt,name=infer_shape,json=inferShape,def=1"`
 	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
 	XXX_presence               [1]uint32
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
+
+// Default values for MessageOptions fields.
+const (
+	Default_MessageOptions_InferShape = bool(true)
+)
 
 func (x *MessageOptions) Reset() {
 	*x = MessageOptions{}
@@ -671,13 +739,6 @@ func (x *MessageOptions) GetGoType() *GoType {
 	return nil
 }
 
-func (x *MessageOptions) GetFieldsOmittable() bool {
-	if x != nil {
-		return x.xxx_hidden_FieldsOmittable
-	}
-	return false
-}
-
 func (x *MessageOptions) GetOmit() bool {
 	if x != nil {
 		return x.xxx_hidden_Omit
@@ -685,28 +746,49 @@ func (x *MessageOptions) GetOmit() bool {
 	return false
 }
 
+func (x *MessageOptions) GetFieldsOmittable() bool {
+	if x != nil {
+		return x.xxx_hidden_FieldsOmittable
+	}
+	return false
+}
+
+func (x *MessageOptions) GetInferShape() bool {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 5) {
+			return x.xxx_hidden_InferShape
+		}
+	}
+	return Default_MessageOptions_InferShape
+}
+
 func (x *MessageOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *MessageOptions) SetComment(v string) {
 	x.xxx_hidden_Comment = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *MessageOptions) SetGoType(v *GoType) {
 	x.xxx_hidden_GoType = v
 }
 
-func (x *MessageOptions) SetFieldsOmittable(v bool) {
-	x.xxx_hidden_FieldsOmittable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
-}
-
 func (x *MessageOptions) SetOmit(v bool) {
 	x.xxx_hidden_Omit = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+}
+
+func (x *MessageOptions) SetFieldsOmittable(v bool) {
+	x.xxx_hidden_FieldsOmittable = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *MessageOptions) SetInferShape(v bool) {
+	x.xxx_hidden_InferShape = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *MessageOptions) HasName() bool {
@@ -730,18 +812,25 @@ func (x *MessageOptions) HasGoType() bool {
 	return x.xxx_hidden_GoType != nil
 }
 
-func (x *MessageOptions) HasFieldsOmittable() bool {
+func (x *MessageOptions) HasOmit() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *MessageOptions) HasOmit() bool {
+func (x *MessageOptions) HasFieldsOmittable() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *MessageOptions) HasInferShape() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
 func (x *MessageOptions) ClearName() {
@@ -758,14 +847,18 @@ func (x *MessageOptions) ClearGoType() {
 	x.xxx_hidden_GoType = nil
 }
 
-func (x *MessageOptions) ClearFieldsOmittable() {
+func (x *MessageOptions) ClearOmit() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Omit = false
+}
+
+func (x *MessageOptions) ClearFieldsOmittable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_FieldsOmittable = false
 }
 
-func (x *MessageOptions) ClearOmit() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Omit = false
+func (x *MessageOptions) ClearInferShape() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
 }
 
 type MessageOptions_builder struct {
@@ -779,13 +872,16 @@ type MessageOptions_builder struct {
 	// not generate a corresponding Go type for this message, and instead will use the specified Go
 	// type and mapping provided.
 	GoType *GoType
+	// omit indicates that this message should not generate a corresponding Go type.
+	Omit *bool
 	// fields_omittable indicates that the fields on this message should generate as omittable fields
 	// in the generated Go code by default. This is intended for types where you want to be able to
 	// identify presence of a field; for example, an input type for updating a resource where you only
 	// want to update the fields that are present in the input.
 	FieldsOmittable *bool
-	// omit indicates that this message should not generate a corresponding Go type.
-	Omit *bool
+	// infer_shape may be set to false to disable inferring a shape for this message. That means, Tego
+	// will not flatten this message when it's used as a field in another message based on the shape.
+	InferShape *bool
 }
 
 func (b0 MessageOptions_builder) Build() *MessageOptions {
@@ -793,21 +889,25 @@ func (b0 MessageOptions_builder) Build() *MessageOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Comment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_Comment = b.Comment
 	}
 	x.xxx_hidden_GoType = b.GoType
+	if b.Omit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		x.xxx_hidden_Omit = *b.Omit
+	}
 	if b.FieldsOmittable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
 		x.xxx_hidden_FieldsOmittable = *b.FieldsOmittable
 	}
-	if b.Omit != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
-		x.xxx_hidden_Omit = *b.Omit
+	if b.InferShape != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_InferShape = *b.InferShape
 	}
 	return m0
 }
@@ -817,11 +917,11 @@ type FieldOptions struct {
 	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Comment     *string                `protobuf:"bytes,2,opt,name=comment"`
 	xxx_hidden_GoType      *GoType                `protobuf:"bytes,3,opt,name=go_type,json=goType"`
-	xxx_hidden_Tags        *[]*GoStructTag        `protobuf:"bytes,4,rep,name=tags"`
-	xxx_hidden_JsonTag     *GoJsonStructTag       `protobuf:"bytes,5,opt,name=json_tag,json=jsonTag"`
-	xxx_hidden_Omittable   bool                   `protobuf:"varint,6,opt,name=omittable"`
-	xxx_hidden_Nullable    bool                   `protobuf:"varint,7,opt,name=nullable"`
-	xxx_hidden_Omit        bool                   `protobuf:"varint,8,opt,name=omit"`
+	xxx_hidden_Omit        bool                   `protobuf:"varint,4,opt,name=omit"`
+	xxx_hidden_Tags        *[]*GoStructTag        `protobuf:"bytes,5,rep,name=tags"`
+	xxx_hidden_JsonTag     *GoJsonStructTag       `protobuf:"bytes,6,opt,name=json_tag,json=jsonTag"`
+	xxx_hidden_Omittable   bool                   `protobuf:"varint,7,opt,name=omittable"`
+	xxx_hidden_Nullable    bool                   `protobuf:"varint,8,opt,name=nullable"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -880,6 +980,13 @@ func (x *FieldOptions) GetGoType() *GoType {
 	return nil
 }
 
+func (x *FieldOptions) GetOmit() bool {
+	if x != nil {
+		return x.xxx_hidden_Omit
+	}
+	return false
+}
+
 func (x *FieldOptions) GetTags() []*GoStructTag {
 	if x != nil {
 		if x.xxx_hidden_Tags != nil {
@@ -910,13 +1017,6 @@ func (x *FieldOptions) GetNullable() bool {
 	return false
 }
 
-func (x *FieldOptions) GetOmit() bool {
-	if x != nil {
-		return x.xxx_hidden_Omit
-	}
-	return false
-}
-
 func (x *FieldOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
@@ -931,6 +1031,11 @@ func (x *FieldOptions) SetGoType(v *GoType) {
 	x.xxx_hidden_GoType = v
 }
 
+func (x *FieldOptions) SetOmit(v bool) {
+	x.xxx_hidden_Omit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+}
+
 func (x *FieldOptions) SetTags(v []*GoStructTag) {
 	x.xxx_hidden_Tags = &v
 }
@@ -941,16 +1046,11 @@ func (x *FieldOptions) SetJsonTag(v *GoJsonStructTag) {
 
 func (x *FieldOptions) SetOmittable(v bool) {
 	x.xxx_hidden_Omittable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
 }
 
 func (x *FieldOptions) SetNullable(v bool) {
 	x.xxx_hidden_Nullable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
-}
-
-func (x *FieldOptions) SetOmit(v bool) {
-	x.xxx_hidden_Omit = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
@@ -975,6 +1075,13 @@ func (x *FieldOptions) HasGoType() bool {
 	return x.xxx_hidden_GoType != nil
 }
 
+func (x *FieldOptions) HasOmit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *FieldOptions) HasJsonTag() bool {
 	if x == nil {
 		return false
@@ -986,17 +1093,10 @@ func (x *FieldOptions) HasOmittable() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
-}
-
-func (x *FieldOptions) HasNullable() bool {
-	if x == nil {
-		return false
-	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *FieldOptions) HasOmit() bool {
+func (x *FieldOptions) HasNullable() bool {
 	if x == nil {
 		return false
 	}
@@ -1017,23 +1117,23 @@ func (x *FieldOptions) ClearGoType() {
 	x.xxx_hidden_GoType = nil
 }
 
+func (x *FieldOptions) ClearOmit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Omit = false
+}
+
 func (x *FieldOptions) ClearJsonTag() {
 	x.xxx_hidden_JsonTag = nil
 }
 
 func (x *FieldOptions) ClearOmittable() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
 	x.xxx_hidden_Omittable = false
 }
 
 func (x *FieldOptions) ClearNullable() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
-	x.xxx_hidden_Nullable = false
-}
-
-func (x *FieldOptions) ClearOmit() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
-	x.xxx_hidden_Omit = false
+	x.xxx_hidden_Nullable = false
 }
 
 type FieldOptions_builder struct {
@@ -1045,6 +1145,9 @@ type FieldOptions_builder struct {
 	Comment *string
 	// go_type is used to specify a custom Go type to use for this field.
 	GoType *GoType
+	// omit indicates that this field should not generate a corresponding Go field.
+	// This can be handy for Proto-specific / transport-only fields.
+	Omit *bool
 	// tags is used to specify custom struct tags to be added to the corresponding generated Go field.
 	Tags []*GoStructTag
 	// json_tag is used to more easily specify a JSON struct tag to be added to the corresponding
@@ -1058,9 +1161,6 @@ type FieldOptions_builder struct {
 	// This option will only work on fields that are messages, as they are nullable by default in the
 	// code generated by protoc-gen-go, unlike other types.
 	Nullable *bool
-	// omit indicates that this field should not generate a corresponding Go field.
-	// This can be handy for Proto-specific / transport-only fields.
-	Omit *bool
 }
 
 func (b0 FieldOptions_builder) Build() *FieldOptions {
@@ -1076,19 +1176,19 @@ func (b0 FieldOptions_builder) Build() *FieldOptions {
 		x.xxx_hidden_Comment = b.Comment
 	}
 	x.xxx_hidden_GoType = b.GoType
+	if b.Omit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		x.xxx_hidden_Omit = *b.Omit
+	}
 	x.xxx_hidden_Tags = &b.Tags
 	x.xxx_hidden_JsonTag = b.JsonTag
 	if b.Omittable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_Omittable = *b.Omittable
 	}
 	if b.Nullable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
-		x.xxx_hidden_Nullable = *b.Nullable
-	}
-	if b.Omit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
-		x.xxx_hidden_Omit = *b.Omit
+		x.xxx_hidden_Nullable = *b.Nullable
 	}
 	return m0
 }
@@ -1568,33 +1668,37 @@ const file_tego_options_proto_rawDesc = "" +
 	"\n" +
 	"go_package\x18\x01 \x01(\tR\tgoPackage\x12\x1f\n" +
 	"\voutput_path\x18\x02 \x01(\tR\n" +
-	"outputPath\"~\n" +
+	"outputPath\"\x92\x01\n" +
 	"\vEnumOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\acomment\x18\x02 \x01(\tR\acomment\x12A\n" +
-	"\x0funderlying_type\x18\x03 \x01(\x0e2\x18.tego.EnumUnderlyingTypeR\x0eunderlyingType\"\x8d\x01\n" +
+	"\acomment\x18\x02 \x01(\tR\acomment\x12\x12\n" +
+	"\x04omit\x18\x03 \x01(\bR\x04omit\x12A\n" +
+	"\x0funderlying_type\x18\x04 \x01(\x0e2\x18.tego.EnumUnderlyingTypeR\x0eunderlyingType\"\xa1\x01\n" +
 	"\x10EnumValueOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\acomment\x18\x02 \x01(\tR\acomment\x12\x14\n" +
-	"\x04uint\x18\x03 \x01(\x04H\x00R\x04uint\x12\x12\n" +
-	"\x03int\x18\x04 \x01(\x03H\x00R\x03int\x12\x18\n" +
-	"\x06string\x18\x05 \x01(\tH\x00R\x06stringB\a\n" +
-	"\x05value\"\xa4\x01\n" +
+	"\acomment\x18\x02 \x01(\tR\acomment\x12\x12\n" +
+	"\x04omit\x18\x03 \x01(\bR\x04omit\x12\x14\n" +
+	"\x04uint\x18\x04 \x01(\x04H\x00R\x04uint\x12\x12\n" +
+	"\x03int\x18\x05 \x01(\x03H\x00R\x03int\x12\x18\n" +
+	"\x06string\x18\x06 \x01(\tH\x00R\x06stringB\a\n" +
+	"\x05value\"\xcb\x01\n" +
 	"\x0eMessageOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12%\n" +
-	"\ago_type\x18\x03 \x01(\v2\f.tego.GoTypeR\x06goType\x12)\n" +
-	"\x10fields_omittable\x18\x04 \x01(\bR\x0ffieldsOmittable\x12\x12\n" +
-	"\x04omit\x18\x05 \x01(\bR\x04omit\"\x8a\x02\n" +
+	"\ago_type\x18\x03 \x01(\v2\f.tego.GoTypeR\x06goType\x12\x12\n" +
+	"\x04omit\x18\x04 \x01(\bR\x04omit\x12)\n" +
+	"\x10fields_omittable\x18\x05 \x01(\bR\x0ffieldsOmittable\x12%\n" +
+	"\vinfer_shape\x18\x06 \x01(\b:\x04trueR\n" +
+	"inferShape\"\x8a\x02\n" +
 	"\fFieldOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12%\n" +
-	"\ago_type\x18\x03 \x01(\v2\f.tego.GoTypeR\x06goType\x12%\n" +
-	"\x04tags\x18\x04 \x03(\v2\x11.tego.GoStructTagR\x04tags\x120\n" +
-	"\bjson_tag\x18\x05 \x01(\v2\x15.tego.GoJsonStructTagR\ajsonTag\x12\x1c\n" +
-	"\tomittable\x18\x06 \x01(\bR\tomittable\x12\x1a\n" +
-	"\bnullable\x18\a \x01(\bR\bnullable\x12\x12\n" +
-	"\x04omit\x18\b \x01(\bR\x04omit\"a\n" +
+	"\ago_type\x18\x03 \x01(\v2\f.tego.GoTypeR\x06goType\x12\x12\n" +
+	"\x04omit\x18\x04 \x01(\bR\x04omit\x12%\n" +
+	"\x04tags\x18\x05 \x03(\v2\x11.tego.GoStructTagR\x04tags\x120\n" +
+	"\bjson_tag\x18\x06 \x01(\v2\x15.tego.GoJsonStructTagR\ajsonTag\x12\x1c\n" +
+	"\tomittable\x18\a \x01(\bR\tomittable\x12\x1a\n" +
+	"\bnullable\x18\b \x01(\bR\bnullable\"a\n" +
 	"\x0fGoJsonStructTag\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x1c\n" +
 	"\tomitempty\x18\x02 \x01(\bR\tomitempty\x12\x1a\n" +
