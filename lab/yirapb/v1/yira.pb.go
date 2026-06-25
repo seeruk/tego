@@ -71,10 +71,13 @@ func (x TicketStatus) Number() protoreflect.EnumNumber {
 
 type Ticket struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Title       *string                `protobuf:"bytes,1,opt,name=title"`
-	xxx_hidden_Description *string                `protobuf:"bytes,2,opt,name=description"`
-	xxx_hidden_Status      TicketStatus           `protobuf:"varint,3,opt,name=status,enum=yirapb.v1.TicketStatus"`
-	xxx_hidden_Assignee    *NullablePerson        `protobuf:"bytes,4,opt,name=assignee"`
+	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Title       *string                `protobuf:"bytes,2,opt,name=title"`
+	xxx_hidden_Description *string                `protobuf:"bytes,3,opt,name=description"`
+	xxx_hidden_Status      TicketStatus           `protobuf:"varint,4,opt,name=status,enum=yirapb.v1.TicketStatus"`
+	xxx_hidden_Assignee    *NullablePerson        `protobuf:"bytes,5,opt,name=assignee"`
+	xxx_hidden_Author      *Person                `protobuf:"bytes,6,opt,name=author"`
+	xxx_hidden_Version     *string                `protobuf:"bytes,7,opt,name=version"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -106,6 +109,16 @@ func (x *Ticket) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *Ticket) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Ticket) GetTitle() string {
 	if x != nil {
 		if x.xxx_hidden_Title != nil {
@@ -128,7 +141,7 @@ func (x *Ticket) GetDescription() string {
 
 func (x *Ticket) GetStatus() TicketStatus {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
 			return x.xxx_hidden_Status
 		}
 	}
@@ -142,44 +155,82 @@ func (x *Ticket) GetAssignee() *NullablePerson {
 	return nil
 }
 
+func (x *Ticket) GetAuthor() *Person {
+	if x != nil {
+		return x.xxx_hidden_Author
+	}
+	return nil
+}
+
+func (x *Ticket) GetVersion() string {
+	if x != nil {
+		if x.xxx_hidden_Version != nil {
+			return *x.xxx_hidden_Version
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *Ticket) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+}
+
 func (x *Ticket) SetTitle(v string) {
 	x.xxx_hidden_Title = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *Ticket) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
 func (x *Ticket) SetStatus(v TicketStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
 func (x *Ticket) SetAssignee(v *NullablePerson) {
 	x.xxx_hidden_Assignee = v
 }
 
-func (x *Ticket) HasTitle() bool {
+func (x *Ticket) SetAuthor(v *Person) {
+	x.xxx_hidden_Author = v
+}
+
+func (x *Ticket) SetVersion(v string) {
+	x.xxx_hidden_Version = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
+func (x *Ticket) HasId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *Ticket) HasDescription() bool {
+func (x *Ticket) HasTitle() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *Ticket) HasStatus() bool {
+func (x *Ticket) HasDescription() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *Ticket) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
 func (x *Ticket) HasAssignee() bool {
@@ -189,18 +240,37 @@ func (x *Ticket) HasAssignee() bool {
 	return x.xxx_hidden_Assignee != nil
 }
 
-func (x *Ticket) ClearTitle() {
+func (x *Ticket) HasAuthor() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Author != nil
+}
+
+func (x *Ticket) HasVersion() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *Ticket) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *Ticket) ClearTitle() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_Title = nil
 }
 
 func (x *Ticket) ClearDescription() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_Description = nil
 }
 
 func (x *Ticket) ClearStatus() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Status = TicketStatus_TICKET_STATUS_UNSPECIFIED
 }
 
@@ -208,32 +278,359 @@ func (x *Ticket) ClearAssignee() {
 	x.xxx_hidden_Assignee = nil
 }
 
+func (x *Ticket) ClearAuthor() {
+	x.xxx_hidden_Author = nil
+}
+
+func (x *Ticket) ClearVersion() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Version = nil
+}
+
 type Ticket_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// No type-level option for omittable, type is generated assuming all must be present.
+	Id          *string
 	Title       *string
 	Description *string
 	Status      *TicketStatus
 	Assignee    *NullablePerson
+	Author      *Person
+	Version     *string
 }
 
 func (b0 Ticket_builder) Build() *Ticket {
 	m0 := &Ticket{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		x.xxx_hidden_Id = b.Id
+	}
 	if b.Title != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_Title = b.Title
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
 		x.xxx_hidden_Description = b.Description
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_Assignee = b.Assignee
+	x.xxx_hidden_Author = b.Author
+	if b.Version != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_Version = b.Version
+	}
+	return m0
+}
+
+type UpdateTicketRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Input       *TicketInput           `protobuf:"bytes,2,opt,name=input"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UpdateTicketRequest) Reset() {
+	*x = UpdateTicketRequest{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTicketRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTicketRequest) ProtoMessage() {}
+
+func (x *UpdateTicketRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateTicketRequest) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateTicketRequest) GetInput() *TicketInput {
+	if x != nil {
+		return x.xxx_hidden_Input
+	}
+	return nil
+}
+
+func (x *UpdateTicketRequest) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *UpdateTicketRequest) SetInput(v *TicketInput) {
+	x.xxx_hidden_Input = v
+}
+
+func (x *UpdateTicketRequest) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateTicketRequest) HasInput() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Input != nil
+}
+
+func (x *UpdateTicketRequest) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *UpdateTicketRequest) ClearInput() {
+	x.xxx_hidden_Input = nil
+}
+
+type UpdateTicketRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id    *string
+	Input *TicketInput
+}
+
+func (b0 UpdateTicketRequest_builder) Build() *UpdateTicketRequest {
+	m0 := &UpdateTicketRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Id = b.Id
+	}
+	x.xxx_hidden_Input = b.Input
+	return m0
+}
+
+type TicketInput struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Title       *string                `protobuf:"bytes,2,opt,name=title"`
+	xxx_hidden_Description *string                `protobuf:"bytes,3,opt,name=description"`
+	xxx_hidden_Status      TicketStatus           `protobuf:"varint,4,opt,name=status,enum=yirapb.v1.TicketStatus"`
+	xxx_hidden_Assignee    *NullablePerson        `protobuf:"bytes,5,opt,name=assignee"`
+	xxx_hidden_Version     *string                `protobuf:"bytes,6,opt,name=version"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *TicketInput) Reset() {
+	*x = TicketInput{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TicketInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TicketInput) ProtoMessage() {}
+
+func (x *TicketInput) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *TicketInput) GetTitle() string {
+	if x != nil {
+		if x.xxx_hidden_Title != nil {
+			return *x.xxx_hidden_Title
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *TicketInput) GetDescription() string {
+	if x != nil {
+		if x.xxx_hidden_Description != nil {
+			return *x.xxx_hidden_Description
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *TicketInput) GetStatus() TicketStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return TicketStatus_TICKET_STATUS_UNSPECIFIED
+}
+
+func (x *TicketInput) GetAssignee() *NullablePerson {
+	if x != nil {
+		return x.xxx_hidden_Assignee
+	}
+	return nil
+}
+
+func (x *TicketInput) GetVersion() string {
+	if x != nil {
+		if x.xxx_hidden_Version != nil {
+			return *x.xxx_hidden_Version
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *TicketInput) SetTitle(v string) {
+	x.xxx_hidden_Title = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *TicketInput) SetDescription(v string) {
+	x.xxx_hidden_Description = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *TicketInput) SetStatus(v TicketStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *TicketInput) SetAssignee(v *NullablePerson) {
+	x.xxx_hidden_Assignee = v
+}
+
+func (x *TicketInput) SetVersion(v string) {
+	x.xxx_hidden_Version = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *TicketInput) HasTitle() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *TicketInput) HasDescription() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *TicketInput) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *TicketInput) HasAssignee() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Assignee != nil
+}
+
+func (x *TicketInput) HasVersion() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *TicketInput) ClearTitle() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Title = nil
+}
+
+func (x *TicketInput) ClearDescription() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Description = nil
+}
+
+func (x *TicketInput) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Status = TicketStatus_TICKET_STATUS_UNSPECIFIED
+}
+
+func (x *TicketInput) ClearAssignee() {
+	x.xxx_hidden_Assignee = nil
+}
+
+func (x *TicketInput) ClearVersion() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Version = nil
+}
+
+type TicketInput_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Title       *string
+	Description *string
+	Status      *TicketStatus
+	Assignee    *NullablePerson
+	// Required fields would not be generated as omittable.
+	Version *string
+}
+
+func (b0 TicketInput_builder) Build() *TicketInput {
+	m0 := &TicketInput{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Title != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_Title = b.Title
+	}
+	if b.Description != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_Description = b.Description
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_Status = *b.Status
+	}
+	x.xxx_hidden_Assignee = b.Assignee
+	if b.Version != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_Version = b.Version
+	}
 	return m0
 }
 
@@ -249,7 +646,7 @@ type Person struct {
 
 func (x *Person) Reset() {
 	*x = Person{}
-	mi := &file_yirapb_v1_yira_proto_msgTypes[1]
+	mi := &file_yirapb_v1_yira_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -261,7 +658,7 @@ func (x *Person) String() string {
 func (*Person) ProtoMessage() {}
 
 func (x *Person) ProtoReflect() protoreflect.Message {
-	mi := &file_yirapb_v1_yira_proto_msgTypes[1]
+	mi := &file_yirapb_v1_yira_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -348,6 +745,65 @@ func (b0 Person_builder) Build() *Person {
 	return m0
 }
 
+type People struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_People *[]*Person             `protobuf:"bytes,1,rep,name=people"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *People) Reset() {
+	*x = People{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *People) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*People) ProtoMessage() {}
+
+func (x *People) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *People) GetPeople() []*Person {
+	if x != nil {
+		if x.xxx_hidden_People != nil {
+			return *x.xxx_hidden_People
+		}
+	}
+	return nil
+}
+
+func (x *People) SetPeople(v []*Person) {
+	x.xxx_hidden_People = &v
+}
+
+type People_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	People []*Person
+}
+
+func (b0 People_builder) Build() *People {
+	m0 := &People{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_People = &b.People
+	return m0
+}
+
 type NullablePerson struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Value isNullablePerson_Value `protobuf_oneof:"value"`
@@ -357,7 +813,7 @@ type NullablePerson struct {
 
 func (x *NullablePerson) Reset() {
 	*x = NullablePerson{}
-	mi := &file_yirapb_v1_yira_proto_msgTypes[2]
+	mi := &file_yirapb_v1_yira_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +825,7 @@ func (x *NullablePerson) String() string {
 func (*NullablePerson) ProtoMessage() {}
 
 func (x *NullablePerson) ProtoReflect() protoreflect.Message {
-	mi := &file_yirapb_v1_yira_proto_msgTypes[2]
+	mi := &file_yirapb_v1_yira_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +948,7 @@ func (b0 NullablePerson_builder) Build() *NullablePerson {
 type case_NullablePerson_Value protoreflect.FieldNumber
 
 func (x case_NullablePerson_Value) String() string {
-	md := file_yirapb_v1_yira_proto_msgTypes[2].Descriptor()
+	md := file_yirapb_v1_yira_proto_msgTypes[5].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -515,24 +971,418 @@ func (*nullablePerson_Person) isNullablePerson_Value() {}
 
 func (*nullablePerson_Null) isNullablePerson_Value() {}
 
+type NullablePeople struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_People *[]*NullablePerson     `protobuf:"bytes,1,rep,name=people"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *NullablePeople) Reset() {
+	*x = NullablePeople{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NullablePeople) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NullablePeople) ProtoMessage() {}
+
+func (x *NullablePeople) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *NullablePeople) GetPeople() []*NullablePerson {
+	if x != nil {
+		if x.xxx_hidden_People != nil {
+			return *x.xxx_hidden_People
+		}
+	}
+	return nil
+}
+
+func (x *NullablePeople) SetPeople(v []*NullablePerson) {
+	x.xxx_hidden_People = &v
+}
+
+type NullablePeople_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	People []*NullablePerson
+}
+
+func (b0 NullablePeople_builder) Build() *NullablePeople {
+	m0 := &NullablePeople{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_People = &b.People
+	return m0
+}
+
+type NullableNullablePeople struct {
+	state            protoimpl.MessageState         `protogen:"opaque.v1"`
+	xxx_hidden_Value isNullableNullablePeople_Value `protobuf_oneof:"value"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *NullableNullablePeople) Reset() {
+	*x = NullableNullablePeople{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NullableNullablePeople) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NullableNullablePeople) ProtoMessage() {}
+
+func (x *NullableNullablePeople) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *NullableNullablePeople) GetPeople() *NullablePeople {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Value.(*nullableNullablePeople_People); ok {
+			return x.People
+		}
+	}
+	return nil
+}
+
+func (x *NullableNullablePeople) GetNull() structpb.NullValue {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Value.(*nullableNullablePeople_Null); ok {
+			return x.Null
+		}
+	}
+	return structpb.NullValue(0)
+}
+
+func (x *NullableNullablePeople) SetPeople(v *NullablePeople) {
+	if v == nil {
+		x.xxx_hidden_Value = nil
+		return
+	}
+	x.xxx_hidden_Value = &nullableNullablePeople_People{v}
+}
+
+func (x *NullableNullablePeople) SetNull(v structpb.NullValue) {
+	x.xxx_hidden_Value = &nullableNullablePeople_Null{v}
+}
+
+func (x *NullableNullablePeople) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Value != nil
+}
+
+func (x *NullableNullablePeople) HasPeople() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Value.(*nullableNullablePeople_People)
+	return ok
+}
+
+func (x *NullableNullablePeople) HasNull() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Value.(*nullableNullablePeople_Null)
+	return ok
+}
+
+func (x *NullableNullablePeople) ClearValue() {
+	x.xxx_hidden_Value = nil
+}
+
+func (x *NullableNullablePeople) ClearPeople() {
+	if _, ok := x.xxx_hidden_Value.(*nullableNullablePeople_People); ok {
+		x.xxx_hidden_Value = nil
+	}
+}
+
+func (x *NullableNullablePeople) ClearNull() {
+	if _, ok := x.xxx_hidden_Value.(*nullableNullablePeople_Null); ok {
+		x.xxx_hidden_Value = nil
+	}
+}
+
+const NullableNullablePeople_Value_not_set_case case_NullableNullablePeople_Value = 0
+const NullableNullablePeople_People_case case_NullableNullablePeople_Value = 1
+const NullableNullablePeople_Null_case case_NullableNullablePeople_Value = 2
+
+func (x *NullableNullablePeople) WhichValue() case_NullableNullablePeople_Value {
+	if x == nil {
+		return NullableNullablePeople_Value_not_set_case
+	}
+	switch x.xxx_hidden_Value.(type) {
+	case *nullableNullablePeople_People:
+		return NullableNullablePeople_People_case
+	case *nullableNullablePeople_Null:
+		return NullableNullablePeople_Null_case
+	default:
+		return NullableNullablePeople_Value_not_set_case
+	}
+}
+
+type NullableNullablePeople_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Value:
+	People *NullablePeople
+	Null   *structpb.NullValue
+	// -- end of xxx_hidden_Value
+}
+
+func (b0 NullableNullablePeople_builder) Build() *NullableNullablePeople {
+	m0 := &NullableNullablePeople{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.People != nil {
+		x.xxx_hidden_Value = &nullableNullablePeople_People{b.People}
+	}
+	if b.Null != nil {
+		x.xxx_hidden_Value = &nullableNullablePeople_Null{*b.Null}
+	}
+	return m0
+}
+
+type case_NullableNullablePeople_Value protoreflect.FieldNumber
+
+func (x case_NullableNullablePeople_Value) String() string {
+	md := file_yirapb_v1_yira_proto_msgTypes[7].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isNullableNullablePeople_Value interface {
+	isNullableNullablePeople_Value()
+}
+
+type nullableNullablePeople_People struct {
+	People *NullablePeople `protobuf:"bytes,1,opt,name=people,oneof"`
+}
+
+type nullableNullablePeople_Null struct {
+	Null structpb.NullValue `protobuf:"varint,2,opt,name=null,enum=google.protobuf.NullValue,oneof"`
+}
+
+func (*nullableNullablePeople_People) isNullableNullablePeople_Value() {}
+
+func (*nullableNullablePeople_Null) isNullableNullablePeople_Value() {}
+
+type TicketsByPeople struct {
+	state              protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Entries *[]*TicketsByPeople_Map `protobuf:"bytes,1,rep,name=entries"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *TicketsByPeople) Reset() {
+	*x = TicketsByPeople{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TicketsByPeople) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TicketsByPeople) ProtoMessage() {}
+
+func (x *TicketsByPeople) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *TicketsByPeople) GetEntries() []*TicketsByPeople_Map {
+	if x != nil {
+		if x.xxx_hidden_Entries != nil {
+			return *x.xxx_hidden_Entries
+		}
+	}
+	return nil
+}
+
+func (x *TicketsByPeople) SetEntries(v []*TicketsByPeople_Map) {
+	x.xxx_hidden_Entries = &v
+}
+
+type TicketsByPeople_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Entries []*TicketsByPeople_Map
+}
+
+func (b0 TicketsByPeople_builder) Build() *TicketsByPeople {
+	m0 := &TicketsByPeople{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Entries = &b.Entries
+	return m0
+}
+
+type TicketsByPeople_Map struct {
+	state            protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Key   *Person                    `protobuf:"bytes,1,opt,name=key"`
+	xxx_hidden_Value *[]*NullableNullablePeople `protobuf:"bytes,2,rep,name=value"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *TicketsByPeople_Map) Reset() {
+	*x = TicketsByPeople_Map{}
+	mi := &file_yirapb_v1_yira_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TicketsByPeople_Map) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TicketsByPeople_Map) ProtoMessage() {}
+
+func (x *TicketsByPeople_Map) ProtoReflect() protoreflect.Message {
+	mi := &file_yirapb_v1_yira_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *TicketsByPeople_Map) GetKey() *Person {
+	if x != nil {
+		return x.xxx_hidden_Key
+	}
+	return nil
+}
+
+func (x *TicketsByPeople_Map) GetValue() []*NullableNullablePeople {
+	if x != nil {
+		if x.xxx_hidden_Value != nil {
+			return *x.xxx_hidden_Value
+		}
+	}
+	return nil
+}
+
+func (x *TicketsByPeople_Map) SetKey(v *Person) {
+	x.xxx_hidden_Key = v
+}
+
+func (x *TicketsByPeople_Map) SetValue(v []*NullableNullablePeople) {
+	x.xxx_hidden_Value = &v
+}
+
+func (x *TicketsByPeople_Map) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Key != nil
+}
+
+func (x *TicketsByPeople_Map) ClearKey() {
+	x.xxx_hidden_Key = nil
+}
+
+type TicketsByPeople_Map_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Key   *Person
+	Value []*NullableNullablePeople
+}
+
+func (b0 TicketsByPeople_Map_builder) Build() *TicketsByPeople_Map {
+	m0 := &TicketsByPeople_Map{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Key = b.Key
+	x.xxx_hidden_Value = &b.Value
+	return m0
+}
+
 var File_yirapb_v1_yira_proto protoreflect.FileDescriptor
 
 const file_yirapb_v1_yira_proto_rawDesc = "" +
 	"\n" +
-	"\x14yirapb/v1/yira.proto\x12\tyirapb.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xc0\x01\n" +
-	"\x06Ticket\x12\x1c\n" +
-	"\x05title\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05title\x12(\n" +
-	"\vdescription\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vdescription\x127\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x17.yirapb.v1.TicketStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\x125\n" +
-	"\bassignee\x18\x04 \x01(\v2\x19.yirapb.v1.NullablePersonR\bassignee\"D\n" +
+	"\x14yirapb/v1/yira.proto\x12\tyirapb.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xfd\x01\n" +
+	"\x06Ticket\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12/\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x17.yirapb.v1.TicketStatusR\x06status\x125\n" +
+	"\bassignee\x18\x05 \x01(\v2\x19.yirapb.v1.NullablePersonR\bassignee\x12)\n" +
+	"\x06author\x18\x06 \x01(\v2\x11.yirapb.v1.PersonR\x06author\x12\x18\n" +
+	"\aversion\x18\a \x01(\tR\aversion\"c\n" +
+	"\x13UpdateTicketRequest\x12\x16\n" +
+	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x124\n" +
+	"\x05input\x18\x02 \x01(\v2\x16.yirapb.v1.TicketInputB\x06\xbaH\x03\xc8\x01\x01R\x05input\"\xcf\x01\n" +
+	"\vTicketInput\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12/\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x17.yirapb.v1.TicketStatusR\x06status\x125\n" +
+	"\bassignee\x18\x05 \x01(\v2\x19.yirapb.v1.NullablePersonR\bassignee\x12 \n" +
+	"\aversion\x18\x06 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aversion\"D\n" +
 	"\x06Person\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x01 \x01(\tR\tfirstName\x12\x1b\n" +
-	"\tlast_name\x18\x02 \x01(\tR\blastName\"x\n" +
+	"\tlast_name\x18\x02 \x01(\tR\blastName\"3\n" +
+	"\x06People\x12)\n" +
+	"\x06people\x18\x01 \x03(\v2\x11.yirapb.v1.PersonR\x06people\"x\n" +
 	"\x0eNullablePerson\x12+\n" +
 	"\x06person\x18\x01 \x01(\v2\x11.yirapb.v1.PersonH\x00R\x06person\x120\n" +
 	"\x04null\x18\x02 \x01(\x0e2\x1a.google.protobuf.NullValueH\x00R\x04nullB\a\n" +
-	"\x05value*~\n" +
+	"\x05value\"C\n" +
+	"\x0eNullablePeople\x121\n" +
+	"\x06people\x18\x01 \x03(\v2\x19.yirapb.v1.NullablePersonR\x06people\"\x88\x01\n" +
+	"\x16NullableNullablePeople\x123\n" +
+	"\x06people\x18\x01 \x01(\v2\x19.yirapb.v1.NullablePeopleH\x00R\x06people\x120\n" +
+	"\x04null\x18\x02 \x01(\x0e2\x1a.google.protobuf.NullValueH\x00R\x04nullB\a\n" +
+	"\x05value\"\xb0\x01\n" +
+	"\x0fTicketsByPeople\x128\n" +
+	"\aentries\x18\x01 \x03(\v2\x1e.yirapb.v1.TicketsByPeople.MapR\aentries\x1ac\n" +
+	"\x03Map\x12#\n" +
+	"\x03key\x18\x01 \x01(\v2\x11.yirapb.v1.PersonR\x03key\x127\n" +
+	"\x05value\x18\x02 \x03(\v2!.yirapb.v1.NullableNullablePeopleR\x05value*~\n" +
 	"\fTicketStatus\x12\x1d\n" +
 	"\x19TICKET_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TICKET_STATUS_OPEN\x10\x01\x12\x1d\n" +
@@ -540,24 +1390,42 @@ const file_yirapb_v1_yira_proto_rawDesc = "" +
 	"\x14TICKET_STATUS_CLOSED\x10\x03B4Z2github.com/seeruk/tego/lab/proto/yirapbv1;yirapbv1b\beditionsp\xe9\a"
 
 var file_yirapb_v1_yira_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_yirapb_v1_yira_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_yirapb_v1_yira_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_yirapb_v1_yira_proto_goTypes = []any{
-	(TicketStatus)(0),       // 0: yirapb.v1.TicketStatus
-	(*Ticket)(nil),          // 1: yirapb.v1.Ticket
-	(*Person)(nil),          // 2: yirapb.v1.Person
-	(*NullablePerson)(nil),  // 3: yirapb.v1.NullablePerson
-	(structpb.NullValue)(0), // 4: google.protobuf.NullValue
+	(TicketStatus)(0),              // 0: yirapb.v1.TicketStatus
+	(*Ticket)(nil),                 // 1: yirapb.v1.Ticket
+	(*UpdateTicketRequest)(nil),    // 2: yirapb.v1.UpdateTicketRequest
+	(*TicketInput)(nil),            // 3: yirapb.v1.TicketInput
+	(*Person)(nil),                 // 4: yirapb.v1.Person
+	(*People)(nil),                 // 5: yirapb.v1.People
+	(*NullablePerson)(nil),         // 6: yirapb.v1.NullablePerson
+	(*NullablePeople)(nil),         // 7: yirapb.v1.NullablePeople
+	(*NullableNullablePeople)(nil), // 8: yirapb.v1.NullableNullablePeople
+	(*TicketsByPeople)(nil),        // 9: yirapb.v1.TicketsByPeople
+	(*TicketsByPeople_Map)(nil),    // 10: yirapb.v1.TicketsByPeople.Map
+	(structpb.NullValue)(0),        // 11: google.protobuf.NullValue
 }
 var file_yirapb_v1_yira_proto_depIdxs = []int32{
-	0, // 0: yirapb.v1.Ticket.status:type_name -> yirapb.v1.TicketStatus
-	3, // 1: yirapb.v1.Ticket.assignee:type_name -> yirapb.v1.NullablePerson
-	2, // 2: yirapb.v1.NullablePerson.person:type_name -> yirapb.v1.Person
-	4, // 3: yirapb.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: yirapb.v1.Ticket.status:type_name -> yirapb.v1.TicketStatus
+	6,  // 1: yirapb.v1.Ticket.assignee:type_name -> yirapb.v1.NullablePerson
+	4,  // 2: yirapb.v1.Ticket.author:type_name -> yirapb.v1.Person
+	3,  // 3: yirapb.v1.UpdateTicketRequest.input:type_name -> yirapb.v1.TicketInput
+	0,  // 4: yirapb.v1.TicketInput.status:type_name -> yirapb.v1.TicketStatus
+	6,  // 5: yirapb.v1.TicketInput.assignee:type_name -> yirapb.v1.NullablePerson
+	4,  // 6: yirapb.v1.People.people:type_name -> yirapb.v1.Person
+	4,  // 7: yirapb.v1.NullablePerson.person:type_name -> yirapb.v1.Person
+	11, // 8: yirapb.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
+	6,  // 9: yirapb.v1.NullablePeople.people:type_name -> yirapb.v1.NullablePerson
+	7,  // 10: yirapb.v1.NullableNullablePeople.people:type_name -> yirapb.v1.NullablePeople
+	11, // 11: yirapb.v1.NullableNullablePeople.null:type_name -> google.protobuf.NullValue
+	10, // 12: yirapb.v1.TicketsByPeople.entries:type_name -> yirapb.v1.TicketsByPeople.Map
+	4,  // 13: yirapb.v1.TicketsByPeople.Map.key:type_name -> yirapb.v1.Person
+	8,  // 14: yirapb.v1.TicketsByPeople.Map.value:type_name -> yirapb.v1.NullableNullablePeople
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_yirapb_v1_yira_proto_init() }
@@ -565,9 +1433,13 @@ func file_yirapb_v1_yira_proto_init() {
 	if File_yirapb_v1_yira_proto != nil {
 		return
 	}
-	file_yirapb_v1_yira_proto_msgTypes[2].OneofWrappers = []any{
+	file_yirapb_v1_yira_proto_msgTypes[5].OneofWrappers = []any{
 		(*nullablePerson_Person)(nil),
 		(*nullablePerson_Null)(nil),
+	}
+	file_yirapb_v1_yira_proto_msgTypes[7].OneofWrappers = []any{
+		(*nullableNullablePeople_People)(nil),
+		(*nullableNullablePeople_Null)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -575,7 +1447,7 @@ func file_yirapb_v1_yira_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_yirapb_v1_yira_proto_rawDesc), len(file_yirapb_v1_yira_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

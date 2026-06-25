@@ -1,6 +1,8 @@
 package yirav1
 
-import "github.com/seeruk/tego/lab/omittable"
+import (
+	"github.com/seeruk/tego/lab/omittable"
+)
 
 type TicketStatus uint
 
@@ -17,6 +19,7 @@ type Ticket struct {
 	Description string
 	Status      TicketStatus
 	Assignee    *Person
+	Author      Person
 	Version     string
 }
 

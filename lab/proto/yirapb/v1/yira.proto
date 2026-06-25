@@ -20,7 +20,8 @@ message Ticket {
   string description = 3;
   TicketStatus status = 4;
   NullablePerson assignee = 5;
-  string version = 6;
+  Person author = 6;
+  string version = 7;
 }
 
 message UpdateTicketRequest {
@@ -61,4 +62,25 @@ message NullablePeople {
   repeated NullablePerson people = 1;
 }
 
+message NullableNullablePeople {
+  oneof value {
+    NullablePeople people = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}
+
 // People []*Person
+
+message TicketsByPeople {
+  message Map {
+    Person key = 1;
+    repeated NullableNullablePeople value = 2;
+  }
+
+  repeated Map entries = 1;
+}
+
+// Need to check if key type is comparable with recursive check, of what would be generated in the
+// final Go code:
+//
+// TicketsByPeopleMap map[Person][]*[]*Ticket
