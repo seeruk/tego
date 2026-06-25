@@ -1,7 +1,6 @@
 package tego
 
-type Planner struct {
-}
+type Planner struct{}
 
 func NewPlanner() *Planner {
 	return &Planner{}

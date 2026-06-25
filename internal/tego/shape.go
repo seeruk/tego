@@ -118,5 +118,14 @@ func isMapShape(message *ProtoMessage) bool {
 }
 
 func isSliceShape(message *ProtoMessage) bool {
-	return false
+	if len(message.Enums) > 0 || len(message.Messages) > 0 || len(message.Oneofs) > 0 {
+		return false
+	}
+
+	if len(message.Fields) != 1 {
+		return false
+	}
+
+	field := message.Fields[0]
+	return field.Cardinality == protoreflect.Repeated
 }

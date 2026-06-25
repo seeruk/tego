@@ -45,8 +45,7 @@ type EnumConstantValue struct {
 	String string
 }
 
-type StructPlan struct {
-}
+type StructPlan struct{}
 
 // Diagnostic is a generalized type used for presenting helpful messages to Morph consumers to help
 // them find and fix issues found during planning.

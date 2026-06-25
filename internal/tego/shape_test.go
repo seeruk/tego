@@ -47,6 +47,32 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 			assert.NotContains(t, index.Nullables, name)
 		}
 	})
+
+	t.Run("indexes slice shapes", func(t *testing.T) {
+		for _, name := range []protoreflect.FullName{
+			"yirapb.v1.People",
+			"yirapb.v1.NullablePeople",
+		} {
+			message := requireMessage(t, descriptorIndex, name)
+
+			require.Contains(t, index.Slices, name)
+			assert.Same(t, message, index.Slices[name])
+		}
+	})
+
+	t.Run("does not index non-slice messages as slices", func(t *testing.T) {
+		for _, name := range []protoreflect.FullName{
+			"yirapb.v1.Ticket",
+			"yirapb.v1.Person",
+			"yirapb.v1.NullablePerson",
+			"yirapb.v1.NullablePersonValue",
+			"yirapb.v1.NullableNullablePeople",
+			"yirapb.v1.TicketsByPeople",
+		} {
+			requireMessage(t, descriptorIndex, name)
+			assert.NotContains(t, index.Slices, name)
+		}
+	})
 }
 
 func TestNullableShapeHelpers(t *testing.T) {
@@ -77,6 +103,32 @@ func TestNullableShapeHelpers(t *testing.T) {
 	})
 }
 
+func TestSliceShapeHelpers(t *testing.T) {
+	t.Run("slice requires exactly one repeated field", func(t *testing.T) {
+		assert.True(t, isSliceShape(messageWithFields(repeatedField("strings", protoreflect.StringKind))))
+		assert.True(t, isSliceShape(messageWithFields(repeatedField("messages", protoreflect.MessageKind))))
+		assert.True(t, isSliceShape(messageWithFields(repeatedField("enums", protoreflect.EnumKind))))
+
+		assert.False(t, isSliceShape(messageWithFields()))
+		assert.False(t, isSliceShape(messageWithFields(field("value", protoreflect.MessageKind))))
+		assert.False(t, isSliceShape(messageWithFields(
+			repeatedField("values", protoreflect.MessageKind),
+			field("other", protoreflect.StringKind),
+		)))
+		assert.False(t, isSliceShape(messageWithFields(
+			repeatedField("values", protoreflect.MessageKind),
+			repeatedField("others", protoreflect.StringKind),
+		)))
+		assert.False(t, isSliceShape(messageWithNestedMessage(messageWithFields(
+			repeatedField("values", protoreflect.MessageKind),
+		))))
+		assert.False(t, isSliceShape(messageWithNestedEnum(messageWithFields(
+			repeatedField("values", protoreflect.EnumKind),
+		))))
+		assert.False(t, isSliceShape(messageWithOneof(repeatedField("values", protoreflect.MessageKind))))
+	})
+}
+
 func messageWithFields(fields ...*ProtoField) *ProtoMessage {
 	return &ProtoMessage{Fields: fields}
 }
@@ -102,11 +154,22 @@ func messageWithNestedMessage(message *ProtoMessage) *ProtoMessage {
 	return message
 }
 
+func messageWithNestedEnum(message *ProtoMessage) *ProtoMessage {
+	message.Enums = []*ProtoEnum{{}}
+	return message
+}
+
 func field(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	return &ProtoField{
 		Name: name,
 		Kind: kind,
 	}
+}
+
+func repeatedField(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
+	field := field(name, kind)
+	field.Cardinality = protoreflect.Repeated
+	return field
 }
 
 func nullValueField(name protoreflect.Name) *ProtoField {
