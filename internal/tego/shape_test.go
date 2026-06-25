@@ -3,6 +3,7 @@ package tego
 import (
 	"testing"
 
+	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -73,6 +74,29 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 			assert.NotContains(t, index.Slices, name)
 		}
 	})
+
+	t.Run("indexes map shapes", func(t *testing.T) {
+		name := protoreflect.FullName("yirapb.v1.TicketsByPeople")
+		message := requireMessage(t, descriptorIndex, name)
+
+		require.Contains(t, index.Maps, name)
+		assert.Same(t, message, index.Maps[name])
+	})
+
+	t.Run("does not index non-map messages as maps", func(t *testing.T) {
+		for _, name := range []protoreflect.FullName{
+			"yirapb.v1.Ticket",
+			"yirapb.v1.Person",
+			"yirapb.v1.People",
+			"yirapb.v1.NullablePerson",
+			"yirapb.v1.NullablePersonValue",
+			"yirapb.v1.NullablePeople",
+			"yirapb.v1.NullableNullablePeople",
+		} {
+			requireMessage(t, descriptorIndex, name)
+			assert.NotContains(t, index.Maps, name)
+		}
+	})
 }
 
 func TestNullableShapeHelpers(t *testing.T) {
@@ -100,6 +124,60 @@ func TestNullableShapeHelpers(t *testing.T) {
 		assert.False(t, isNullableValueShape(messageWithFields(value, valid, field("extra", protoreflect.StringKind))))
 		assert.False(t, isNullableValueShape(messageWithNestedMessage(messageWithFields(value, valid))))
 		assert.False(t, isNullableValueShape(messageWithOneof(value, valid)))
+	})
+}
+
+func TestMapShapeHelpers(t *testing.T) {
+	t.Run("map requires repeated map entries with comparable key", func(t *testing.T) {
+		builder := newShapeIndexBuilder()
+
+		assert.True(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.StringKind))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.EnumKind))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", comparableStructMessage()))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", nullableOneofMessage()))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(nullableMessageField("key", nonComparableStructMessage()))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", true))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoType("Key", true)))))
+
+		assert.False(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.BytesKind))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(repeatedField("key", protoreflect.StringKind))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(protoMapField("key"))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", sliceShapeMessage()))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", mapShapeWithKey(field("key", protoreflect.StringKind))))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", nonComparableStructMessage()))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", false))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(fieldWithGoTypeRef("key", protoreflect.MessageKind, "Key"))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoTypeRef("Key")))))
+	})
+
+	t.Run("map rejects malformed wrappers", func(t *testing.T) {
+		builder := newShapeIndexBuilder()
+		mapMessage := mapEntryMessage(field("key", protoreflect.StringKind), field("value", protoreflect.StringKind))
+
+		assert.False(t, builder.isMapShape(messageWithFields(repeatedMessageField("entries", mapMessage))))
+		assert.False(t, builder.isMapShape(mapShapeWithEntryName("Entry")))
+		assert.False(t, builder.isMapShape(messageWithMapEntry(mapMessage, field("entries", protoreflect.MessageKind))))
+		assert.False(t, builder.isMapShape(messageWithMapEntry(mapMessage, repeatedMessageField("entries", &ProtoMessage{Name: "Other"}))))
+		assert.False(t, builder.isMapShape(mapShapeWithEntryFields(field("key", protoreflect.StringKind))))
+		assert.False(t, builder.isMapShape(mapShapeWithEntryFields(field("value", protoreflect.StringKind))))
+		assert.False(t, builder.isMapShape(mapShapeWithEntryFields(
+			field("key", protoreflect.StringKind),
+			field("value", protoreflect.StringKind),
+			field("extra", protoreflect.StringKind),
+		)))
+		assert.False(t, builder.isMapShape(messageWithMapEntry(
+			messageWithNestedMessage(mapEntryMessage(field("key", protoreflect.StringKind), field("value", protoreflect.StringKind))),
+			nil,
+		)))
+		assert.False(t, builder.isMapShape(messageWithMapEntry(
+			messageWithNestedEnum(mapEntryMessage(field("key", protoreflect.StringKind), field("value", protoreflect.StringKind))),
+			nil,
+		)))
+		assert.False(t, builder.isMapShape(messageWithMapEntry(
+			mapEntryMessageWithOneof(field("key", protoreflect.StringKind), field("value", protoreflect.StringKind)),
+			nil,
+		)))
+		assert.False(t, builder.isMapShape(messageWithOneof(repeatedMessageField("entries", mapMessage))))
 	})
 }
 
@@ -159,6 +237,74 @@ func messageWithNestedEnum(message *ProtoMessage) *ProtoMessage {
 	return message
 }
 
+func mapEntryMessageWithOneof(fields ...*ProtoField) *ProtoMessage {
+	message := mapEntryMessage(fields...)
+	message.Oneofs = []*ProtoOneof{{Fields: fields}}
+	return message
+}
+
+func mapShapeWithKey(key *ProtoField) *ProtoMessage {
+	return mapShapeWithEntryFields(key, field("value", protoreflect.StringKind))
+}
+
+func mapShapeWithEntryName(name protoreflect.Name) *ProtoMessage {
+	mapMessage := mapEntryMessage(field("key", protoreflect.StringKind), field("value", protoreflect.StringKind))
+	mapMessage.Name = name
+	return messageWithMapEntry(mapMessage, nil)
+}
+
+func mapShapeWithEntryFields(fields ...*ProtoField) *ProtoMessage {
+	return messageWithMapEntry(mapEntryMessage(fields...), nil)
+}
+
+func mapEntryMessage(fields ...*ProtoField) *ProtoMessage {
+	return &ProtoMessage{
+		Name:   "Map",
+		Fields: fields,
+	}
+}
+
+func messageWithMapEntry(mapMessage *ProtoMessage, entry *ProtoField) *ProtoMessage {
+	if entry == nil {
+		entry = repeatedMessageField("entries", mapMessage)
+	}
+	return &ProtoMessage{
+		Fields:   []*ProtoField{entry},
+		Messages: []*ProtoMessage{mapMessage},
+	}
+}
+
+func comparableStructMessage() *ProtoMessage {
+	return messageWithFields(
+		field("name", protoreflect.StringKind),
+		field("status", protoreflect.EnumKind),
+	)
+}
+
+func nonComparableStructMessage() *ProtoMessage {
+	return messageWithFields(field("data", protoreflect.BytesKind))
+}
+
+func nullableOneofMessage() *ProtoMessage {
+	return messageWithOneof(field("person", protoreflect.MessageKind), nullValueField("null"))
+}
+
+func sliceShapeMessage() *ProtoMessage {
+	return messageWithFields(repeatedField("values", protoreflect.StringKind))
+}
+
+func messageWithGoType(ref string, comparable bool) *ProtoMessage {
+	options := &tegopb.MessageOptions{}
+	options.SetGoType(goType(ref, comparable))
+	return &ProtoMessage{Options: options}
+}
+
+func messageWithGoTypeRef(ref string) *ProtoMessage {
+	options := &tegopb.MessageOptions{}
+	options.SetGoType(goTypeRef(ref))
+	return &ProtoMessage{Options: options}
+}
+
 func field(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	return &ProtoField{
 		Name: name,
@@ -166,10 +312,66 @@ func field(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	}
 }
 
+func messageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {
+	field := field(name, protoreflect.MessageKind)
+	field.Message = message
+	return field
+}
+
+func repeatedMessageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {
+	field := repeatedField(name, protoreflect.MessageKind)
+	field.Message = message
+	return field
+}
+
+func nullableMessageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {
+	field := messageField(name, message)
+	options := &tegopb.FieldOptions{}
+	options.SetNullable(true)
+	field.Options = options
+	return field
+}
+
 func repeatedField(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	field := field(name, kind)
 	field.Cardinality = protoreflect.Repeated
 	return field
+}
+
+func protoMapField(name protoreflect.Name) *ProtoField {
+	protoField := repeatedField(name, protoreflect.MessageKind)
+	protoField.MapKey = field("key", protoreflect.StringKind)
+	protoField.MapValue = field("value", protoreflect.StringKind)
+	return protoField
+}
+
+func fieldWithGoType(name protoreflect.Name, kind protoreflect.Kind, ref string, comparable bool) *ProtoField {
+	field := field(name, kind)
+	options := &tegopb.FieldOptions{}
+	options.SetGoType(goType(ref, comparable))
+	field.Options = options
+	return field
+}
+
+func fieldWithGoTypeRef(name protoreflect.Name, kind protoreflect.Kind, ref string) *ProtoField {
+	field := field(name, kind)
+	options := &tegopb.FieldOptions{}
+	options.SetGoType(goTypeRef(ref))
+	field.Options = options
+	return field
+}
+
+func goType(ref string, comparable bool) *tegopb.GoType {
+	goType := &tegopb.GoType{}
+	goType.SetRef(ref)
+	goType.SetComparable(comparable)
+	return goType
+}
+
+func goTypeRef(ref string) *tegopb.GoType {
+	goType := &tegopb.GoType{}
+	goType.SetRef(ref)
+	return goType
 }
 
 func nullValueField(name protoreflect.Name) *ProtoField {

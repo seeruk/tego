@@ -1447,6 +1447,7 @@ type GoType struct {
 	xxx_hidden_Ref         *string                `protobuf:"bytes,1,opt,name=ref"`
 	xxx_hidden_FromProto   *string                `protobuf:"bytes,2,opt,name=from_proto,json=fromProto"`
 	xxx_hidden_ToProto     *string                `protobuf:"bytes,3,opt,name=to_proto,json=toProto"`
+	xxx_hidden_Comparable  bool                   `protobuf:"varint,4,opt,name=comparable"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1508,19 +1509,31 @@ func (x *GoType) GetToProto() string {
 	return ""
 }
 
+func (x *GoType) GetComparable() bool {
+	if x != nil {
+		return x.xxx_hidden_Comparable
+	}
+	return false
+}
+
 func (x *GoType) SetRef(v string) {
 	x.xxx_hidden_Ref = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *GoType) SetFromProto(v string) {
 	x.xxx_hidden_FromProto = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *GoType) SetToProto(v string) {
 	x.xxx_hidden_ToProto = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *GoType) SetComparable(v bool) {
+	x.xxx_hidden_Comparable = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *GoType) HasRef() bool {
@@ -1544,6 +1557,13 @@ func (x *GoType) HasToProto() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *GoType) HasComparable() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *GoType) ClearRef() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Ref = nil
@@ -1559,12 +1579,19 @@ func (x *GoType) ClearToProto() {
 	x.xxx_hidden_ToProto = nil
 }
 
+func (x *GoType) ClearComparable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Comparable = false
+}
+
 type GoType_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Ref       *string
 	FromProto *string
 	ToProto   *string
+	// comparable may be set to true when this custom Go type is valid as a Go map key.
+	Comparable *bool
 }
 
 func (b0 GoType_builder) Build() *GoType {
@@ -1572,16 +1599,20 @@ func (b0 GoType_builder) Build() *GoType {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Ref != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_Ref = b.Ref
 	}
 	if b.FromProto != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_FromProto = b.FromProto
 	}
 	if b.ToProto != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_ToProto = b.ToProto
+	}
+	if b.Comparable != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Comparable = *b.Comparable
 	}
 	return m0
 }
@@ -1705,12 +1736,15 @@ const file_tego_options_proto_rawDesc = "" +
 	"\bomitzero\x18\x03 \x01(\bR\bomitzero\"5\n" +
 	"\vGoStructTag\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"T\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"t\n" +
 	"\x06GoType\x12\x10\n" +
 	"\x03ref\x18\x01 \x01(\tR\x03ref\x12\x1d\n" +
 	"\n" +
 	"from_proto\x18\x02 \x01(\tR\tfromProto\x12\x19\n" +
-	"\bto_proto\x18\x03 \x01(\tR\atoProto*\x98\x01\n" +
+	"\bto_proto\x18\x03 \x01(\tR\atoProto\x12\x1e\n" +
+	"\n" +
+	"comparable\x18\x04 \x01(\bR\n" +
+	"comparable*\x98\x01\n" +
 	"\x12EnumUnderlyingType\x12$\n" +
 	" ENUM_UNDERLYING_TYPE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19ENUM_UNDERLYING_TYPE_UINT\x10\x01\x12\x1c\n" +

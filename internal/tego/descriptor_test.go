@@ -176,6 +176,13 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.True(t, title.Options.GetJsonTag().HasOmitempty())
 		assert.True(t, title.Options.GetJsonTag().GetOmitempty())
 
+		description := fieldByName(t, ticket, "description")
+		require.True(t, description.HasOptions())
+		require.NotNil(t, description.Options.GetGoType())
+		assert.Equal(t, "Description", description.Options.GetGoType().GetRef())
+		assert.True(t, description.Options.GetGoType().HasComparable())
+		assert.True(t, description.Options.GetGoType().GetComparable())
+
 		assignee := fieldByName(t, input, "assignee")
 		require.True(t, assignee.HasOptions())
 		assert.True(t, assignee.Options.HasNullable())

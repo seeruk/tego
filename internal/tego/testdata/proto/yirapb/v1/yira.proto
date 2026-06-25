@@ -37,7 +37,10 @@ message Ticket {
     omitempty: true
   }];
 
-  string description = 3;
+  string description = 3 [(tego.field).go_type = {
+    ref: "Description"
+    comparable: true
+  }];
   TicketStatus status = 4;
   NullablePerson assignee = 5;
   Person author = 6;
