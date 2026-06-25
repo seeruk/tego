@@ -1,0 +1,54 @@
+edition = "2024";
+package yirapb.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/seeruk/tego/lab/proto/yirapbv1;yirapbv1";
+
+enum TicketStatus {
+  TICKET_STATUS_UNSPECIFIED = 0;
+  TICKET_STATUS_OPEN = 1;
+  TICKET_STATUS_IN_PROGRESS = 2;
+  TICKET_STATUS_CLOSED = 3;
+}
+
+message Ticket {
+  // No type-level option for omittable, type is generated assuming all must be present.
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TicketStatus status = 4;
+  NullablePerson assignee = 5;
+  string version = 6;
+}
+
+message UpdateTicketRequest {
+  string id = 1 [(buf.validate.field).required = true];
+  TicketInput input = 2 [(buf.validate.field).required = true];
+}
+
+message TicketInput {
+  // Type-level option for omittable, type is generated assuming all fields are optional.
+  // option (tego.type).omittable = true; // API pending...
+
+  string title = 2;
+  string description = 3;
+  TicketStatus status = 4;
+  NullablePerson assignee = 5;
+
+  // Required fields would not be generated as omittable.
+  string version = 6 [(buf.validate.field).required = true];
+}
+
+message Person {
+  string first_name = 1;
+  string last_name = 2;
+}
+
+message NullablePerson {
+  oneof value {
+    Person person = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}
