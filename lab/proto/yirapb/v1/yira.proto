@@ -46,9 +46,19 @@ message Person {
   string last_name = 2;
 }
 
+message People {
+  repeated Person people = 1;
+}
+
 message NullablePerson {
   oneof value {
     Person person = 1;
     google.protobuf.NullValue null = 2;
   }
 }
+
+message NullablePeople {
+  repeated NullablePerson people = 1;
+}
+
+// People []*Person
