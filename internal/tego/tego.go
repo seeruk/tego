@@ -1,6 +1,10 @@
 package tego
 
-import "fmt"
+import (
+	"fmt"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
+)
 
 type Plan struct {
 	Files []FilePlan
@@ -21,9 +25,11 @@ type PackageRef struct {
 }
 
 type EnumPlan struct {
-	Name           string
-	UnderlyingType EnumUnderlyingType
-	Constants      []EnumConstantPlan
+	ProtoName  protoreflect.FullName
+	Name       string
+	Comment    string
+	Underlying EnumUnderlyingType
+	Constants  []EnumConstantPlan
 }
 
 type EnumUnderlyingType uint
@@ -35,8 +41,10 @@ const (
 )
 
 type EnumConstantPlan struct {
-	Name  string
-	Value EnumConstantValue
+	ProtoName protoreflect.FullName
+	Name      string
+	Comment   string
+	Value     EnumConstantValue
 }
 
 type EnumConstantValue struct {
