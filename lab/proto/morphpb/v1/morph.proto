@@ -1,0 +1,31 @@
+edition = "2024";
+package morphpb.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/seeruk/tego/lab/morphpb/v1;morphpbv1";
+
+message Fixture {
+  string id = 1;
+  NestedPersonLists people = 2;
+}
+
+message Person {
+  string first_name = 1;
+  string last_name = 2;
+}
+
+message PersonList {
+  repeated Person people = 1;
+}
+
+message NullablePersonList {
+  oneof value {
+    PersonList people = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}
+
+message NestedPersonLists {
+  repeated NullablePersonList people = 1;
+}
