@@ -38,7 +38,9 @@ message Ticket {
   }];
 
   string description = 3 [(tego.field).go_type = {
-    ref: "Description"
+    ref: "github.com/seeruk/tego/internal/tego/testdata/plannertest.Description"
+    from_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.DescriptionFromProto"
+    to_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.DescriptionToProto"
     comparable: true
     as_pointer: true
   }];

@@ -88,16 +88,25 @@ func (f *ProtoField) HasOptions() bool {
 
 // HasPresence reports whether this field tracks explicit presence.
 func (f *ProtoField) HasPresence() bool {
+	if f.Desc == nil || f.Desc.Desc == nil {
+		return false
+	}
 	return f.Desc.Desc.HasPresence()
 }
 
 // IsList reports whether this field is a repeated non-map field.
 func (f *ProtoField) IsList() bool {
+	if f.Desc == nil || f.Desc.Desc == nil {
+		return f.Cardinality == protoreflect.Repeated && !f.IsMap()
+	}
 	return f.Desc.Desc.IsList()
 }
 
 // IsMap reports whether this field is a protobuf map field.
 func (f *ProtoField) IsMap() bool {
+	if f.Desc == nil || f.Desc.Desc == nil {
+		return isProtoMapField(f)
+	}
 	return f.Desc.Desc.IsMap()
 }
 

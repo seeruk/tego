@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
-func TestRunPluginYiraFixture(t *testing.T) {
+func TestRunPlugin(t *testing.T) {
 	input, err := os.ReadFile("testdata/yira.codegenreq.bin")
 	require.NoError(t, err)
 

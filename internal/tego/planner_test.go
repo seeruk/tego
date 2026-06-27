@@ -9,249 +9,214 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func TestPlannerPlanEnumYiraFixture(t *testing.T) {
-	index := buildYiraDescriptorIndex(t)
-	enum := requireEnum(t, index, "yirapb.v1.TicketStatus")
+func TestPlannerPlanYiraFixture(t *testing.T) {
+	descriptorIndex := buildYiraDescriptorIndex(t)
+	shapeIndex, err := BuildShapeIndex(descriptorIndex)
+	require.NoError(t, err)
 
-	plan, diagnostics, ok := NewPlanner().planEnum(enum)
-	require.True(t, ok)
-	require.Empty(t, diagnostics)
+	plan, err := NewPlanner().Plan(descriptorIndex, shapeIndex)
+	require.NoError(t, err)
+	require.Len(t, plan.Files, 1)
 
-	assert.Equal(t, protoreflect.FullName("yirapb.v1.TicketStatus"), plan.ProtoName)
-	assert.Equal(t, "TicketStatus", plan.Name)
-	assert.Equal(t, "TicketStatus is the current lifecycle state of a ticket.", plan.Comment)
-	assert.Equal(t, EnumUnderlyingTypeUint, plan.Underlying)
-	require.Len(t, plan.Constants, 4)
+	file := plan.Files[0]
 
-	open := enumConstantByProtoName(t, plan, "yirapb.v1.TICKET_STATUS_OPEN")
-	assert.Equal(t, "TicketStatusOpen", open.Name)
-	assert.Equal(t, "TicketStatusOpen means work can begin.", open.Comment)
-	assert.Equal(t, uint(1), open.Value.Uint)
+	t.Run("plans generated file package", func(t *testing.T) {
+		assert.Equal(t, "yirapb/v1/yira.proto", file.ProtoPath)
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1", file.Package.ImportPath)
+		assert.Equal(t, "yirav1", file.Package.Name)
+		assert.Equal(t, FileOutputPlan{
+			Directory:     "github.com/seeruk/tego/internal/tego/testdata/yira/v1",
+			Filename:      "yira.tego.go",
+			Path:          "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
+			GeneratorPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
+		}, file.Output)
+		assert.Empty(t, file.Diagnostics)
+	})
 
-	inProgress := enumConstantByProtoName(t, plan, "yirapb.v1.TICKET_STATUS_IN_PROGRESS")
-	assert.Equal(t, "TicketStatus_TICKET_STATUS_IN_PROGRESS", inProgress.Name)
-	assert.Empty(t, inProgress.Comment)
-	assert.Equal(t, uint(2), inProgress.Value.Uint)
+	t.Run("includes enum plans", func(t *testing.T) {
+		require.Len(t, file.Enums, 1)
+		assert.Equal(t, protoreflect.FullName("yirapb.v1.TicketStatus"), file.Enums[0].ProtoName)
+	})
+
+	t.Run("includes ordinary struct plans", func(t *testing.T) {
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.TicketInput"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Person"))
+
+		assert.False(t, hasStructPlan(file, "yirapb.v1.NullablePerson"))
+		assert.False(t, hasStructPlan(file, "yirapb.v1.People"))
+		assert.False(t, hasStructPlan(file, "yirapb.v1.TicketsByPeople"))
+	})
+
+	t.Run("plans field tags and scalar types", func(t *testing.T) {
+		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
+		require.Len(t, ticket.Fields, 11)
+
+		id := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.id")
+		assert.Equal(t, "ID", id.Name)
+		assert.Equal(t, TypeKindScalar, id.Type.Kind)
+		assert.Equal(t, ScalarKindString, id.Type.Scalar)
+		require.Len(t, id.Tags, 1)
+		assert.Equal(t, StructTagPlan{Key: "json", Value: "id,omitempty"}, id.Tags[0])
+
+		title := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.title")
+		require.Len(t, title.Tags, 1)
+		assert.Equal(t, StructTagPlan{Key: "json", Value: "title,omitempty"}, title.Tags[0])
+	})
+
+	t.Run("plans custom enum struct map and slice types", func(t *testing.T) {
+		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
+
+		description := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.description")
+		descriptionCustom := requirePointerElem(t, description.Type, TypeKindCustom)
+		assert.Equal(t, GoTypeRef{ImportPath: plannerTestPkg, Name: "Description"}, descriptionCustom.Ref)
+		assert.Equal(t, GoSymbolRef{ImportPath: plannerTestPkg, Name: "DescriptionFromProto"}, descriptionCustom.Custom.FromProto)
+		assert.Equal(t, GoSymbolRef{ImportPath: plannerTestPkg, Name: "DescriptionToProto"}, descriptionCustom.Custom.ToProto)
+
+		status := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.status")
+		assert.Equal(t, TypeKindEnum, status.Type.Kind)
+		assert.Equal(t, "TicketStatus", status.Type.Ref.Name)
+
+		assignee := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.assignee")
+		assigneeElem := requirePointerElem(t, assignee.Type, TypeKindStruct)
+		assert.Equal(t, "Person", assigneeElem.Ref.Name)
+
+		metadata := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.metadata")
+		assert.Equal(t, TypeKindMap, metadata.Type.Kind)
+		assert.Equal(t, ScalarKindString, metadata.Type.Key.Scalar)
+		assert.Equal(t, ScalarKindString, metadata.Type.Value.Scalar)
+
+		watchersByRole := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.watchers_by_role")
+		assert.Equal(t, TypeKindStruct, watchersByRole.Type.Value.Kind)
+		assert.Equal(t, "Person", watchersByRole.Type.Value.Ref.Name)
+
+		watcherIDs := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.watcher_ids")
+		assert.Equal(t, "WatcherIDs", watcherIDs.Name)
+		assert.Equal(t, TypeKindSlice, watcherIDs.Type.Kind)
+		assert.Equal(t, ScalarKindString, watcherIDs.Type.Elem.Scalar)
+	})
+
+	t.Run("plans omittable input fields", func(t *testing.T) {
+		input := structByProtoName(t, file, "yirapb.v1.TicketInput")
+
+		title := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.title")
+		assert.Equal(t, TypeKindOmittable, title.Type.Kind)
+		assert.Equal(t, ScalarKindString, title.Type.Elem.Scalar)
+
+		assignee := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.assignee")
+		assert.Equal(t, TypeKindOmittable, assignee.Type.Kind)
+		assert.Equal(t, TypeKindPointer, assignee.Type.Elem.Kind)
+
+		version := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.version")
+		assert.Equal(t, TypeKindScalar, version.Type.Kind)
+	})
 }
 
-func TestPlannerPlanEnum(t *testing.T) {
-	t.Run("omits enum", func(t *testing.T) {
-		enum := protoEnum("example.v1.Status", "Status")
-		enum.Options = testEnumOptions(func(options *tegopb.EnumOptions) {
-			options.SetOmit(true)
-		})
+func hasStructPlan(file FilePlan, name protoreflect.FullName) bool {
+	for _, structure := range file.Structs {
+		if structure.ProtoName == name {
+			return true
+		}
+	}
+	return false
+}
 
-		_, diagnostics, ok := NewPlanner().planEnum(enum)
-		assert.False(t, ok)
-		assert.Empty(t, diagnostics)
+func TestPlannerPlanFileOutput(t *testing.T) {
+	t.Run("strips module from default output path", func(t *testing.T) {
+		file := protoFileWithOutput("yirapb/v1/yira.proto", "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1", "")
+
+		plan := NewPlanner(WithModulePath("github.com/seeruk/tego")).planFile(file, &ShapeIndex{})
+
+		require.Empty(t, plan.Diagnostics)
+		assert.Equal(t, FileOutputPlan{
+			Directory:     "internal/tego/testdata/yira/v1",
+			Filename:      "yira.tego.go",
+			Path:          "internal/tego/testdata/yira/v1/yira.tego.go",
+			GeneratorPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
+		}, plan.Output)
 	})
 
-	t.Run("omits enum value", func(t *testing.T) {
-		enum := protoEnum(
-			"example.v1.Status", "Status",
-			protoEnumValue("example.v1.STATUS_UNSPECIFIED", "StatusUnspecified", 0, nil),
-			protoEnumValue("example.v1.STATUS_OMITTED", "StatusOmitted", 1, testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-				options.SetOmit(true)
-			})),
-		)
+	t.Run("splits explicit output path", func(t *testing.T) {
+		file := protoFileWithOutput("yirapb/v1/yira.proto", "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1", "custom/yira.model.go")
 
-		plan, diagnostics, ok := NewPlanner().planEnum(enum)
-		require.True(t, ok)
-		require.Empty(t, diagnostics)
-		require.Len(t, plan.Constants, 1)
-		assert.Equal(t, protoreflect.FullName("example.v1.STATUS_UNSPECIFIED"), plan.Constants[0].ProtoName)
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.Empty(t, plan.Diagnostics)
+		assert.Equal(t, FileOutputPlan{
+			Directory:     "custom",
+			Filename:      "yira.model.go",
+			Path:          "custom/yira.model.go",
+			GeneratorPath: "custom/yira.model.go",
+		}, plan.Output)
 	})
 
-	t.Run("defaults to uint underlying type", func(t *testing.T) {
-		enum := protoEnum(
-			"example.v1.Status", "Status",
-			protoEnumValue("example.v1.STATUS_OPEN", "StatusOpen", 3, nil),
-		)
+	t.Run("prefixes explicit generator path with module", func(t *testing.T) {
+		file := protoFileWithOutput("yirapb/v1/yira.proto", "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1", "internal/tego/testdata/yira/v1/yira.model.go")
 
-		plan, diagnostics, ok := NewPlanner().planEnum(enum)
-		require.True(t, ok)
-		require.Empty(t, diagnostics)
-		assert.Equal(t, EnumUnderlyingTypeUint, plan.Underlying)
-		require.Len(t, plan.Constants, 1)
-		assert.Equal(t, uint(3), plan.Constants[0].Value.Uint)
+		plan := NewPlanner(WithModulePath("github.com/seeruk/tego")).planFile(file, &ShapeIndex{})
+
+		require.Empty(t, plan.Diagnostics)
+		assert.Equal(t, "internal/tego/testdata/yira/v1", plan.Output.Directory)
+		assert.Equal(t, "yira.model.go", plan.Output.Filename)
+		assert.Equal(t, "internal/tego/testdata/yira/v1/yira.model.go", plan.Output.Path)
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.model.go", plan.Output.GeneratorPath)
 	})
 
-	t.Run("plans int underlying values", func(t *testing.T) {
-		enum := protoEnum(
-			"example.v1.Status", "Status",
-			protoEnumValue("example.v1.STATUS_OPEN", "StatusOpen", 3, nil),
-			protoEnumValue("example.v1.STATUS_CLOSED", "StatusClosed", 4, testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-				options.SetInt(42)
-			})),
-		)
-		enum.Options = testEnumOptions(func(options *tegopb.EnumOptions) {
-			options.SetUnderlyingType(tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_INT)
-		})
-
-		plan, diagnostics, ok := NewPlanner().planEnum(enum)
-		require.True(t, ok)
-		require.Empty(t, diagnostics)
-		assert.Equal(t, EnumUnderlyingTypeInt, plan.Underlying)
-		require.Len(t, plan.Constants, 2)
-		assert.Equal(t, int(3), plan.Constants[0].Value.Int)
-		assert.Equal(t, int(42), plan.Constants[1].Value.Int)
-	})
-
-	t.Run("plans string underlying values", func(t *testing.T) {
-		enum := protoEnum(
-			"example.v1.Status", "Status",
-			protoEnumValue("example.v1.STATUS_OPEN", "StatusOpen", 1, nil),
-			protoEnumValue("example.v1.STATUS_CLOSED", "StatusClosed", 2, testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-				options.SetString("closed")
-			})),
-		)
-		enum.Options = testEnumOptions(func(options *tegopb.EnumOptions) {
-			options.SetUnderlyingType(tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_STRING)
-		})
-
-		plan, diagnostics, ok := NewPlanner().planEnum(enum)
-		require.True(t, ok)
-		require.Empty(t, diagnostics)
-		assert.Equal(t, EnumUnderlyingTypeString, plan.Underlying)
-		require.Len(t, plan.Constants, 2)
-		assert.Equal(t, "StatusOpen", plan.Constants[0].Value.String)
-		assert.Equal(t, "closed", plan.Constants[1].Value.String)
-	})
-
-	t.Run("reports mismatched explicit value overrides", func(t *testing.T) {
+	t.Run("reports invalid output paths", func(t *testing.T) {
 		tests := []struct {
 			name       string
-			underlying tegopb.EnumUnderlyingType
-			options    *tegopb.EnumValueOptions
+			outputPath string
+			diagnostic string
 		}{
-			{
-				name:       "uint with int",
-				underlying: tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UINT,
-				options: testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-					options.SetInt(1)
-				}),
-			},
-			{
-				name:       "uint with string",
-				underlying: tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UINT,
-				options: testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-					options.SetString("open")
-				}),
-			},
-			{
-				name:       "int with uint",
-				underlying: tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_INT,
-				options: testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-					options.SetUint(1)
-				}),
-			},
-			{
-				name:       "int with string",
-				underlying: tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_INT,
-				options: testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-					options.SetString("open")
-				}),
-			},
-			{
-				name:       "string with uint",
-				underlying: tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_STRING,
-				options: testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-					options.SetUint(1)
-				}),
-			},
-			{
-				name:       "string with int",
-				underlying: tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_STRING,
-				options: testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
-					options.SetInt(1)
-				}),
-			},
+			{name: "absolute", outputPath: "/tmp/yira.go", diagnostic: "must be relative"},
+			{name: "parent traversal", outputPath: "internal/../yira.go", diagnostic: "must not contain parent traversal"},
+			{name: "empty filename", outputPath: "internal/", diagnostic: "must include a filename"},
+			{name: "non go filename", outputPath: "internal/yira.txt", diagnostic: "must end in .go"},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				enum := protoEnum(
-					"example.v1.Status", "Status",
-					protoEnumValue("example.v1.STATUS_OPEN", "StatusOpen", 1, tt.options),
-				)
-				enum.Options = testEnumOptions(func(options *tegopb.EnumOptions) {
-					options.SetUnderlyingType(tt.underlying)
-				})
+				file := protoFileWithOutput("yirapb/v1/yira.proto", "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1", tt.outputPath)
 
-				_, diagnostics, ok := NewPlanner().planEnum(enum)
-				require.True(t, ok)
-				require.Len(t, diagnostics, 1)
-				assert.True(t, HasFatalDiagnostics(diagnostics))
-				assert.Contains(t, diagnostics[0].Message, "enum value override must match")
+				plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+				require.Len(t, plan.Diagnostics, 1)
+				assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+				assert.Contains(t, plan.Diagnostics[0].Message, tt.diagnostic)
 			})
 		}
 	})
 
-	t.Run("reports unknown explicit underlying type", func(t *testing.T) {
-		enum := protoEnum("example.v1.Status", "Status")
-		enum.Options = testEnumOptions(func(options *tegopb.EnumOptions) {
-			options.SetUnderlyingType(tegopb.EnumUnderlyingType(99))
-		})
+	t.Run("reports module mismatch for default output", func(t *testing.T) {
+		file := protoFileWithOutput("yirapb/v1/yira.proto", "github.com/example/yira/v1;yirav1", "")
 
-		_, diagnostics, ok := NewPlanner().planEnum(enum)
-		require.True(t, ok)
-		require.Len(t, diagnostics, 1)
-		assert.True(t, HasFatalDiagnostics(diagnostics))
-		assert.Contains(t, diagnostics[0].Message, "unsupported enum underlying type")
+		plan := NewPlanner(WithModulePath("github.com/seeruk/tego")).planFile(file, &ShapeIndex{})
+
+		require.Len(t, plan.Diagnostics, 1)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, plan.Diagnostics[0].Message, "outside module")
+	})
+
+	t.Run("reports module mismatch for explicit output", func(t *testing.T) {
+		file := protoFileWithOutput("yirapb/v1/yira.proto", "github.com/example/yira/v1;yirav1", "internal/yira.tego.go")
+
+		plan := NewPlanner(WithModulePath("github.com/seeruk/tego")).planFile(file, &ShapeIndex{})
+
+		require.Len(t, plan.Diagnostics, 1)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, plan.Diagnostics[0].Message, "outside module")
 	})
 }
 
-func enumConstantByProtoName(t *testing.T, enum EnumPlan, name protoreflect.FullName) EnumConstantPlan {
-	t.Helper()
-
-	for _, constant := range enum.Constants {
-		if constant.ProtoName == name {
-			return constant
-		}
+func protoFileWithOutput(protoPath, goPackage, outputPath string) *ProtoFile {
+	options := &tegopb.FileOptions{}
+	options.SetGoPackage(goPackage)
+	if outputPath != "" {
+		options.SetOutputPath(outputPath)
 	}
-
-	t.Fatalf("enum constant %q not found", name)
-	return EnumConstantPlan{}
-}
-
-func protoEnum(name protoreflect.FullName, goName string, values ...*ProtoEnumValue) *ProtoEnum {
-	enum := &ProtoEnum{
-		FullName: name,
-		GoName:   goName,
-		Options:  &tegopb.EnumOptions{},
-		Values:   values,
-	}
-	for _, value := range values {
-		value.Parent = enum
-	}
-	return enum
-}
-
-func protoEnumValue(
-	name protoreflect.FullName,
-	goName string,
-	number protoreflect.EnumNumber,
-	options *tegopb.EnumValueOptions,
-) *ProtoEnumValue {
-	if options == nil {
-		options = &tegopb.EnumValueOptions{}
-	}
-	return &ProtoEnumValue{
-		FullName: name,
-		GoName:   goName,
-		Number:   number,
+	return &ProtoFile{
+		Path:     protoPath,
+		Generate: true,
 		Options:  options,
 	}
-}
-
-func testEnumOptions(configure func(*tegopb.EnumOptions)) *tegopb.EnumOptions {
-	options := &tegopb.EnumOptions{}
-	configure(options)
-	return options
-}
-
-func testEnumValueOptions(configure func(*tegopb.EnumValueOptions)) *tegopb.EnumValueOptions {
-	options := &tegopb.EnumValueOptions{}
-	configure(options)
-	return options
 }

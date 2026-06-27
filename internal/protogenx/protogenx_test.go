@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHasParameterValue(t *testing.T) {
@@ -25,4 +26,26 @@ func TestHasParameterValue(t *testing.T) {
 			assert.True(t, HasParameterValue(tc.input, tc.param, tc.value))
 		})
 	}
+}
+
+func TestParameterValue(t *testing.T) {
+	t.Run("returns unquoted named parameter value", func(t *testing.T) {
+		value, ok := ParameterValue("paths=import,module=github.com/seeruk/tego", "module")
+
+		require.True(t, ok)
+		assert.Equal(t, "github.com/seeruk/tego", value)
+	})
+
+	t.Run("returns quoted named parameter value", func(t *testing.T) {
+		value, ok := ParameterValue(`module="github.com/seeruk/tego"`, "module")
+
+		require.True(t, ok)
+		assert.Equal(t, "github.com/seeruk/tego", value)
+	})
+
+	t.Run("reports missing named parameter", func(t *testing.T) {
+		_, ok := ParameterValue("paths=import", "module")
+
+		assert.False(t, ok)
+	})
 }

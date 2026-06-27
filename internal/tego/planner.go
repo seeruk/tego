@@ -2,130 +2,224 @@ package tego
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
-	"github.com/seeruk/tego/tegopb"
+	"github.com/seeruk/tego/internal/types"
+	"google.golang.org/protobuf/compiler/protogen"
 )
 
-type Planner struct{}
-
-func NewPlanner() *Planner {
-	return &Planner{}
+// Planner is Tego's core planner, responsible for planning what and how Tego will generate Go code.
+type Planner struct {
+	typeLoader *types.Loader
+	modulePath string
 }
 
-func (p *Planner) Plan() (Plan, error) {
-	return Plan{}, nil
+type PlannerOption func(*Planner)
+
+func WithTypeLoader(loader *types.Loader) PlannerOption {
+	return func(planner *Planner) {
+		planner.typeLoader = loader
+	}
 }
 
-func (p *Planner) planEnum(enum *ProtoEnum) (EnumPlan, []Diagnostic, bool) {
-	if enum.Options.GetOmit() {
-		return EnumPlan{}, nil, false
+func WithModulePath(modulePath string) PlannerOption {
+	return func(planner *Planner) {
+		planner.modulePath = modulePath
+	}
+}
+
+// NewPlanner returns a new Planner instance.
+func NewPlanner(opts ...PlannerOption) *Planner {
+	planner := &Planner{typeLoader: types.NewLoader()}
+	for _, opt := range opts {
+		opt(planner)
+	}
+	return planner
+}
+
+// Plan attempts to build a plan using the given DescriptorIndex and ShapeIndex. If successfully,
+// the returned Plan should be ready to generate code for.
+func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
+	var plan Plan
+
+	for _, file := range di.Files {
+		if !file.Generate {
+			continue
+		}
+
+		plan.Files = append(plan.Files, p.planFile(file, si))
 	}
 
-	underlying, diagnostics := enumUnderlyingType(enum)
+	return plan, nil
+}
 
-	plan := EnumPlan{
-		ProtoName:  enum.FullName,
-		Name:       enum.GoName,
-		Comment:    enum.Options.GetComment(),
-		Underlying: underlying,
+func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
+	plan := FilePlan{
+		ProtoPath: file.Path,
 	}
 
-	if enum.Options.HasName() {
-		plan.Name = enum.Options.GetName()
+	if !file.Options.HasGoPackage() {
+		plan.Diagnostics = append(plan.Diagnostics, fatalDiagnostic(file.Path, "missing required tego.file go_package option"))
+		return plan
 	}
 
-	for _, value := range enum.Values {
-		constant, constantDiagnostics, ok := p.planEnumConstant(value, underlying)
-		diagnostics = append(diagnostics, constantDiagnostics...)
+	plan.Package = packageRef(file.Options.GetGoPackage())
+
+	output, diagnostics := p.planFileOutput(file, plan.Package)
+	plan.Output = output
+	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+
+	for _, enum := range file.Enums {
+		enumPlan, diagnostics, ok := p.planEnum(enum)
+		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 		if ok {
-			plan.Constants = append(plan.Constants, constant)
+			plan.Enums = append(plan.Enums, enumPlan)
 		}
 	}
 
-	return plan, diagnostics, true
+	for _, message := range file.Messages {
+		structPlan, diagnostics, ok := p.planStruct(message, si)
+		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+		if ok {
+			plan.Structs = append(plan.Structs, structPlan)
+		}
+	}
+
+	return plan
 }
 
-func enumUnderlyingType(enum *ProtoEnum) (EnumUnderlyingType, []Diagnostic) {
-	if !enum.Options.HasUnderlyingType() {
-		return EnumUnderlyingTypeUint, nil
+func packageRef(goPackage string) PackageRef {
+	importPath, name, ok := strings.Cut(goPackage, ";")
+	if !ok {
+		importPath = goPackage
+		name = path.Base(importPath)
 	}
 
-	switch enum.Options.GetUnderlyingType() {
-	case tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UINT:
-		return EnumUnderlyingTypeUint, nil
-	case tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_INT:
-		return EnumUnderlyingTypeInt, nil
-	case tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_STRING:
-		return EnumUnderlyingTypeString, nil
-	default:
-		return EnumUnderlyingTypeUint, []Diagnostic{fatalDiagnostic(
-			string(enum.FullName),
-			"unsupported enum underlying type %s",
-			enum.Options.GetUnderlyingType(),
-		)}
+	return PackageRef{
+		ImportPath: importPath,
+		Name:       name,
 	}
 }
 
-func (p *Planner) planEnumConstant(value *ProtoEnumValue, underlying EnumUnderlyingType) (EnumConstantPlan, []Diagnostic, bool) {
-	if value.Options.GetOmit() {
-		return EnumConstantPlan{}, nil, false
+func (p *Planner) planFileOutput(file *ProtoFile, pkg PackageRef) (FileOutputPlan, []Diagnostic) {
+	directory := pkg.ImportPath
+	if p.modulePath != "" {
+		var ok bool
+		directory, ok = stripModulePrefix(directory, p.modulePath)
+		if !ok {
+			return FileOutputPlan{}, []Diagnostic{moduleMismatchDiagnostic(file.Path, pkg.ImportPath, p.modulePath)}
+		}
 	}
 
-	plan := EnumConstantPlan{
-		ProtoName: value.FullName,
-		Name:      value.GoName,
-		Comment:   value.Options.GetComment(),
+	if outputPath := file.Options.GetOutputPath(); outputPath != "" {
+		return p.explicitFileOutput(file.Path, outputPath)
 	}
 
-	if value.Options.HasName() {
-		plan.Name = value.Options.GetName()
-	}
+	filename := generatedFilename(file.Path)
+	generatorPath := path.Join(pkg.ImportPath, filename)
 
-	diagnostics := enumConstantValue(value, underlying, plan.Name, &plan.Value)
-
-	return plan, diagnostics, true
+	return FileOutputPlan{
+		Directory:     directory,
+		Filename:      filename,
+		Path:          joinPath(directory, filename),
+		GeneratorPath: generatorPath,
+	}, nil
 }
 
-func enumConstantValue(value *ProtoEnumValue, underlying EnumUnderlyingType, plannedName string, out *EnumConstantValue) []Diagnostic {
-	switch underlying {
-	case EnumUnderlyingTypeUint:
-		if value.Options.HasValue() && !value.Options.HasUint() {
-			return []Diagnostic{enumValueMismatchDiagnostic(value, "uint")}
-		}
-		if value.Options.HasUint() {
-			out.Uint = uint(value.Options.GetUint())
-		} else {
-			out.Uint = uint(value.Number)
-		}
-	case EnumUnderlyingTypeInt:
-		if value.Options.HasValue() && !value.Options.HasInt() {
-			return []Diagnostic{enumValueMismatchDiagnostic(value, "int")}
-		}
-		if value.Options.HasInt() {
-			out.Int = int(value.Options.GetInt())
-		} else {
-			out.Int = int(value.Number)
-		}
-	case EnumUnderlyingTypeString:
-		if value.Options.HasValue() && !value.Options.HasString() {
-			return []Diagnostic{enumValueMismatchDiagnostic(value, "string")}
-		}
-		if value.Options.HasString() {
-			out.String = value.Options.GetString()
-		} else {
-			out.String = plannedName
-		}
+func (p *Planner) explicitFileOutput(protoPath, outputPath string) (FileOutputPlan, []Diagnostic) {
+	clean, diagnostics := validateOutputPath(protoPath, outputPath)
+	if len(diagnostics) > 0 {
+		return FileOutputPlan{}, diagnostics
 	}
 
-	return nil
+	directory := path.Dir(clean)
+	if directory == "." {
+		directory = ""
+	}
+
+	generatorPath := clean
+	if p.modulePath != "" {
+		generatorPath = path.Join(p.modulePath, clean)
+	}
+
+	return FileOutputPlan{
+		Directory:     directory,
+		Filename:      path.Base(clean),
+		Path:          clean,
+		GeneratorPath: generatorPath,
+	}, nil
 }
 
-func enumValueMismatchDiagnostic(value *ProtoEnumValue, underlying string) Diagnostic {
+func generatedFilename(protoPath string) string {
+	name := path.Base(protoPath)
+	ext := path.Ext(name)
+	if ext != "" {
+		name = strings.TrimSuffix(name, ext)
+	}
+	return name + ".tego.go"
+}
+
+func validateOutputPath(protoPath, outputPath string) (string, []Diagnostic) {
+	clean := path.Clean(outputPath)
+	if outputPath == "" || clean == "." {
+		return "", []Diagnostic{fatalDiagnostic(protoPath, "tego.file output_path must include a filename")}
+	}
+	if path.IsAbs(outputPath) {
+		return "", []Diagnostic{fatalDiagnostic(protoPath, "tego.file output_path must be relative")}
+	}
+	for _, part := range strings.Split(outputPath, "/") {
+		if part == ".." {
+			return "", []Diagnostic{fatalDiagnostic(protoPath, "tego.file output_path must not contain parent traversal")}
+		}
+	}
+	if strings.HasSuffix(outputPath, "/") {
+		return "", []Diagnostic{fatalDiagnostic(protoPath, "tego.file output_path must include a filename")}
+	}
+	filename := path.Base(clean)
+	if filename == "." || filename == "/" || filename == "" {
+		return "", []Diagnostic{fatalDiagnostic(protoPath, "tego.file output_path must include a filename")}
+	}
+	if !strings.HasSuffix(filename, ".go") {
+		return "", []Diagnostic{fatalDiagnostic(protoPath, "tego.file output_path filename must end in .go")}
+	}
+	return clean, nil
+}
+
+func stripModulePrefix(importPath, modulePath string) (string, bool) {
+	if importPath == modulePath {
+		return "", true
+	}
+	return strings.CutPrefix(importPath, modulePath+"/")
+}
+
+func moduleMismatchDiagnostic(protoPath, importPath, modulePath string) Diagnostic {
 	return fatalDiagnostic(
-		string(value.FullName),
-		"enum value override must match %s underlying type",
-		underlying,
+		protoPath,
+		"tego.file go_package %q is outside module %q",
+		importPath,
+		modulePath,
 	)
+}
+
+func joinPath(directory, filename string) string {
+	if directory == "" {
+		return filename
+	}
+	return path.Join(directory, filename)
+}
+
+func plannedComment(explicit string, hasExplicit bool, source protogen.Comments, protoName, plannedName string) string {
+	if hasExplicit {
+		return explicit
+	}
+
+	comment := strings.TrimSpace(string(source))
+	if !strings.HasPrefix(comment, protoName) {
+		return ""
+	}
+
+	return plannedName + strings.TrimPrefix(comment, protoName)
 }
 
 func fatalDiagnostic(path, format string, args ...any) Diagnostic {

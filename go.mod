@@ -5,6 +5,7 @@ go 1.26.4
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.2.0
+	github.com/danielgtaylor/casing v1.0.0
 	golang.org/x/tools v0.47.0
 	google.golang.org/protobuf v1.36.11
 )

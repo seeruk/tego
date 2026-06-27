@@ -16,8 +16,8 @@ message FileOptions {
   // go_package works the same way the top-level `go_package` option works, but is required to
   // control where Tego will generate its output.
   string go_package = 1;
-  // output_path is used to specify the output path for the generated Go code.
-  // TODO: Is this one necessary?
+  // output_path is used to specify a full generated Go file path relative to the plugin output
+  // root. When unset, Tego derives the output path from go_package and the proto filename.
   string output_path = 2;
 }
 

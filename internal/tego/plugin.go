@@ -27,16 +27,25 @@ func RunPlugin(plugin *protogen.Plugin) error {
 		return fmt.Errorf("build shape index: %w", err)
 	}
 
-	fmt.Println(len(si.Nullables))
-
-	for path, file := range di.FilesByPath {
-		if !file.Generate {
-			continue
-		}
-
-		fmt.Println(path)
-
-		// TODO: Generation code...
+	opts := []PlannerOption{
+		WithModulePath(modulePath(rawParams)),
 	}
+
+	plan, err := NewPlanner(opts...).Plan(di, si)
+	if err != nil {
+		return fmt.Errorf("plan: %w", err)
+	}
+
+	_ = plan
+
+	// TODO: Generation code...
 	return nil
+}
+
+func modulePath(params string) string {
+	modulePath, ok := protogenx.ParameterValue(params, "module")
+	if !ok {
+		return ""
+	}
+	return modulePath
 }

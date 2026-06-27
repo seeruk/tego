@@ -12,11 +12,25 @@ type Plan struct {
 
 type FilePlan struct {
 	ProtoPath   string
-	OutputPath  string
+	Output      FileOutputPlan
 	Package     PackageRef
 	Enums       []EnumPlan
 	Structs     []StructPlan
 	Diagnostics []Diagnostic
+}
+
+type FileOutputPlan struct {
+	// Directory is the generated file directory relative to the plugin output root.
+	Directory string
+
+	// Filename is the generated Go filename.
+	Filename string
+
+	// Path is the joined generated file path relative to the plugin output root.
+	Path string
+
+	// GeneratorPath is the path passed to protogen.Plugin.NewGeneratedFile before protogen applies module stripping.
+	GeneratorPath string
 }
 
 type PackageRef struct {

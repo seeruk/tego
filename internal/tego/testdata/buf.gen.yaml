@@ -5,6 +5,7 @@ plugins:
   out: .
   opt:
   - path=yira.codegenreq.bin
+  - module=github.com/seeruk/tego/internal/tego/testdata
   strategy: all
 
 inputs:
