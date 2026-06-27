@@ -53,7 +53,80 @@ type EnumConstantValue struct {
 	String string
 }
 
-type StructPlan struct{}
+type StructPlan struct {
+	ProtoName protoreflect.FullName
+	Name      string
+	Comment   string
+	Fields    []FieldPlan
+}
+
+type FieldPlan struct {
+	ProtoName protoreflect.FullName
+	Name      string
+	Comment   string
+	Type      TypePlan
+	Tags      []StructTagPlan
+}
+
+type TypePlan struct {
+	Kind   TypeKind
+	Scalar ScalarKind
+	Ref    GoTypeRef
+	Custom CustomGoTypePlan
+	Elem   *TypePlan
+	Key    *TypePlan
+	Value  *TypePlan
+}
+
+type TypeKind uint
+
+const (
+	TypeKindScalar TypeKind = iota
+	TypeKindEnum
+	TypeKindStruct
+	TypeKindExternal
+	TypeKindCustom
+	TypeKindPointer
+	TypeKindSlice
+	TypeKindMap
+	TypeKindOmittable
+)
+
+type ScalarKind uint
+
+const (
+	ScalarKindBool    ScalarKind = iota
+	ScalarKindInt32              // from int32, sint32, sfixed32
+	ScalarKindInt64              // from int64, sint64, sfixed64
+	ScalarKindUint32             // from uint32, fixed32
+	ScalarKindUint64             // from uint64, fixed64
+	ScalarKindFloat32            // from float
+	ScalarKindFloat64            // from double
+	ScalarKindString             // from string
+	ScalarKindBytes              // from bytes
+)
+
+type GoTypeRef struct {
+	ImportPath string
+	Name       string
+}
+
+type CustomGoTypePlan struct {
+	Ref       GoTypeRef
+	FromProto GoSymbolRef
+	ToProto   GoSymbolRef
+}
+
+type GoSymbolRef struct {
+	ImportPath string
+	Name       string
+	Receiver   string
+}
+
+type StructTagPlan struct {
+	Key   string
+	Value string
+}
 
 // Diagnostic is a generalized type used for presenting helpful messages to Morph consumers to help
 // them find and fix issues found during planning.
