@@ -40,6 +40,7 @@ message Ticket {
   string description = 3 [(tego.field).go_type = {
     ref: "Description"
     comparable: true
+    as_pointer: true
   }];
   TicketStatus status = 4;
   NullablePerson assignee = 5;

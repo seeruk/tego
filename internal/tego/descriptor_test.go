@@ -182,6 +182,12 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.Equal(t, "Description", description.Options.GetGoType().GetRef())
 		assert.True(t, description.Options.GetGoType().HasComparable())
 		assert.True(t, description.Options.GetGoType().GetComparable())
+		assert.True(t, description.Options.GetGoType().HasAsPointer())
+		assert.True(t, description.Options.GetGoType().GetAsPointer())
+
+		goType := &tegopb.GoType{}
+		assert.False(t, goType.HasAsPointer())
+		assert.False(t, goType.GetAsPointer())
 
 		assignee := fieldByName(t, input, "assignee")
 		require.True(t, assignee.HasOptions())

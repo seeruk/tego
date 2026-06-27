@@ -149,4 +149,8 @@ message GoType {
   string to_proto = 3;
   // comparable may be set to true when this custom Go type is valid as a Go map key.
   bool comparable = 4;
+  // as_pointer may be set to true when this custom Go type should always be used as a pointer in
+  // generated Go code. For example, ref github.com/example/project/pkg.MyType will be planned as
+  // *pkg.MyType.
+  bool as_pointer = 5;
 }

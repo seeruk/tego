@@ -217,7 +217,8 @@ func (b *shapeIndexBuilder) isComparableField(field *ProtoField) bool {
 	}
 
 	if field.Options.HasGoType() {
-		return field.Options.GetGoType().GetComparable()
+		goType := field.Options.GetGoType()
+		return goType.GetComparable() || goType.GetAsPointer()
 	}
 
 	switch field.Kind {
@@ -256,7 +257,8 @@ func (b *shapeIndexBuilder) isComparableMessageField(field *ProtoField) bool {
 	}
 
 	if field.Message.Options.HasGoType() {
-		return field.Message.Options.GetGoType().GetComparable()
+		goType := field.Message.Options.GetGoType()
+		return goType.GetComparable() || goType.GetAsPointer()
 	}
 
 	switch b.classifyMessage(field.Message) {

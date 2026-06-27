@@ -137,7 +137,9 @@ func TestMapShapeHelpers(t *testing.T) {
 		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", nullableOneofMessage()))))
 		assert.True(t, builder.isMapShape(mapShapeWithKey(nullableMessageField("key", nonComparableStructMessage()))))
 		assert.True(t, builder.isMapShape(mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", true))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(fieldWithGoTypeAsPointer("key", protoreflect.MessageKind, "Key"))))
 		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoType("Key", true)))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoTypeAsPointer("Key")))))
 
 		assert.False(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.BytesKind))))
 		assert.False(t, builder.isMapShape(mapShapeWithKey(repeatedField("key", protoreflect.StringKind))))
@@ -305,6 +307,12 @@ func messageWithGoTypeRef(ref string) *ProtoMessage {
 	return &ProtoMessage{Options: options}
 }
 
+func messageWithGoTypeAsPointer(ref string) *ProtoMessage {
+	options := &tegopb.MessageOptions{}
+	options.SetGoType(goTypeAsPointer(ref))
+	return &ProtoMessage{Options: options}
+}
+
 func field(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	return &ProtoField{
 		Name: name,
@@ -361,6 +369,14 @@ func fieldWithGoTypeRef(name protoreflect.Name, kind protoreflect.Kind, ref stri
 	return field
 }
 
+func fieldWithGoTypeAsPointer(name protoreflect.Name, kind protoreflect.Kind, ref string) *ProtoField {
+	field := field(name, kind)
+	options := &tegopb.FieldOptions{}
+	options.SetGoType(goTypeAsPointer(ref))
+	field.Options = options
+	return field
+}
+
 func goType(ref string, comparable bool) *tegopb.GoType {
 	goType := &tegopb.GoType{}
 	goType.SetRef(ref)
@@ -371,6 +387,12 @@ func goType(ref string, comparable bool) *tegopb.GoType {
 func goTypeRef(ref string) *tegopb.GoType {
 	goType := &tegopb.GoType{}
 	goType.SetRef(ref)
+	return goType
+}
+
+func goTypeAsPointer(ref string) *tegopb.GoType {
+	goType := goTypeRef(ref)
+	goType.SetAsPointer(true)
 	return goType
 }
 
