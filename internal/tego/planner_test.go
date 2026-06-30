@@ -1,6 +1,7 @@
 package tego
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/seeruk/tego/tegopb"
@@ -30,16 +31,27 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 			Path:          "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
 			GeneratorPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
 		}, file.Output)
-		assert.Empty(t, file.Diagnostics)
+		require.Len(t, file.Diagnostics, 1)
+		assert.Equal(t, DiagnosticLevelWarning, file.Diagnostics[0].Level)
+		assert.Equal(t, "yirapb.v1.TicketInput.assignee", file.Diagnostics[0].Path)
+		assert.Contains(t, file.Diagnostics[0].Message, "cannot preserve null")
 	})
 
 	t.Run("includes enum plans", func(t *testing.T) {
-		require.Len(t, file.Enums, 1)
+		require.Len(t, file.Enums, 2)
 		assert.Equal(t, protoreflect.FullName("yirapb.v1.TicketStatus"), file.Enums[0].ProtoName)
+
+		visibility := enumByProtoName(t, file, "yirapb.v1.Ticket.Visibility")
+		assert.Equal(t, "TicketVisibility", visibility.Name)
+		public := enumConstantByProtoName(t, visibility, "yirapb.v1.Ticket.VISIBILITY_PUBLIC")
+		assert.Equal(t, "TicketVisibilityPublic", public.Name)
 	})
 
 	t.Run("includes ordinary struct plans", func(t *testing.T) {
 		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket.AuditEvent"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket.History"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket.History.Entry"))
 		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.TicketInput"))
 		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Person"))
 
@@ -48,9 +60,69 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.False(t, hasStructPlan(file, "yirapb.v1.TicketsByPeople"))
 	})
 
+	t.Run("includes ordinary mapping plans", func(t *testing.T) {
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket.AuditEvent"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket.History"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket.History.Entry"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.TicketInput"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Person"))
+
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.NullablePerson"))
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.People"))
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.TicketsByPeople"))
+	})
+
+	t.Run("plans mapping function names and errability", func(t *testing.T) {
+		ticket := mappingByProtoName(t, file, "yirapb.v1.Ticket")
+		assert.Equal(t, "TicketFromProto", ticket.FromProto.Name)
+		assert.Equal(t, "TicketToProto", ticket.ToProto.Name)
+		assert.Equal(t, "t", ticket.ToProto.ReceiverName)
+		assert.True(t, ticket.FromProto.CanError)
+		assert.True(t, ticket.ToProto.CanError)
+
+		person := mappingByProtoName(t, file, "yirapb.v1.Person")
+		assert.Equal(t, "PersonFromProto", person.FromProto.Name)
+		assert.Equal(t, "PersonToProto", person.ToProto.Name)
+		assert.Equal(t, "p", person.ToProto.ReceiverName)
+		assert.False(t, person.FromProto.CanError)
+		assert.False(t, person.ToProto.CanError)
+
+		request := mappingByProtoName(t, file, "yirapb.v1.UpdateTicketRequest")
+		assert.Equal(t, "utr", request.ToProto.ReceiverName)
+	})
+
+	t.Run("plans representative field mappings", func(t *testing.T) {
+		ticket := mappingByProtoName(t, file, "yirapb.v1.Ticket")
+
+		id := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.id")
+		assert.Equal(t, "ID", id.Name)
+		assert.Equal(t, "Id", id.Proto.Name)
+		assert.Equal(t, MappingValueKindDirect, id.FromProto.Kind)
+
+		description := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.description")
+		assert.Equal(t, MappingValueKindCustom, description.FromProto.Kind)
+		assert.True(t, description.FromProto.CanError)
+		assert.True(t, description.ToProto.CanError)
+
+		status := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.status")
+		assert.Equal(t, MappingValueKindEnum, status.FromProto.Kind)
+		assert.Equal(t, MappingValueKindEnum, status.ToProto.Kind)
+
+		assignee := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.assignee")
+		assert.Equal(t, MappingValueKindNullable, assignee.FromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, assignee.ToProto.Kind)
+
+		reviewer := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.reviewer")
+		assert.Equal(t, MappingValueKindOneof, reviewer.FromProto.Kind)
+		require.NotNil(t, reviewer.FromProto.Oneof)
+		require.Len(t, reviewer.FromProto.Oneof.Variants, 1)
+		assert.Equal(t, "TicketInternal", reviewer.FromProto.Oneof.Variants[0].Name)
+	})
+
 	t.Run("plans field tags and scalar types", func(t *testing.T) {
 		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
-		require.Len(t, ticket.Fields, 11)
+		require.Len(t, ticket.Fields, 17)
 
 		id := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.id")
 		assert.Equal(t, "ID", id.Name)
@@ -62,6 +134,11 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		title := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.title")
 		require.Len(t, title.Tags, 1)
 		assert.Equal(t, StructTagPlan{Key: "json", Value: "title,omitempty"}, title.Tags[0])
+
+		reviewer := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.reviewer")
+		assert.Equal(t, "Reviewer", reviewer.Name)
+		assert.Equal(t, TypeKindOneof, reviewer.Type.Kind)
+		assert.Equal(t, "TicketReviewer", reviewer.Type.Ref.Name)
 	})
 
 	t.Run("plans custom enum struct map and slice types", func(t *testing.T) {
@@ -75,10 +152,12 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 
 		status := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.status")
 		assert.Equal(t, TypeKindEnum, status.Type.Kind)
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1", status.Type.Ref.ImportPath)
 		assert.Equal(t, "TicketStatus", status.Type.Ref.Name)
 
 		assignee := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.assignee")
 		assigneeElem := requirePointerElem(t, assignee.Type, TypeKindStruct)
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1", assigneeElem.Ref.ImportPath)
 		assert.Equal(t, "Person", assigneeElem.Ref.Name)
 
 		metadata := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.metadata")
@@ -94,6 +173,31 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.Equal(t, "WatcherIDs", watcherIDs.Name)
 		assert.Equal(t, TypeKindSlice, watcherIDs.Type.Kind)
 		assert.Equal(t, ScalarKindString, watcherIDs.Type.Elem.Scalar)
+
+		labels := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.labels")
+		assert.Equal(t, TypeKindCustom, labels.Type.Kind)
+		assert.Equal(t, GoTypeRef{
+			ImportPath: plannerTestPkg,
+			Name:       "Set",
+			Args:       []GoTypeRef{{ImportPath: plannerTestPkg, Name: "CustomString"}},
+		}, labels.Type.Ref)
+
+		visibility := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.visibility")
+		assert.Equal(t, TypeKindEnum, visibility.Type.Kind)
+		assert.Equal(t, "TicketVisibility", visibility.Type.Ref.Name)
+
+		auditEvents := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.audit_events")
+		assert.Equal(t, TypeKindSlice, auditEvents.Type.Kind)
+		assert.Equal(t, TypeKindStruct, auditEvents.Type.Elem.Kind)
+		assert.Equal(t, "TicketAuditEvent", auditEvents.Type.Elem.Ref.Name)
+
+		history := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.history")
+		assert.Equal(t, TypeKindStruct, history.Type.Kind)
+		assert.Equal(t, "TicketHistory", history.Type.Ref.Name)
+
+		latestHistoryEntry := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.latest_history_entry")
+		assert.Equal(t, TypeKindStruct, latestHistoryEntry.Type.Kind)
+		assert.Equal(t, "TicketHistoryEntry", latestHistoryEntry.Type.Ref.Name)
 	})
 
 	t.Run("plans omittable input fields", func(t *testing.T) {
@@ -119,6 +223,110 @@ func hasStructPlan(file FilePlan, name protoreflect.FullName) bool {
 		}
 	}
 	return false
+}
+
+func hasMappingPlan(file FilePlan, name protoreflect.FullName) bool {
+	for _, mapping := range file.Mappings {
+		if mapping.ProtoName == name {
+			return true
+		}
+	}
+	return false
+}
+
+func enumByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) EnumPlan {
+	t.Helper()
+
+	for _, enum := range file.Enums {
+		if enum.ProtoName == name {
+			return enum
+		}
+	}
+
+	t.Fatalf("enum %q not found", name)
+	return EnumPlan{}
+}
+
+func TestPlannerPlanNestedDeclarations(t *testing.T) {
+	t.Run("uses explicit nested declaration names", func(t *testing.T) {
+		file := protoFileWithOutput("nested.proto", "github.com/example/nested;nested", "")
+		parent := plannerMessage("example.v1.Parent", "Parent")
+		child := plannerMessage("example.v1.Parent.Child", "Child")
+		child.Options.SetName("Inner")
+		status := protoEnum("example.v1.Parent.Status", "Status")
+		status.Parent = parent
+		status.Options.SetName("State")
+		child.Parent = parent
+		parent.Messages = []*ProtoMessage{child}
+		parent.Enums = []*ProtoEnum{status}
+		attachMessagesToFile(file, parent)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.Empty(t, plan.Diagnostics)
+		assert.Equal(t, "Inner", structByProtoName(t, plan, "example.v1.Parent.Child").Name)
+		assert.Equal(t, "State", enumByProtoName(t, plan, "example.v1.Parent.Status").Name)
+	})
+
+	t.Run("reports planned name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("nested.proto", "github.com/example/nested;nested", "")
+		fooBar := plannerMessage("example.v1.FooBar", "FooBar")
+		foo := plannerMessage("example.v1.Foo", "Foo")
+		bar := plannerMessage("example.v1.Foo.Bar", "Bar")
+		bar.Parent = foo
+		foo.Messages = []*ProtoMessage{bar}
+		attachMessagesToFile(file, fooBar, foo)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, plan.Diagnostics[len(plan.Diagnostics)-1].Message, `planned Go name "FooBar"`)
+	})
+}
+
+func TestPlannerPlanOneofDeclarations(t *testing.T) {
+	t.Run("collects oneof plans", func(t *testing.T) {
+		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
+		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		plannerOneof(event, "value", field("comment", protoreflect.StringKind))
+		attachMessagesToFile(file, event)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.Len(t, plan.Oneofs, 1)
+		assert.Equal(t, "TicketEventValue", plan.Oneofs[0].Name)
+		assert.Equal(t, "TicketEventValue", fieldPlanByProtoName(t, plan.Structs[0], "example.v1.TicketEvent.value").Type.Ref.Name)
+		assert.Empty(t, plan.Diagnostics)
+	})
+
+	t.Run("reports oneof interface name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
+		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		plannerOneof(event, "value", field("comment", protoreflect.StringKind))
+		eventValue := plannerMessage("example.v1.TicketEventValue", "TicketEventValue")
+		attachMessagesToFile(file, event, eventValue)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketEventValue"`)
+	})
+
+	t.Run("reports oneof variant name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
+		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		plannerOneof(event, "value", field("status", protoreflect.StringKind))
+		eventStatus := plannerMessage("example.v1.TicketEventStatus", "TicketEventStatus")
+		attachMessagesToFile(file, event, eventStatus)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketEventStatus"`)
+	})
 }
 
 func TestPlannerPlanFileOutput(t *testing.T) {
@@ -219,4 +427,39 @@ func protoFileWithOutput(protoPath, goPackage, outputPath string) *ProtoFile {
 		Generate: true,
 		Options:  options,
 	}
+}
+
+func attachMessagesToFile(file *ProtoFile, messages ...*ProtoMessage) {
+	file.Messages = messages
+	for _, message := range messages {
+		attachMessageToFile(file, message)
+	}
+}
+
+func attachMessageToFile(file *ProtoFile, message *ProtoMessage) {
+	message.File = file
+	for _, enum := range message.Enums {
+		enum.File = file
+	}
+	for _, oneof := range message.Oneofs {
+		oneof.File = file
+		for _, field := range oneof.Fields {
+			field.File = file
+		}
+	}
+	for _, field := range message.Fields {
+		field.File = file
+	}
+	for _, nested := range message.Messages {
+		attachMessageToFile(file, nested)
+	}
+}
+
+func diagnosticsText(diagnostics []Diagnostic) string {
+	var out strings.Builder
+	for _, diagnostic := range diagnostics {
+		out.WriteString(diagnostic.Message)
+		out.WriteByte('\n')
+	}
+	return out.String()
 }

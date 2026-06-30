@@ -1,6 +1,9 @@
 package tego
 
 import (
+	"strings"
+
+	"github.com/danielgtaylor/casing"
 	"github.com/seeruk/tego/tegopb"
 	"google.golang.org/protobuf/compiler/protogen"
 )
@@ -77,12 +80,12 @@ func (p *Planner) planEnumConstant(value *ProtoEnumValue, underlying EnumUnderly
 		),
 	}
 
-	diagnostics := enumConstantValue(value, underlying, plan.Name, &plan.Value)
+	diagnostics := enumConstantValue(value, underlying, enumName, plan.Name, &plan.Value)
 
 	return plan, diagnostics, true
 }
 
-func enumConstantValue(value *ProtoEnumValue, underlying EnumUnderlyingType, plannedName string, out *EnumConstantValue) []Diagnostic {
+func enumConstantValue(value *ProtoEnumValue, underlying EnumUnderlyingType, enumName, plannedName string, out *EnumConstantValue) []Diagnostic {
 	switch underlying {
 	case EnumUnderlyingTypeUint:
 		if value.Options.HasValue() && !value.Options.HasUint() {
@@ -109,7 +112,7 @@ func enumConstantValue(value *ProtoEnumValue, underlying EnumUnderlyingType, pla
 		if value.Options.HasString() {
 			out.String = value.Options.GetString()
 		} else {
-			out.String = plannedName
+			out.String = casingScreamingSnake(strings.TrimPrefix(plannedName, enumName))
 		}
 	}
 
@@ -136,4 +139,9 @@ func enumValueLeadingComment(value *ProtoEnumValue) protogen.Comments {
 		return ""
 	}
 	return value.Desc.Comments.Leading
+}
+
+func casingScreamingSnake(value string, transforms ...casing.TransformFunc) string {
+	transforms = append(transforms, strings.ToUpper)
+	return casing.Join(casing.MergeNumbers(casing.Split(value)), "_", transforms...)
 }

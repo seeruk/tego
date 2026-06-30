@@ -1,0 +1,113 @@
+package tego
+
+import (
+	"testing"
+
+	"github.com/seeruk/tego/tegopb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+)
+
+func TestPlannerPlanOneofs(t *testing.T) {
+	t.Run("plans oneof interface field and variants", func(t *testing.T) {
+		message := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		person := plannerMessage("example.v1.Person", "Person")
+		status := protoEnum("example.v1.TicketStatus", "TicketStatus")
+		oneof := plannerOneof(
+			message, "value",
+			field("comment", protoreflect.StringKind),
+			enumField("status", status),
+			messageField("assignee", person),
+			fieldWithPlannerGoType("label", plannerGoType(
+				plannerTestPkg+".CustomString",
+				plannerTestPkg+".CustomStringFromProto",
+				plannerTestPkg+".CustomStringToProto",
+				false,
+			)),
+		)
+
+		structPlan, diagnostics, ok := NewPlanner().planStruct(message, &ShapeIndex{})
+		require.True(t, ok)
+		require.Empty(t, diagnostics)
+		require.Len(t, structPlan.Fields, 1)
+		assert.Equal(t, "Value", structPlan.Fields[0].Name)
+		assert.Equal(t, TypeKindOneof, structPlan.Fields[0].Type.Kind)
+		assert.Equal(t, "TicketEventValue", structPlan.Fields[0].Type.Ref.Name)
+
+		oneofPlan, diagnostics := NewPlanner().planOneof(oneof, &ShapeIndex{})
+		require.Empty(t, diagnostics)
+		assert.Equal(t, "TicketEventValue", oneofPlan.Name)
+		assert.Equal(t, "isTicketEventValue", oneofPlan.MarkerMethod)
+		require.Len(t, oneofPlan.Variants, 4)
+		assert.Equal(t, "TicketEventComment", oneofPlan.Variants[0].Name)
+		assert.Equal(t, "Comment", oneofPlan.Variants[0].FieldName)
+		assert.Equal(t, ScalarKindString, oneofPlan.Variants[0].Type.Scalar)
+		assert.Equal(t, "TicketEventStatus", oneofPlan.Variants[1].Name)
+		assert.Equal(t, TypeKindEnum, oneofPlan.Variants[1].Type.Kind)
+		assert.Equal(t, "TicketEventAssignee", oneofPlan.Variants[2].Name)
+		assert.Equal(t, TypeKindStruct, oneofPlan.Variants[2].Type.Kind)
+		assert.Equal(t, "TicketEventLabel", oneofPlan.Variants[3].Name)
+		assert.Equal(t, TypeKindCustom, oneofPlan.Variants[3].Type.Kind)
+	})
+
+	t.Run("uses casing helpers for multi word names", func(t *testing.T) {
+		message := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		oneof := plannerOneof(
+			message, "api_response",
+			field("http_url", protoreflect.StringKind),
+			field("status_comment", protoreflect.StringKind),
+		)
+
+		structPlan, diagnostics, ok := NewPlanner().planStruct(message, &ShapeIndex{})
+		require.True(t, ok)
+		require.Empty(t, diagnostics)
+		require.Len(t, structPlan.Fields, 1)
+		assert.Equal(t, "APIResponse", structPlan.Fields[0].Name)
+		assert.Equal(t, "TicketEventAPIResponse", structPlan.Fields[0].Type.Ref.Name)
+
+		oneofPlan, diagnostics := NewPlanner().planOneof(oneof, &ShapeIndex{})
+		require.Empty(t, diagnostics)
+		assert.Equal(t, "TicketEventAPIResponse", oneofPlan.Name)
+		require.Len(t, oneofPlan.Variants, 2)
+		assert.Equal(t, "TicketEventHTTPURL", oneofPlan.Variants[0].Name)
+		assert.Equal(t, "HTTPURL", oneofPlan.Variants[0].FieldName)
+		assert.Equal(t, "TicketEventStatusComment", oneofPlan.Variants[1].Name)
+		assert.Equal(t, "StatusComment", oneofPlan.Variants[1].FieldName)
+	})
+
+	t.Run("omits oneof variants", func(t *testing.T) {
+		message := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		oneof := plannerOneof(
+			message, "value",
+			field("comment", protoreflect.StringKind),
+			omittedPlannerField(field("internal_note", protoreflect.StringKind)),
+		)
+
+		oneofPlan, diagnostics := NewPlanner().planOneof(oneof, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		require.Len(t, oneofPlan.Variants, 1)
+		assert.Equal(t, "TicketEventComment", oneofPlan.Variants[0].Name)
+	})
+
+	t.Run("allows all variants to be omitted", func(t *testing.T) {
+		message := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		oneof := plannerOneof(
+			message, "value",
+			omittedPlannerField(field("comment", protoreflect.StringKind)),
+		)
+
+		oneofPlan, diagnostics := NewPlanner().planOneof(oneof, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Empty(t, oneofPlan.Variants)
+	})
+}
+
+func omittedPlannerField(field *ProtoField) *ProtoField {
+	options := &tegopb.FieldOptions{}
+	options.SetOmit(true)
+	field.Options = options
+	return field
+}

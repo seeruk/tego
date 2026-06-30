@@ -146,11 +146,11 @@ Tego sees that as three shape layers:
 Each shape unwraps one layer. The final Go type is the result of flattening those layers from the
 inside out.
 
-## Mapping With Morph
+## Mapping
 
-Tego owns shape inference and code generation. Morph does not need to understand Tego's shape rules
-directly.
+Tego owns shape inference, type generation, and protobuf/Tego mapping generation. Shape wrappers are
+flattened in the generated Go types, and Tego-generated mapping code will bridge those flattened
+types back to the explicit protobuf wrapper messages.
 
-Instead, Tego will generate bespoke helper functions for each shape that is actually used. Morph can
-treat those helpers as ordinary callables and compose them with normal struct mapping. Morph will
-then take care of the proto-to-Go mapping, and vice versa.
+Mapping is generated from the same planned shape information as the type declarations. External
+mapping tools do not need to understand Tego's shape rules.

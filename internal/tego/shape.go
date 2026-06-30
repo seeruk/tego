@@ -74,6 +74,12 @@ func (b *shapeIndexBuilder) indexMessage(message *ProtoMessage) error {
 		b.index.Slices[message.FullName] = message
 	}
 
+	for _, nested := range message.Messages {
+		if err := b.indexMessage(nested); err != nil {
+			return fmt.Errorf("indexing message %s: %w", nested.FullName, err)
+		}
+	}
+
 	return nil
 }
 
@@ -92,7 +98,7 @@ func (b *shapeIndexBuilder) classifyMessage(message *ProtoMessage) shapeKind {
 	defer delete(b.active, message)
 
 	kind := shapeKindNone
-	if !message.Options.HasInferShape() || message.Options.GetInferShape() {
+	if !message.Options.HasGoType() && (!message.Options.HasInferShape() || message.Options.GetInferShape()) {
 		switch {
 		case isNullableShape(message):
 			kind = shapeKindNullable
@@ -253,6 +259,7 @@ func (b *shapeIndexBuilder) isComparableMessageField(field *ProtoField) bool {
 	}
 
 	if field.Options.HasNullable() && field.Options.GetNullable() {
+		// Nullable message fields become pointers in generated Go, so they are comparable map keys.
 		return true
 	}
 

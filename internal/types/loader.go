@@ -30,6 +30,16 @@ func WithPackagesConfig(config *packages.Config) LoaderOption {
 	}
 }
 
+// WithDir sets the directory packages are loaded from.
+func WithDir(dir string) LoaderOption {
+	return func(loader *Loader) {
+		if dir == "" {
+			return
+		}
+		loader.config = &packages.Config{Dir: dir}
+	}
+}
+
 // NewLoader returns a new Loader instance.
 func NewLoader(opts ...LoaderOption) *Loader {
 	loader := &Loader{

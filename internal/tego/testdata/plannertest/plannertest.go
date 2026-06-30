@@ -4,9 +4,16 @@ type Description string
 
 type CustomString string
 
+type Set[T any] struct {
+	Values []T
+}
+
+type Box[T any] struct {
+	Value T
+}
+
 func DescriptionFromProto(value string) (*Description, error) {
-	description := Description(value)
-	return &description, nil
+	return new(Description(value)), nil
 }
 
 func DescriptionToProto(value *Description) (string, error) {
@@ -25,8 +32,7 @@ func CustomStringToProto(value CustomString) string {
 }
 
 func CustomStringPointerFromProto(value string) *CustomString {
-	custom := CustomString(value)
-	return &custom
+	return new(CustomString(value))
 }
 
 func CustomStringPointerToProto(value *CustomString) string {
@@ -34,6 +40,45 @@ func CustomStringPointerToProto(value *CustomString) string {
 		return ""
 	}
 	return string(*value)
+}
+
+func CustomStringSetFromProto(values []string) (Set[CustomString], error) {
+	set := Set[CustomString]{Values: make([]CustomString, 0, len(values))}
+	for _, value := range values {
+		set.Values = append(set.Values, CustomString(value))
+	}
+	return set, nil
+}
+
+func CustomStringSetToProto(value Set[CustomString]) ([]string, error) {
+	values := make([]string, 0, len(value.Values))
+	for _, item := range value.Values {
+		values = append(values, string(item))
+	}
+	return values, nil
+}
+
+func CustomStringSetPointerFromProto(value string) *Set[CustomString] {
+	return &Set[CustomString]{Values: []CustomString{CustomString(value)}}
+}
+
+func CustomStringSetPointerToProto(value *Set[CustomString]) string {
+	if value == nil || len(value.Values) == 0 {
+		return ""
+	}
+	return string(value.Values[0])
+}
+
+func CustomStringBoxFromProto(value string) Box[*[]*CustomString] {
+	values := []*CustomString{new(CustomString(value))}
+	return Box[*[]*CustomString]{Value: &values}
+}
+
+func CustomStringBoxToProto(value Box[*[]*CustomString]) string {
+	if value.Value == nil || len(*value.Value) == 0 || (*value.Value)[0] == nil {
+		return ""
+	}
+	return string(*(*value.Value)[0])
 }
 
 func (value CustomString) ToProtoMethod() string {

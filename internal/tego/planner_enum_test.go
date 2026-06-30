@@ -115,7 +115,7 @@ func TestPlannerPlanEnum(t *testing.T) {
 		require.Empty(t, diagnostics)
 		assert.Equal(t, EnumUnderlyingTypeString, plan.Underlying)
 		require.Len(t, plan.Constants, 2)
-		assert.Equal(t, "StatusOpen", plan.Constants[0].Value.String)
+		assert.Equal(t, "OPEN", plan.Constants[0].Value.String)
 		assert.Equal(t, "closed", plan.Constants[1].Value.String)
 	})
 

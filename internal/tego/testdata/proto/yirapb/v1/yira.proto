@@ -25,6 +25,26 @@ enum TicketStatus {
 }
 
 message Ticket {
+  enum Visibility {
+    VISIBILITY_UNSPECIFIED = 0;
+    VISIBILITY_PUBLIC = 1;
+    VISIBILITY_PRIVATE = 2;
+  }
+
+  message AuditEvent {
+    string actor = 1;
+    TicketStatus status = 2;
+  }
+
+  message History {
+    message Entry {
+      string note = 1;
+      Visibility visibility = 2;
+    }
+
+    repeated Entry entries = 1;
+  }
+
   string id = 1 [(tego.field) = {
     tags: {
       key: "json"
@@ -52,6 +72,26 @@ message Ticket {
   map<string, Person> watchers_by_role = 9;
   map<string, TicketStatus> workflow_statuses = 10;
   repeated string watcher_ids = 11;
+  repeated string labels = 12 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/internal/tego/testdata/plannertest.Set[T]"
+    type_args: {
+      key: "T"
+      value: {
+        type: "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomString"
+      }
+    }
+    from_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomStringSetFromProto"
+    to_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomStringSetToProto"
+  }];
+  Visibility visibility = 13;
+  repeated AuditEvent audit_events = 14;
+  History history = 15;
+  History.Entry latest_history_entry = 16;
+
+  oneof reviewer {
+    Person internal = 17;
+    string external_ref = 18 [(tego.field).omit = true];
+  }
 }
 
 message UpdateTicketRequest {
@@ -60,7 +100,7 @@ message UpdateTicketRequest {
 }
 
 message TicketInput {
-  option (tego.message).fields_omittable = true;
+  option (tego.message).fields.omittable = true;
 
   string title = 2;
   string description = 3;

@@ -6,6 +6,7 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/go/protovalidate v1.2.0
 	github.com/danielgtaylor/casing v1.0.0
+	github.com/sebdah/goldie/v2 v2.8.0
 	golang.org/x/tools v0.47.0
 	google.golang.org/protobuf v1.36.11
 )
@@ -14,6 +15,7 @@ require (
 	cel.dev/expr v0.25.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/google/cel-go v0.28.0 // indirect
+	github.com/sergi/go-diff v1.4.0 // indirect
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect

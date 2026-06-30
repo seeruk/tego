@@ -71,22 +71,84 @@ func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
 	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 
 	for _, enum := range file.Enums {
-		enumPlan, diagnostics, ok := p.planEnum(enum)
-		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
-		if ok {
-			plan.Enums = append(plan.Enums, enumPlan)
-		}
+		p.planFileEnum(&plan, enum)
 	}
 
 	for _, message := range file.Messages {
-		structPlan, diagnostics, ok := p.planStruct(message, si)
-		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
-		if ok {
-			plan.Structs = append(plan.Structs, structPlan)
-		}
+		p.planFileMessage(&plan, message, si)
 	}
 
+	plan.Diagnostics = append(plan.Diagnostics, plannedNameCollisionDiagnostics(plan)...)
 	return plan
+}
+
+func (p *Planner) planFileEnum(plan *FilePlan, enum *ProtoEnum) {
+	enumPlan, diagnostics, ok := p.planEnum(enum)
+	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+	if ok {
+		plan.Enums = append(plan.Enums, enumPlan)
+	}
+}
+
+func (p *Planner) planFileMessage(plan *FilePlan, message *ProtoMessage, si *ShapeIndex) {
+	for _, enum := range message.Enums {
+		p.planFileEnum(plan, enum)
+	}
+
+	structPlan, diagnostics, ok := p.planStruct(message, si)
+	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+	if ok {
+		for _, oneof := range message.Oneofs {
+			p.planFileOneof(plan, oneof, si)
+		}
+		plan.Structs = append(plan.Structs, structPlan)
+		plan.Mappings = append(plan.Mappings, p.planMapping(message, structPlan, si))
+	}
+
+	for _, nested := range message.Messages {
+		p.planFileMessage(plan, nested, si)
+	}
+}
+
+func (p *Planner) planFileOneof(plan *FilePlan, oneof *ProtoOneof, si *ShapeIndex) {
+	oneofPlan, diagnostics := p.planOneof(oneof, si)
+	plan.Oneofs = append(plan.Oneofs, oneofPlan)
+	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+}
+
+func plannedNameCollisionDiagnostics(plan FilePlan) []Diagnostic {
+	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs))
+	var diagnostics []Diagnostic
+
+	for _, enum := range plan.Enums {
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, enum.Name, string(enum.ProtoName))...)
+	}
+	for _, oneof := range plan.Oneofs {
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, oneof.Name, string(oneof.ProtoName))...)
+		for _, variant := range oneof.Variants {
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, variant.Name, string(variant.ProtoName))...)
+		}
+	}
+	for _, structure := range plan.Structs {
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, structure.Name, string(structure.ProtoName))...)
+	}
+
+	return diagnostics
+}
+
+func plannedNameCollisionDiagnostic(plan FilePlan, seen map[string]string, name, owner string) []Diagnostic {
+	if previous, ok := seen[name]; ok {
+		return []Diagnostic{fatalDiagnostic(
+			plan.ProtoPath,
+			"planned Go name %q is used by both %s and %s",
+			name,
+			previous,
+			owner,
+		)}
+	}
+
+	seen[name] = owner
+	return nil
 }
 
 func packageRef(goPackage string) PackageRef {
@@ -225,6 +287,14 @@ func plannedComment(explicit string, hasExplicit bool, source protogen.Comments,
 func fatalDiagnostic(path, format string, args ...any) Diagnostic {
 	return Diagnostic{
 		Level:   DiagnosticLevelFatal,
+		Path:    path,
+		Message: fmt.Sprintf(format, args...),
+	}
+}
+
+func warningDiagnostic(path, format string, args ...any) Diagnostic {
+	return Diagnostic{
+		Level:   DiagnosticLevelWarning,
 		Path:    path,
 		Message: fmt.Sprintf(format, args...),
 	}

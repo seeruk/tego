@@ -155,8 +155,8 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		input := requireMessage(t, index, "yirapb.v1.TicketInput")
 		require.True(t, input.HasOptions())
 		require.NotNil(t, input.Options)
-		assert.True(t, input.Options.HasFieldsOmittable())
-		assert.True(t, input.Options.GetFieldsOmittable())
+		require.True(t, input.Options.HasFields())
+		assert.True(t, input.Options.GetFields().GetOmittable())
 	})
 
 	t.Run("resolves field options", func(t *testing.T) {
@@ -190,6 +190,13 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		goType := &tegopb.GoType{}
 		assert.False(t, goType.HasAsPointer())
 		assert.False(t, goType.GetAsPointer())
+
+		labels := fieldByName(t, ticket, "labels")
+		require.True(t, labels.HasOptions())
+		require.NotNil(t, labels.Options.GetGoType())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.Set[T]", labels.Options.GetGoType().GetRef())
+		require.Contains(t, labels.Options.GetGoType().GetTypeArgs(), "T")
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomString", labels.Options.GetGoType().GetTypeArgs()["T"].GetType())
 
 		assignee := fieldByName(t, input, "assignee")
 		require.True(t, assignee.HasOptions())

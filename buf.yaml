@@ -2,6 +2,7 @@
 version: v2
 
 modules:
+- path: lab
 - path: proto
 - path: internal/tego/testdata/proto
 

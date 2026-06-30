@@ -34,6 +34,64 @@ func TestLoaderType(t *testing.T) {
 	})
 }
 
+func TestLoaderTypeExpr(t *testing.T) {
+	t.Run("resolves generic type expression", func(t *testing.T) {
+		loader := NewLoader()
+
+		expr, err := loader.TypeExpr(loaderTestPkg+".Set[T]", map[string]string{
+			"T": loaderTestPkg + ".Example",
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, "Set", expr.Name)
+		require.Len(t, expr.Args, 1)
+		assert.Equal(t, "Example", expr.Args[0].Name)
+		assert.NotNil(t, expr.Type)
+	})
+
+	t.Run("resolves pointer and slice type arguments", func(t *testing.T) {
+		loader := NewLoader()
+
+		expr, err := loader.TypeExpr(loaderTestPkg+".Box[*[]*T]", map[string]string{
+			"T": loaderTestPkg + ".Example",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, expr.Args, 1)
+		arg := expr.Args[0]
+		require.Equal(t, TypeExprKindPointer, arg.Kind)
+		require.Equal(t, TypeExprKindSlice, arg.Elem.Kind)
+		require.Equal(t, TypeExprKindPointer, arg.Elem.Elem.Kind)
+		assert.Equal(t, "Example", arg.Elem.Elem.Elem.Name)
+	})
+
+	t.Run("rejects missing and unused type arguments", func(t *testing.T) {
+		loader := NewLoader()
+
+		_, missingErr := loader.TypeExpr(loaderTestPkg+".Set[T]", nil)
+		_, unusedErr := loader.TypeExpr(loaderTestPkg+".Example", map[string]string{"T": loaderTestPkg + ".Example"})
+
+		require.Error(t, missingErr)
+		assert.Contains(t, missingErr.Error(), "no type argument")
+		require.Error(t, unusedErr)
+		assert.Contains(t, unusedErr.Error(), "unused")
+	})
+
+	t.Run("rejects malformed expressions and arity mismatches", func(t *testing.T) {
+		loader := NewLoader()
+
+		_, malformedErr := loader.TypeExpr("map[string]string", nil)
+		_, arityErr := loader.TypeExpr(loaderTestPkg+".Pair[T]", map[string]string{
+			"T": loaderTestPkg + ".Example",
+		})
+
+		require.Error(t, malformedErr)
+		assert.Contains(t, malformedErr.Error(), "cannot have type arguments")
+		require.Error(t, arityErr)
+		assert.Contains(t, arityErr.Error(), "requires 2 type arguments")
+	})
+}
+
 func TestLoaderFunction(t *testing.T) {
 	t.Run("resolves package function", func(t *testing.T) {
 		loader := NewLoader()
@@ -98,6 +156,21 @@ func TestLoaderMethod(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, first, second)
+	})
+}
+
+func TestLoaderOptions(t *testing.T) {
+	t.Run("sets package loading dir", func(t *testing.T) {
+		loader := NewLoader(WithDir("."))
+
+		require.NotNil(t, loader.config)
+		assert.Equal(t, ".", loader.config.Dir)
+	})
+
+	t.Run("ignores empty dir", func(t *testing.T) {
+		loader := NewLoader(WithDir(""))
+
+		assert.Nil(t, loader.config)
 	})
 }
 

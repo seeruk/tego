@@ -163,8 +163,8 @@ type FileOptions_builder struct {
 	// go_package works the same way the top-level `go_package` option works, but is required to
 	// control where Tego will generate its output.
 	GoPackage *string
-	// output_path is used to specify the output path for the generated Go code.
-	// TODO: Is this one necessary?
+	// output_path is used to specify a full generated Go file path relative to the plugin output
+	// root. When unset, Tego derives the output path from go_package and the proto filename.
 	OutputPath *string
 }
 
@@ -669,17 +669,17 @@ func (*enumValueOptions_Int) isEnumValueOptions_Value() {}
 func (*enumValueOptions_String_) isEnumValueOptions_Value() {}
 
 type MessageOptions struct {
-	state                      protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Name            *string                `protobuf:"bytes,1,opt,name=name"`
-	xxx_hidden_Comment         *string                `protobuf:"bytes,2,opt,name=comment"`
-	xxx_hidden_GoType          *GoType                `protobuf:"bytes,3,opt,name=go_type,json=goType"`
-	xxx_hidden_Omit            bool                   `protobuf:"varint,4,opt,name=omit"`
-	xxx_hidden_FieldsOmittable bool                   `protobuf:"varint,5,opt,name=fields_omittable,json=fieldsOmittable"`
-	xxx_hidden_InferShape      bool                   `protobuf:"varint,6,opt,name=infer_shape,json=inferShape,def=1"`
-	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
-	XXX_presence               [1]uint32
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Comment     *string                `protobuf:"bytes,2,opt,name=comment"`
+	xxx_hidden_GoType      *GoType                `protobuf:"bytes,3,opt,name=go_type,json=goType"`
+	xxx_hidden_Omit        bool                   `protobuf:"varint,4,opt,name=omit"`
+	xxx_hidden_Fields      *MessageFieldsOptions  `protobuf:"bytes,5,opt,name=fields"`
+	xxx_hidden_InferShape  bool                   `protobuf:"varint,6,opt,name=infer_shape,json=inferShape,def=1"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 // Default values for MessageOptions fields.
@@ -746,11 +746,11 @@ func (x *MessageOptions) GetOmit() bool {
 	return false
 }
 
-func (x *MessageOptions) GetFieldsOmittable() bool {
+func (x *MessageOptions) GetFields() *MessageFieldsOptions {
 	if x != nil {
-		return x.xxx_hidden_FieldsOmittable
+		return x.xxx_hidden_Fields
 	}
-	return false
+	return nil
 }
 
 func (x *MessageOptions) GetInferShape() bool {
@@ -781,9 +781,8 @@ func (x *MessageOptions) SetOmit(v bool) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
-func (x *MessageOptions) SetFieldsOmittable(v bool) {
-	x.xxx_hidden_FieldsOmittable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+func (x *MessageOptions) SetFields(v *MessageFieldsOptions) {
+	x.xxx_hidden_Fields = v
 }
 
 func (x *MessageOptions) SetInferShape(v bool) {
@@ -819,11 +818,11 @@ func (x *MessageOptions) HasOmit() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *MessageOptions) HasFieldsOmittable() bool {
+func (x *MessageOptions) HasFields() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+	return x.xxx_hidden_Fields != nil
 }
 
 func (x *MessageOptions) HasInferShape() bool {
@@ -852,9 +851,8 @@ func (x *MessageOptions) ClearOmit() {
 	x.xxx_hidden_Omit = false
 }
 
-func (x *MessageOptions) ClearFieldsOmittable() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_FieldsOmittable = false
+func (x *MessageOptions) ClearFields() {
+	x.xxx_hidden_Fields = nil
 }
 
 func (x *MessageOptions) ClearInferShape() {
@@ -874,11 +872,8 @@ type MessageOptions_builder struct {
 	GoType *GoType
 	// omit indicates that this message should not generate a corresponding Go type.
 	Omit *bool
-	// fields_omittable indicates that the fields on this message should generate as omittable fields
-	// in the generated Go code by default. This is intended for types where you want to be able to
-	// identify presence of a field; for example, an input type for updating a resource where you only
-	// want to update the fields that are present in the input.
-	FieldsOmittable *bool
+	// fields is used to specify options that apply to the fields on this message.
+	Fields *MessageFieldsOptions
 	// infer_shape may be set to false to disable inferring a shape for this message. That means, Tego
 	// will not flatten this message when it's used as a field in another message based on the shape.
 	InferShape *bool
@@ -901,13 +896,89 @@ func (b0 MessageOptions_builder) Build() *MessageOptions {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
 		x.xxx_hidden_Omit = *b.Omit
 	}
-	if b.FieldsOmittable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
-		x.xxx_hidden_FieldsOmittable = *b.FieldsOmittable
-	}
+	x.xxx_hidden_Fields = b.Fields
 	if b.InferShape != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
 		x.xxx_hidden_InferShape = *b.InferShape
+	}
+	return m0
+}
+
+type MessageFieldsOptions struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Omittable   bool                   `protobuf:"varint,1,opt,name=omittable"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *MessageFieldsOptions) Reset() {
+	*x = MessageFieldsOptions{}
+	mi := &file_tego_options_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageFieldsOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageFieldsOptions) ProtoMessage() {}
+
+func (x *MessageFieldsOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_tego_options_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MessageFieldsOptions) GetOmittable() bool {
+	if x != nil {
+		return x.xxx_hidden_Omittable
+	}
+	return false
+}
+
+func (x *MessageFieldsOptions) SetOmittable(v bool) {
+	x.xxx_hidden_Omittable = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *MessageFieldsOptions) HasOmittable() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MessageFieldsOptions) ClearOmittable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Omittable = false
+}
+
+type MessageFieldsOptions_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// omittable indicates that the fields on this message should generate as omittable fields
+	// in the generated Go code by default. This is intended for types where you want to be able to
+	// identify presence of a field; for example, an input type for updating a resource where you only
+	// want to update the fields that are present in the input.
+	Omittable *bool
+}
+
+func (b0 MessageFieldsOptions_builder) Build() *MessageFieldsOptions {
+	m0 := &MessageFieldsOptions{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Omittable != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Omittable = *b.Omittable
 	}
 	return m0
 }
@@ -930,7 +1001,7 @@ type FieldOptions struct {
 
 func (x *FieldOptions) Reset() {
 	*x = FieldOptions{}
-	mi := &file_tego_options_proto_msgTypes[4]
+	mi := &file_tego_options_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +1013,7 @@ func (x *FieldOptions) String() string {
 func (*FieldOptions) ProtoMessage() {}
 
 func (x *FieldOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[4]
+	mi := &file_tego_options_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1206,7 +1277,7 @@ type GoJsonStructTag struct {
 
 func (x *GoJsonStructTag) Reset() {
 	*x = GoJsonStructTag{}
-	mi := &file_tego_options_proto_msgTypes[5]
+	mi := &file_tego_options_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1218,7 +1289,7 @@ func (x *GoJsonStructTag) String() string {
 func (*GoJsonStructTag) ProtoMessage() {}
 
 func (x *GoJsonStructTag) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[5]
+	mi := &file_tego_options_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1343,7 +1414,7 @@ type GoStructTag struct {
 
 func (x *GoStructTag) Reset() {
 	*x = GoStructTag{}
-	mi := &file_tego_options_proto_msgTypes[6]
+	mi := &file_tego_options_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1355,7 +1426,7 @@ func (x *GoStructTag) String() string {
 func (*GoStructTag) ProtoMessage() {}
 
 func (x *GoStructTag) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[6]
+	mi := &file_tego_options_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1449,6 +1520,7 @@ type GoType struct {
 	xxx_hidden_ToProto     *string                `protobuf:"bytes,3,opt,name=to_proto,json=toProto"`
 	xxx_hidden_Comparable  bool                   `protobuf:"varint,4,opt,name=comparable"`
 	xxx_hidden_AsPointer   bool                   `protobuf:"varint,5,opt,name=as_pointer,json=asPointer"`
+	xxx_hidden_TypeArgs    map[string]*GoTypeArg  `protobuf:"bytes,6,rep,name=type_args,json=typeArgs" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1457,7 +1529,7 @@ type GoType struct {
 
 func (x *GoType) Reset() {
 	*x = GoType{}
-	mi := &file_tego_options_proto_msgTypes[7]
+	mi := &file_tego_options_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1469,7 +1541,7 @@ func (x *GoType) String() string {
 func (*GoType) ProtoMessage() {}
 
 func (x *GoType) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[7]
+	mi := &file_tego_options_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1524,29 +1596,40 @@ func (x *GoType) GetAsPointer() bool {
 	return false
 }
 
+func (x *GoType) GetTypeArgs() map[string]*GoTypeArg {
+	if x != nil {
+		return x.xxx_hidden_TypeArgs
+	}
+	return nil
+}
+
 func (x *GoType) SetRef(v string) {
 	x.xxx_hidden_Ref = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *GoType) SetFromProto(v string) {
 	x.xxx_hidden_FromProto = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *GoType) SetToProto(v string) {
 	x.xxx_hidden_ToProto = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
 func (x *GoType) SetComparable(v bool) {
 	x.xxx_hidden_Comparable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
 func (x *GoType) SetAsPointer(v bool) {
 	x.xxx_hidden_AsPointer = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *GoType) SetTypeArgs(v map[string]*GoTypeArg) {
+	x.xxx_hidden_TypeArgs = v
 }
 
 func (x *GoType) HasRef() bool {
@@ -1612,9 +1695,9 @@ func (x *GoType) ClearAsPointer() {
 type GoType_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// ref is a reference to a Go type, which should be a fully-qualified Go type name, including
-	// the package path. For example: github.com/example/project/pkg.MyType. This must always refer
-	// to a non-pointer named type; use as_pointer to make Tego plan it as a pointer.
+	// ref is a reference to a Go type, which should be a fully-qualified Go type expression using
+	// Tego's supported subset. For example: github.com/example/project/pkg.MyType,
+	// github.com/example/project/pkg.Set[T], or github.com/example/project/pkg.Box[*[]*T].
 	Ref *string
 	// from_proto is a reference to a Go function that converts from the Go type generated by
 	// protoc-gen-go to the custom Go type specified in `ref`. The supported signatures are:
@@ -1636,6 +1719,8 @@ type GoType_builder struct {
 	// generated Go code. For example, ref github.com/example/project/pkg.MyType will be planned as
 	// *pkg.MyType.
 	AsPointer *bool
+	// type_args specifies concrete type expressions for generic type parameters used in ref.
+	TypeArgs map[string]*GoTypeArg
 }
 
 func (b0 GoType_builder) Build() *GoType {
@@ -1643,24 +1728,105 @@ func (b0 GoType_builder) Build() *GoType {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Ref != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_Ref = b.Ref
 	}
 	if b.FromProto != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_FromProto = b.FromProto
 	}
 	if b.ToProto != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_ToProto = b.ToProto
 	}
 	if b.Comparable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
 		x.xxx_hidden_Comparable = *b.Comparable
 	}
 	if b.AsPointer != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
 		x.xxx_hidden_AsPointer = *b.AsPointer
+	}
+	x.xxx_hidden_TypeArgs = b.TypeArgs
+	return m0
+}
+
+type GoTypeArg struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Type        *string                `protobuf:"bytes,1,opt,name=type"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GoTypeArg) Reset() {
+	*x = GoTypeArg{}
+	mi := &file_tego_options_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GoTypeArg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GoTypeArg) ProtoMessage() {}
+
+func (x *GoTypeArg) ProtoReflect() protoreflect.Message {
+	mi := &file_tego_options_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GoTypeArg) GetType() string {
+	if x != nil {
+		if x.xxx_hidden_Type != nil {
+			return *x.xxx_hidden_Type
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GoTypeArg) SetType(v string) {
+	x.xxx_hidden_Type = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GoTypeArg) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GoTypeArg) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Type = nil
+}
+
+type GoTypeArg_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// type is a concrete Go type expression using Tego's supported subset. For example:
+	// github.com/example/project/pkg.MyType, *github.com/example/project/pkg.MyType, or []*T.
+	Type *string
+}
+
+func (b0 GoTypeArg_builder) Build() *GoTypeArg {
+	m0 := &GoTypeArg{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Type = b.Type
 	}
 	return m0
 }
@@ -1760,15 +1926,17 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x04uint\x18\x04 \x01(\x04H\x00R\x04uint\x12\x12\n" +
 	"\x03int\x18\x05 \x01(\x03H\x00R\x03int\x12\x18\n" +
 	"\x06string\x18\x06 \x01(\tH\x00R\x06stringB\a\n" +
-	"\x05value\"\xcb\x01\n" +
+	"\x05value\"\xd4\x01\n" +
 	"\x0eMessageOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12%\n" +
 	"\ago_type\x18\x03 \x01(\v2\f.tego.GoTypeR\x06goType\x12\x12\n" +
-	"\x04omit\x18\x04 \x01(\bR\x04omit\x12)\n" +
-	"\x10fields_omittable\x18\x05 \x01(\bR\x0ffieldsOmittable\x12%\n" +
+	"\x04omit\x18\x04 \x01(\bR\x04omit\x122\n" +
+	"\x06fields\x18\x05 \x01(\v2\x1a.tego.MessageFieldsOptionsR\x06fields\x12%\n" +
 	"\vinfer_shape\x18\x06 \x01(\b:\x04trueR\n" +
-	"inferShape\"\x8a\x02\n" +
+	"inferShape\"4\n" +
+	"\x14MessageFieldsOptions\x12\x1c\n" +
+	"\tomittable\x18\x01 \x01(\bR\tomittable\"\x8a\x02\n" +
 	"\fFieldOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12%\n" +
@@ -1784,7 +1952,7 @@ const file_tego_options_proto_rawDesc = "" +
 	"\bomitzero\x18\x03 \x01(\bR\bomitzero\"5\n" +
 	"\vGoStructTag\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\x93\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\x9a\x02\n" +
 	"\x06GoType\x12\x10\n" +
 	"\x03ref\x18\x01 \x01(\tR\x03ref\x12\x1d\n" +
 	"\n" +
@@ -1794,7 +1962,13 @@ const file_tego_options_proto_rawDesc = "" +
 	"comparable\x18\x04 \x01(\bR\n" +
 	"comparable\x12\x1d\n" +
 	"\n" +
-	"as_pointer\x18\x05 \x01(\bR\tasPointer*\x98\x01\n" +
+	"as_pointer\x18\x05 \x01(\bR\tasPointer\x127\n" +
+	"\ttype_args\x18\x06 \x03(\v2\x1a.tego.GoType.TypeArgsEntryR\btypeArgs\x1aL\n" +
+	"\rTypeArgsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12%\n" +
+	"\x05value\x18\x02 \x01(\v2\x0f.tego.GoTypeArgR\x05value:\x028\x01\"\x1f\n" +
+	"\tGoTypeArg\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type*\x98\x01\n" +
 	"\x12EnumUnderlyingType\x12$\n" +
 	" ENUM_UNDERLYING_TYPE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19ENUM_UNDERLYING_TYPE_UINT\x10\x01\x12\x1c\n" +
@@ -1808,44 +1982,50 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18ڠ\x01 \x01(\v2\x12.tego.FieldOptionsR\x05fieldB&Z$github.com/seeruk/tego/tegopb;tegopbb\beditionsp\xe9\a"
 
 var file_tego_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tego_options_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_tego_options_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_tego_options_proto_goTypes = []any{
 	(EnumUnderlyingType)(0),               // 0: tego.EnumUnderlyingType
 	(*FileOptions)(nil),                   // 1: tego.FileOptions
 	(*EnumOptions)(nil),                   // 2: tego.EnumOptions
 	(*EnumValueOptions)(nil),              // 3: tego.EnumValueOptions
 	(*MessageOptions)(nil),                // 4: tego.MessageOptions
-	(*FieldOptions)(nil),                  // 5: tego.FieldOptions
-	(*GoJsonStructTag)(nil),               // 6: tego.GoJsonStructTag
-	(*GoStructTag)(nil),                   // 7: tego.GoStructTag
-	(*GoType)(nil),                        // 8: tego.GoType
-	(*descriptorpb.FileOptions)(nil),      // 9: google.protobuf.FileOptions
-	(*descriptorpb.EnumOptions)(nil),      // 10: google.protobuf.EnumOptions
-	(*descriptorpb.EnumValueOptions)(nil), // 11: google.protobuf.EnumValueOptions
-	(*descriptorpb.MessageOptions)(nil),   // 12: google.protobuf.MessageOptions
-	(*descriptorpb.FieldOptions)(nil),     // 13: google.protobuf.FieldOptions
+	(*MessageFieldsOptions)(nil),          // 5: tego.MessageFieldsOptions
+	(*FieldOptions)(nil),                  // 6: tego.FieldOptions
+	(*GoJsonStructTag)(nil),               // 7: tego.GoJsonStructTag
+	(*GoStructTag)(nil),                   // 8: tego.GoStructTag
+	(*GoType)(nil),                        // 9: tego.GoType
+	(*GoTypeArg)(nil),                     // 10: tego.GoTypeArg
+	nil,                                   // 11: tego.GoType.TypeArgsEntry
+	(*descriptorpb.FileOptions)(nil),      // 12: google.protobuf.FileOptions
+	(*descriptorpb.EnumOptions)(nil),      // 13: google.protobuf.EnumOptions
+	(*descriptorpb.EnumValueOptions)(nil), // 14: google.protobuf.EnumValueOptions
+	(*descriptorpb.MessageOptions)(nil),   // 15: google.protobuf.MessageOptions
+	(*descriptorpb.FieldOptions)(nil),     // 16: google.protobuf.FieldOptions
 }
 var file_tego_options_proto_depIdxs = []int32{
 	0,  // 0: tego.EnumOptions.underlying_type:type_name -> tego.EnumUnderlyingType
-	8,  // 1: tego.MessageOptions.go_type:type_name -> tego.GoType
-	8,  // 2: tego.FieldOptions.go_type:type_name -> tego.GoType
-	7,  // 3: tego.FieldOptions.tags:type_name -> tego.GoStructTag
-	6,  // 4: tego.FieldOptions.json_tag:type_name -> tego.GoJsonStructTag
-	9,  // 5: tego.file:extendee -> google.protobuf.FileOptions
-	10, // 6: tego.enum:extendee -> google.protobuf.EnumOptions
-	11, // 7: tego.enum_value:extendee -> google.protobuf.EnumValueOptions
-	12, // 8: tego.message:extendee -> google.protobuf.MessageOptions
-	13, // 9: tego.field:extendee -> google.protobuf.FieldOptions
-	1,  // 10: tego.file:type_name -> tego.FileOptions
-	2,  // 11: tego.enum:type_name -> tego.EnumOptions
-	3,  // 12: tego.enum_value:type_name -> tego.EnumValueOptions
-	4,  // 13: tego.message:type_name -> tego.MessageOptions
-	5,  // 14: tego.field:type_name -> tego.FieldOptions
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	10, // [10:15] is the sub-list for extension type_name
-	5,  // [5:10] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	9,  // 1: tego.MessageOptions.go_type:type_name -> tego.GoType
+	5,  // 2: tego.MessageOptions.fields:type_name -> tego.MessageFieldsOptions
+	9,  // 3: tego.FieldOptions.go_type:type_name -> tego.GoType
+	8,  // 4: tego.FieldOptions.tags:type_name -> tego.GoStructTag
+	7,  // 5: tego.FieldOptions.json_tag:type_name -> tego.GoJsonStructTag
+	11, // 6: tego.GoType.type_args:type_name -> tego.GoType.TypeArgsEntry
+	10, // 7: tego.GoType.TypeArgsEntry.value:type_name -> tego.GoTypeArg
+	12, // 8: tego.file:extendee -> google.protobuf.FileOptions
+	13, // 9: tego.enum:extendee -> google.protobuf.EnumOptions
+	14, // 10: tego.enum_value:extendee -> google.protobuf.EnumValueOptions
+	15, // 11: tego.message:extendee -> google.protobuf.MessageOptions
+	16, // 12: tego.field:extendee -> google.protobuf.FieldOptions
+	1,  // 13: tego.file:type_name -> tego.FileOptions
+	2,  // 14: tego.enum:type_name -> tego.EnumOptions
+	3,  // 15: tego.enum_value:type_name -> tego.EnumValueOptions
+	4,  // 16: tego.message:type_name -> tego.MessageOptions
+	6,  // 17: tego.field:type_name -> tego.FieldOptions
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	13, // [13:18] is the sub-list for extension type_name
+	8,  // [8:13] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_tego_options_proto_init() }
@@ -1864,7 +2044,7 @@ func file_tego_options_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tego_options_proto_rawDesc), len(file_tego_options_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   11,
 			NumExtensions: 5,
 			NumServices:   0,
 		},

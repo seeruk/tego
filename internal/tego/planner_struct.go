@@ -31,7 +31,8 @@ var wrapperScalarTypes = map[protoreflect.FullName]ScalarKind{
 }
 
 func (p *Planner) planStruct(message *ProtoMessage, si *ShapeIndex) (StructPlan, []Diagnostic, bool) {
-	if message.Options.GetOmit() || message.Options.HasGoType() || isIndexedShape(message, si) {
+	if message.Options.GetOmit() || message.Options.HasGoType() || isIndexedShape(message, si) ||
+		isIndexedMapEntryMessage(message, si) || isNativeMapEntryMessage(message) {
 		return StructPlan{}, nil, false
 	}
 
@@ -50,7 +51,16 @@ func (p *Planner) planStruct(message *ProtoMessage, si *ShapeIndex) (StructPlan,
 	}
 
 	var diagnostics []Diagnostic
+	plannedOneofs := make(map[*ProtoOneof]bool, len(message.Oneofs))
 	for _, field := range message.Fields {
+		if field.Oneof != nil {
+			if !plannedOneofs[field.Oneof] {
+				plan.Fields = append(plan.Fields, p.planOneofStructField(field.Oneof))
+				plannedOneofs[field.Oneof] = true
+			}
+			continue
+		}
+
 		fieldPlan, fieldDiagnostics, ok := p.planField(field, si)
 		diagnostics = append(diagnostics, fieldDiagnostics...)
 		if ok {
@@ -67,10 +77,7 @@ func (p *Planner) planField(field *ProtoField, si *ShapeIndex) (FieldPlan, []Dia
 	}
 
 	if field.Oneof != nil {
-		return FieldPlan{}, []Diagnostic{fatalDiagnostic(
-			string(field.FullName),
-			"oneof field planning is not currently supported",
-		)}, false
+		return FieldPlan{}, nil, false
 	}
 
 	fieldType, diagnostics := p.planFieldType(field, si)
@@ -100,6 +107,9 @@ func (p *Planner) planField(field *ProtoField, si *ShapeIndex) (FieldPlan, []Dia
 func (p *Planner) planFieldType(field *ProtoField, si *ShapeIndex) (TypePlan, []Diagnostic) {
 	plan, diagnostics := p.planFieldBaseType(field, si)
 
+	diagnostics = append(diagnostics, nullableOmittableDiagnostics(field, si)...)
+
+	// Keep nullable inside omittable, so nullable + omittable plans as omittable.Of[*T].
 	if field.Options.GetNullable() {
 		plan = pointerType(plan)
 	}
@@ -112,6 +122,18 @@ func (p *Planner) planFieldType(field *ProtoField, si *ShapeIndex) (TypePlan, []
 	}
 
 	return plan, diagnostics
+}
+
+func nullableOmittableDiagnostics(field *ProtoField, si *ShapeIndex) []Diagnostic {
+	if !field.Options.GetNullable() || !isOmittableField(field) || isNullableShapeMessage(field.Message, si) {
+		return nil
+	}
+
+	return []Diagnostic{warningDiagnostic(
+		string(field.FullName),
+		"nullable field option cannot preserve null when combined with omittable unless "+
+			"the field uses a nullable shape; omittable.Some(nil) will not round-trip as explicit null",
+	)}
 }
 
 func (p *Planner) planFieldBaseType(field *ProtoField, si *ShapeIndex) (TypePlan, []Diagnostic) {
@@ -137,6 +159,14 @@ func (p *Planner) planFieldBaseType(field *ProtoField, si *ShapeIndex) (TypePlan
 		}, diagnostics
 	}
 
+	return p.planSingularFieldType(field, si)
+}
+
+func (p *Planner) planRepeatedShapeElementType(field *ProtoField, si *ShapeIndex) (TypePlan, []Diagnostic) {
+	if field.Options.HasGoType() {
+		// Repeated shapes flatten the wrapper, so field-level go_type conversions apply per element.
+		return p.planCustomGoType(field.Options.GetGoType(), sourcePatternForSingularField(field), string(field.FullName))
+	}
 	return p.planSingularFieldType(field, si)
 }
 
@@ -174,7 +204,7 @@ func (p *Planner) planEnumType(field *ProtoField) TypePlan {
 		return TypePlan{}
 	}
 
-	if field.Enum.File.Generate {
+	if field.Enum.File == nil || field.Enum.File.Generate {
 		return TypePlan{
 			Kind: TypeKindEnum,
 			Ref:  plannedEnumRef(field.Enum),
@@ -220,15 +250,18 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		return p.planMapShape(message, si)
 	}
 
-	if message.Parent != nil {
+	if isIndexedMapEntryMessage(message, si) {
+		return p.planMapShape(message.Parent, si)
+	}
+
+	if isMapEntryMessage(message) {
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(
 			string(field.FullName),
-			"nested message planning is not supported yet for %s",
-			message.FullName,
+			"nested Map message planning is only supported inside a valid map shape",
 		)}
 	}
 
-	if message.File.Generate {
+	if message.File == nil || message.File.Generate {
 		return TypePlan{
 			Kind: TypeKindStruct,
 			Ref:  plannedStructRef(message),
@@ -259,7 +292,11 @@ func (p *Planner) planSliceShape(message *ProtoMessage, si *ShapeIndex) (TypePla
 	if len(message.Fields) != 1 {
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(string(message.FullName), "slice shape has no repeated field")}
 	}
-	return p.planFieldBaseType(message.Fields[0], si)
+	elem, diagnostics := p.planRepeatedShapeElementType(message.Fields[0], si)
+	return TypePlan{
+		Kind: TypeKindSlice,
+		Elem: &elem,
+	}, diagnostics
 }
 
 func (p *Planner) planMapShape(message *ProtoMessage, si *ShapeIndex) (TypePlan, []Diagnostic) {
@@ -298,44 +335,46 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 		return TypePlan{}, diagnostics
 	}
 
-	customType, err := p.typeLoader.Type(goType.GetRef())
+	customType, err := p.typeLoader.TypeExpr(goType.GetRef(), goTypeTypeArgs(goType))
 	if err != nil {
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve go_type ref: %s", err)}
 	}
 
-	customRef := GoTypeRef{
-		ImportPath: customType.ImportPath,
-		Name:       customType.Name,
-	}
-	customPattern := goTypePattern{named: &customRef}
+	customRef := goTypeRefFromTypeExpr(customType)
+	customPattern := goTypePattern{typ: customType.Type}
 	if goType.GetAsPointer() {
-		customBase := customPattern
-		customPattern = goTypePattern{pointer: &customBase}
+		customPattern = goTypePattern{pointer: new(customPattern)}
 	}
 
-	fromProto, err := p.typeLoader.Function(goType.GetFromProto())
-	if err != nil {
-		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "couldn't resolve go_type from_proto: %s", err))
-	} else {
-		diagnostics = append(diagnostics, validateFromProtoSignature(diagnosticPath, fromProto.Signature, source, customPattern)...)
-	}
-
-	toProtoRef, toProtoDiagnostics := p.resolveAndValidateToProto(diagnosticPath, goType.GetToProto(), source, customPattern)
+	fromProtoRef, fromProtoCanError, fromProtoDiagnostics := p.resolveAndValidateFromProto(
+		diagnosticPath,
+		goType.GetFromProto(),
+		source,
+		customPattern,
+	)
+	toProtoRef, toProtoCanError, toProtoDiagnostics := p.resolveAndValidateToProto(
+		diagnosticPath,
+		goType.GetToProto(),
+		source,
+		customPattern,
+	)
+	diagnostics = append(diagnostics, fromProtoDiagnostics...)
 	diagnostics = append(diagnostics, toProtoDiagnostics...)
 
 	customPlan := CustomGoTypePlan{
-		Ref: customRef,
-		FromProto: GoSymbolRef{
-			ImportPath: fromProtoImportPath(fromProto),
-			Name:       fromProtoName(fromProto),
-		},
-		ToProto: toProtoRef,
+		Ref:               customRef,
+		FromProto:         fromProtoRef,
+		FromProtoCanError: fromProtoCanError,
+		ToProto:           toProtoRef,
+		ToProtoCanError:   toProtoCanError,
 	}
+
 	plan := TypePlan{
 		Kind:   TypeKindCustom,
 		Ref:    customRef,
 		Custom: customPlan,
 	}
+
 	if goType.GetAsPointer() {
 		plan = pointerType(plan)
 	}
@@ -343,31 +382,58 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 	return plan, diagnostics
 }
 
+func goTypeTypeArgs(goType *tegopb.GoType) map[string]string {
+	if len(goType.GetTypeArgs()) == 0 {
+		return nil
+	}
+
+	args := make(map[string]string, len(goType.GetTypeArgs()))
+	for name, arg := range goType.GetTypeArgs() {
+		args[name] = arg.GetType()
+	}
+	return args
+}
+
+func (p *Planner) resolveAndValidateFromProto(
+	diagnosticPath string,
+	ref string,
+	source goTypePattern,
+	custom goTypePattern,
+) (GoSymbolRef, bool, []Diagnostic) {
+	fn, err := p.typeLoader.Function(ref)
+	if err != nil {
+		return GoSymbolRef{}, false, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve go_type from_proto: %s", err)}
+	}
+
+	diagnostics, canError := validateFromProtoSignature(diagnosticPath, fn.Signature, source, custom)
+	return GoSymbolRef{ImportPath: fn.ImportPath, Name: fn.Name}, canError, diagnostics
+}
+
 func (p *Planner) resolveAndValidateToProto(
 	diagnosticPath string,
 	ref string,
 	source goTypePattern,
 	custom goTypePattern,
-) (GoSymbolRef, []Diagnostic) {
+) (GoSymbolRef, bool, []Diagnostic) {
 	if fn, err := p.typeLoader.Function(ref); err == nil {
-		diagnostics := validateToProtoFunctionSignature(diagnosticPath, fn.Signature, custom, source)
-		return GoSymbolRef{ImportPath: fn.ImportPath, Name: fn.Name}, diagnostics
+		diagnostics, canError := validateToProtoFunctionSignature(diagnosticPath, fn.Signature, custom, source)
+		return GoSymbolRef{ImportPath: fn.ImportPath, Name: fn.Name}, canError, diagnostics
 	}
 
 	method, err := p.typeLoader.Method(ref)
 	if err != nil {
-		return GoSymbolRef{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve go_type to_proto: %s", err)}
+		return GoSymbolRef{}, false, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve go_type to_proto: %s", err)}
 	}
 
-	diagnostics := validateToProtoMethodSignature(diagnosticPath, method.Signature, custom, source)
+	diagnostics, canError := validateToProtoMethodSignature(diagnosticPath, method.Signature, custom, source)
 	return GoSymbolRef{
 		ImportPath: method.ImportPath,
 		Receiver:   method.Receiver,
 		Name:       method.Name,
-	}, diagnostics
+	}, canError, diagnostics
 }
 
-func validateFromProtoSignature(path string, sig *gotypes.Signature, source, custom goTypePattern) []Diagnostic {
+func validateFromProtoSignature(path string, sig *gotypes.Signature, source, custom goTypePattern) ([]Diagnostic, bool) {
 	var diagnostics []Diagnostic
 	if sig.Params().Len() != 1 {
 		diagnostics = append(diagnostics, fatalDiagnostic(path, "go_type from_proto must accept exactly one parameter"))
@@ -375,12 +441,12 @@ func validateFromProtoSignature(path string, sig *gotypes.Signature, source, cus
 		diagnostics = append(diagnostics, fatalDiagnostic(path, "go_type from_proto parameter has wrong type"))
 	}
 
-	validateResults := validateConversionResults(path, "from_proto", sig.Results(), custom)
+	validateResults, canError := validateConversionResults(path, "from_proto", sig.Results(), custom)
 	diagnostics = append(diagnostics, validateResults...)
-	return diagnostics
+	return diagnostics, canError
 }
 
-func validateToProtoFunctionSignature(path string, sig *gotypes.Signature, custom, source goTypePattern) []Diagnostic {
+func validateToProtoFunctionSignature(path string, sig *gotypes.Signature, custom, source goTypePattern) ([]Diagnostic, bool) {
 	var diagnostics []Diagnostic
 	if sig.Params().Len() != 1 {
 		diagnostics = append(diagnostics, fatalDiagnostic(path, "go_type to_proto function must accept exactly one parameter"))
@@ -388,12 +454,12 @@ func validateToProtoFunctionSignature(path string, sig *gotypes.Signature, custo
 		diagnostics = append(diagnostics, fatalDiagnostic(path, "go_type to_proto parameter has wrong type"))
 	}
 
-	validateResults := validateConversionResults(path, "to_proto", sig.Results(), source)
+	validateResults, canError := validateConversionResults(path, "to_proto", sig.Results(), source)
 	diagnostics = append(diagnostics, validateResults...)
-	return diagnostics
+	return diagnostics, canError
 }
 
-func validateToProtoMethodSignature(path string, sig *gotypes.Signature, custom, source goTypePattern) []Diagnostic {
+func validateToProtoMethodSignature(path string, sig *gotypes.Signature, custom, source goTypePattern) ([]Diagnostic, bool) {
 	var diagnostics []Diagnostic
 	if sig.Recv() == nil {
 		diagnostics = append(diagnostics, fatalDiagnostic(path, "go_type to_proto method has no receiver"))
@@ -404,22 +470,22 @@ func validateToProtoMethodSignature(path string, sig *gotypes.Signature, custom,
 		diagnostics = append(diagnostics, fatalDiagnostic(path, "go_type to_proto method must not accept parameters"))
 	}
 
-	validateResults := validateConversionResults(path, "to_proto", sig.Results(), source)
+	validateResults, canError := validateConversionResults(path, "to_proto", sig.Results(), source)
 	diagnostics = append(diagnostics, validateResults...)
-	return diagnostics
+	return diagnostics, canError
 }
 
-func validateConversionResults(path, name string, results *gotypes.Tuple, expected goTypePattern) []Diagnostic {
+func validateConversionResults(path, name string, results *gotypes.Tuple, expected goTypePattern) ([]Diagnostic, bool) {
 	if results.Len() != 1 && results.Len() != 2 {
-		return []Diagnostic{fatalDiagnostic(path, "go_type %s must return value or value and error", name)}
+		return []Diagnostic{fatalDiagnostic(path, "go_type %s must return value or value and error", name)}, false
 	}
 	if !expected.matches(results.At(0).Type()) {
-		return []Diagnostic{fatalDiagnostic(path, "go_type %s result has wrong type", name)}
+		return []Diagnostic{fatalDiagnostic(path, "go_type %s result has wrong type", name)}, false
 	}
 	if results.Len() == 2 && !isErrorType(results.At(1).Type()) {
-		return []Diagnostic{fatalDiagnostic(path, "go_type %s second result must be error", name)}
+		return []Diagnostic{fatalDiagnostic(path, "go_type %s second result must be error", name)}, false
 	}
-	return nil
+	return nil, results.Len() == 2
 }
 
 func messageLeadingComment(message *ProtoMessage) protogen.Comments {
@@ -481,7 +547,14 @@ func isOmittableField(field *ProtoField) bool {
 	if field.Options.HasOmittable() {
 		return field.Options.GetOmittable()
 	}
-	return field.Parent != nil && field.Parent.Options.GetFieldsOmittable()
+	return field.Parent != nil && messageFieldOptionsOmittable(field.Parent.Options)
+}
+
+func messageFieldOptionsOmittable(options *tegopb.MessageOptions) bool {
+	if !options.HasFields() {
+		return false
+	}
+	return options.GetFields().GetOmittable()
 }
 
 func isIndexedShape(message *ProtoMessage, si *ShapeIndex) bool {
@@ -498,6 +571,25 @@ func isIndexedShape(message *ProtoMessage, si *ShapeIndex) bool {
 		return true
 	}
 	return false
+}
+
+func isIndexedMapEntryMessage(message *ProtoMessage, si *ShapeIndex) bool {
+	if !isMapEntryMessage(message) || si == nil {
+		return false
+	}
+	if si.Maps[message.Parent.FullName] != message.Parent {
+		return false
+	}
+	_, _, ok := mapFields(message)
+	return ok
+}
+
+func isNativeMapEntryMessage(message *ProtoMessage) bool {
+	return message != nil && message.Desc != nil && message.Desc.Desc != nil && message.Desc.Desc.IsMapEntry()
+}
+
+func isMapEntryMessage(message *ProtoMessage) bool {
+	return message != nil && message.Parent != nil && message.Name == "Map"
 }
 
 func pointerType(plan TypePlan) TypePlan {
@@ -528,13 +620,25 @@ func externalType(importPath, name string) TypePlan {
 }
 
 func plannedEnumRef(enum *ProtoEnum) GoTypeRef {
-	ref := protoEnumRef(enum)
+	var ref GoTypeRef
+	if enum.Desc != nil {
+		ref = protoEnumRef(enum)
+	}
+	if enum.File != nil && enum.File.Options != nil && enum.File.Options.HasGoPackage() {
+		ref.ImportPath = packageRef(enum.File.Options.GetGoPackage()).ImportPath
+	}
 	ref.Name = plannedEnumName(enum)
 	return ref
 }
 
 func plannedStructRef(message *ProtoMessage) GoTypeRef {
-	ref := protoMessageRef(message)
+	var ref GoTypeRef
+	if message.Desc != nil {
+		ref = protoMessageRef(message)
+	}
+	if message.File != nil && message.File.Options != nil && message.File.Options.HasGoPackage() {
+		ref.ImportPath = packageRef(message.File.Options.GetGoPackage()).ImportPath
+	}
 	ref.Name = plannedMessageName(message)
 	return ref
 }
@@ -553,21 +657,30 @@ func protoMessageRef(message *ProtoMessage) GoTypeRef {
 	}
 }
 
-func fromProtoImportPath(function *types.Function) string {
-	if function == nil {
-		return ""
+func goTypeRefFromTypeExpr(expr *types.TypeExpr) GoTypeRef {
+	if expr == nil {
+		return GoTypeRef{}
 	}
-	return function.ImportPath
-}
 
-func fromProtoName(function *types.Function) string {
-	if function == nil {
-		return ""
+	switch expr.Kind {
+	case types.TypeExprKindPointer:
+		return GoTypeRef{Pointer: new(goTypeRefFromTypeExpr(expr.Elem))}
+	case types.TypeExprKindSlice:
+		return GoTypeRef{Slice: new(goTypeRefFromTypeExpr(expr.Elem))}
+	default:
+		ref := GoTypeRef{
+			ImportPath: expr.ImportPath,
+			Name:       expr.Name,
+		}
+		for _, arg := range expr.Args {
+			ref.Args = append(ref.Args, goTypeRefFromTypeExpr(&arg))
+		}
+		return ref
 	}
-	return function.Name
 }
 
 type goTypePattern struct {
+	typ     gotypes.Type
 	basic   gotypes.BasicKind
 	named   *GoTypeRef
 	pointer *goTypePattern
@@ -578,6 +691,8 @@ type goTypePattern struct {
 
 func (p goTypePattern) matches(typ gotypes.Type) bool {
 	switch {
+	case p.typ != nil:
+		return gotypes.Identical(p.typ, typ)
 	case p.named != nil:
 		named, ok := typ.(*gotypes.Named)
 		if !ok {

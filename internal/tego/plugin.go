@@ -3,12 +3,25 @@ package tego
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/seeruk/tego/internal/protogenx"
+	"github.com/seeruk/tego/internal/types"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/pluginpb"
 )
 
 func RunPlugin(plugin *protogen.Plugin) error {
+	return runPlugin(plugin, os.Stderr)
+}
+
+func runPlugin(plugin *protogen.Plugin, diagnostics io.Writer) error {
+	plugin.SupportedFeatures = uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS)
+	plugin.SupportedEditionsMinimum = descriptorpb.Edition_EDITION_2023
+	plugin.SupportedEditionsMaximum = descriptorpb.Edition_EDITION_2024
+
 	rawParams := plugin.Request.GetParameter()
 	if protogenx.HasParameterValue(rawParams, "paths", "source_relative") {
 		// Using source_relative would generate invalid results, as we're going to generated
@@ -29,6 +42,7 @@ func RunPlugin(plugin *protogen.Plugin) error {
 
 	opts := []PlannerOption{
 		WithModulePath(modulePath(rawParams)),
+		WithTypeLoader(newTypeLoader(rawParams)),
 	}
 
 	plan, err := NewPlanner(opts...).Plan(di, si)
@@ -36,9 +50,14 @@ func RunPlugin(plugin *protogen.Plugin) error {
 		return fmt.Errorf("plan: %w", err)
 	}
 
-	_ = plan
+	if err := writeDiagnostics(diagnostics, plan); err != nil {
+		return fmt.Errorf("write diagnostics: %w", err)
+	}
 
-	// TODO: Generation code...
+	if err := Generate(plugin, plan); err != nil {
+		return fmt.Errorf("generate: %w", err)
+	}
+
 	return nil
 }
 
@@ -48,4 +67,34 @@ func modulePath(params string) string {
 		return ""
 	}
 	return modulePath
+}
+
+func moduleRoot(params string) string {
+	moduleRoot, ok := protogenx.ParameterValue(params, "module_root")
+	if !ok {
+		return ""
+	}
+	return moduleRoot
+}
+
+func newTypeLoader(params string) *types.Loader {
+	return types.NewLoader(types.WithDir(moduleRoot(params)))
+}
+
+func writeDiagnostics(w io.Writer, plan Plan) error {
+	diagnostics := planDiagnostics(plan)
+	if len(diagnostics) == 0 {
+		return nil
+	}
+
+	_, err := fmt.Fprintf(w, "diagnostics:\n%s\n", formatDiagnostics(diagnostics))
+	return err
+}
+
+func planDiagnostics(plan Plan) []Diagnostic {
+	var diagnostics []Diagnostic
+	for _, file := range plan.Files {
+		diagnostics = append(diagnostics, file.Diagnostics...)
+	}
+	return diagnostics
 }

@@ -44,6 +44,22 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		assert.Equal(t, TypeKindPointer, plan.Value.Elem.Kind)
 	})
 
+	t.Run("flattens indexed map entry messages", func(t *testing.T) {
+		parent, entry := plannerMapShape()
+		shapeIndex := &ShapeIndex{
+			Nullables: map[protoreflect.FullName]*ProtoMessage{},
+			Maps:      map[protoreflect.FullName]*ProtoMessage{parent.FullName: parent},
+			Slices:    map[protoreflect.FullName]*ProtoMessage{},
+		}
+
+		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("entries", entry), shapeIndex)
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindMap, plan.Kind)
+		assert.Equal(t, ScalarKindString, plan.Key.Scalar)
+		assert.Equal(t, ScalarKindInt64, plan.Value.Scalar)
+	})
+
 	t.Run("maps well known types", func(t *testing.T) {
 		planner := NewPlanner()
 		shapeIndex := &ShapeIndex{}
@@ -116,15 +132,14 @@ func TestPlannerPlanStructComments(t *testing.T) {
 }
 
 func TestPlannerPlanFieldDiagnostics(t *testing.T) {
-	t.Run("reports unsupported ordinary oneof", func(t *testing.T) {
+	t.Run("skips oneof member fields", func(t *testing.T) {
 		field := messageWithOneof(field("value", protoreflect.StringKind)).Fields[0]
 		field.FullName = "example.v1.Message.value"
 
 		_, diagnostics, ok := NewPlanner().planField(field, &ShapeIndex{})
 
 		assert.False(t, ok)
-		require.Len(t, diagnostics, 1)
-		assert.Contains(t, diagnostics[0].Message, "oneof field planning is not currently supported")
+		assert.Empty(t, diagnostics)
 	})
 
 	t.Run("reports conflicting json tags", func(t *testing.T) {
@@ -144,6 +159,115 @@ func TestPlannerPlanFieldDiagnostics(t *testing.T) {
 		assert.True(t, ok)
 		require.Len(t, diagnostics, 1)
 		assert.Contains(t, diagnostics[0].Message, "json_tag conflicts")
+	})
+
+	t.Run("warns when message-level omittable nullable field cannot preserve null", func(t *testing.T) {
+		parent := plannerMessage("example.v1.Message", "Message")
+		setMessageFieldOptionsOmittable(parent.Options, true)
+		field := nullableMessageField("person", plannerMessage("example.v1.Person", "Person"))
+		field.FullName = "example.v1.Message.person"
+		field.Parent = parent
+
+		_, diagnostics, ok := NewPlanner().planField(field, &ShapeIndex{})
+
+		assert.True(t, ok)
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, DiagnosticLevelWarning, diagnostics[0].Level)
+		assert.Contains(t, diagnostics[0].Message, "cannot preserve null")
+	})
+
+	t.Run("warns when field-level omittable nullable field cannot preserve null", func(t *testing.T) {
+		field := nullableMessageField("person", plannerMessage("example.v1.Person", "Person"))
+		field.FullName = "example.v1.Message.person"
+		field.Options.SetOmittable(true)
+
+		_, diagnostics, ok := NewPlanner().planField(field, &ShapeIndex{})
+
+		assert.True(t, ok)
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, DiagnosticLevelWarning, diagnostics[0].Level)
+		assert.Contains(t, diagnostics[0].Message, "cannot preserve null")
+	})
+
+	t.Run("warns when scalar nullable omittable field cannot preserve null", func(t *testing.T) {
+		field := nullableOmittableField("title", protoreflect.StringKind)
+		field.FullName = "example.v1.Message.title"
+
+		_, diagnostics, ok := NewPlanner().planField(field, &ShapeIndex{})
+
+		assert.True(t, ok)
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, DiagnosticLevelWarning, diagnostics[0].Level)
+		assert.Contains(t, diagnostics[0].Message, "cannot preserve null")
+	})
+
+	t.Run("does not warn when message-level omittable is disabled on field", func(t *testing.T) {
+		parent := plannerMessage("example.v1.Message", "Message")
+		setMessageFieldOptionsOmittable(parent.Options, true)
+		field := nullableMessageField("person", plannerMessage("example.v1.Person", "Person"))
+		field.FullName = "example.v1.Message.person"
+		field.Parent = parent
+		field.Options.SetOmittable(false)
+
+		_, diagnostics, ok := NewPlanner().planField(field, &ShapeIndex{})
+
+		assert.True(t, ok)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("does not warn when nullable shape can preserve null", func(t *testing.T) {
+		nullable := plannerMessage("example.v1.NullablePerson", "NullablePerson")
+		nullable.Fields = []*ProtoField{field("value", protoreflect.StringKind), field("valid", protoreflect.BoolKind)}
+		field := nullableMessageField("person", nullable)
+		field.FullName = "example.v1.Message.person"
+		field.Options.SetOmittable(true)
+		shapeIndex := &ShapeIndex{
+			Nullables: map[protoreflect.FullName]*ProtoMessage{nullable.FullName: nullable},
+		}
+
+		_, diagnostics, ok := NewPlanner().planField(field, shapeIndex)
+
+		assert.True(t, ok)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("does not warn for non-nullable omittable fields", func(t *testing.T) {
+		field := field("title", protoreflect.StringKind)
+		field.FullName = "example.v1.Message.title"
+		field.Options = &tegopb.FieldOptions{}
+		field.Options.SetOmittable(true)
+
+		_, diagnostics, ok := NewPlanner().planField(field, &ShapeIndex{})
+
+		assert.True(t, ok)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("plans ordinary nested message refs", func(t *testing.T) {
+		parent := plannerMessage("example.v1.Parent", "Parent")
+		nested := plannerMessage("example.v1.Parent.Nested", "Nested")
+		nested.Parent = parent
+
+		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("nested", nested), &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindStruct, plan.Kind)
+		assert.Equal(t, "ParentNested", plan.Ref.Name)
+	})
+
+	t.Run("does not bypass malformed map entry messages", func(t *testing.T) {
+		parent, entry := plannerMapShape()
+		shapeIndex := &ShapeIndex{
+			Nullables: map[protoreflect.FullName]*ProtoMessage{},
+			Maps:      map[protoreflect.FullName]*ProtoMessage{},
+			Slices:    map[protoreflect.FullName]*ProtoMessage{},
+		}
+
+		_, diagnostics := NewPlanner().planSingularFieldType(messageField("entries", entry), shapeIndex)
+
+		require.Len(t, diagnostics, 1)
+		assert.NotContains(t, shapeIndex.Maps, parent.FullName)
+		assert.Contains(t, diagnostics[0].Message, "valid map shape")
 	})
 }
 
@@ -176,6 +300,85 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 		require.Empty(t, diagnostics)
 		elem := requirePointerElem(t, plan, TypeKindCustom)
 		assert.Equal(t, GoSymbolRef{ImportPath: plannerTestPkg, Receiver: "CustomString", Name: "ToProtoPointerMethod"}, elem.Custom.ToProto)
+	})
+
+	t.Run("accepts generic type expressions on repeated fields", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoTypeWithArgs(
+			plannerTestPkg+".Set[T]",
+			map[string]string{"T": plannerTestPkg + ".CustomString"},
+			plannerTestPkg+".CustomStringSetFromProto",
+			plannerTestPkg+".CustomStringSetToProto",
+			false,
+		))
+		field.Cardinality = protoreflect.Repeated
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.Equal(t, GoTypeRef{
+			ImportPath: plannerTestPkg,
+			Name:       "Set",
+			Args:       []GoTypeRef{{ImportPath: plannerTestPkg, Name: "CustomString"}},
+		}, plan.Ref)
+	})
+
+	t.Run("accepts pointer and slice generic arguments", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoTypeWithArgs(
+			plannerTestPkg+".Box[*[]*T]",
+			map[string]string{"T": plannerTestPkg + ".CustomString"},
+			plannerTestPkg+".CustomStringBoxFromProto",
+			plannerTestPkg+".CustomStringBoxToProto",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		require.Len(t, plan.Ref.Args, 1)
+		arg := plan.Ref.Args[0]
+		require.NotNil(t, arg.Pointer)
+		require.NotNil(t, arg.Pointer.Slice)
+		require.NotNil(t, arg.Pointer.Slice.Pointer)
+		assert.Equal(t, "CustomString", arg.Pointer.Slice.Pointer.Name)
+	})
+
+	t.Run("accepts as pointer on generic type expressions", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoTypeWithArgs(
+			plannerTestPkg+".Set[T]",
+			map[string]string{"T": plannerTestPkg + ".CustomString"},
+			plannerTestPkg+".CustomStringSetPointerFromProto",
+			plannerTestPkg+".CustomStringSetPointerToProto",
+			true,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		elem := requirePointerElem(t, plan, TypeKindCustom)
+		assert.Equal(t, "Set", elem.Ref.Name)
+		require.Len(t, elem.Ref.Args, 1)
+		assert.Equal(t, "CustomString", elem.Ref.Args[0].Name)
+	})
+
+	t.Run("uses generic field go type as slice shape element", func(t *testing.T) {
+		field := fieldWithPlannerGoType("values", plannerGoTypeWithArgs(
+			plannerTestPkg+".Box[*[]*T]",
+			map[string]string{"T": plannerTestPkg + ".CustomString"},
+			plannerTestPkg+".CustomStringBoxFromProto",
+			plannerTestPkg+".CustomStringBoxToProto",
+			false,
+		))
+		field.Cardinality = protoreflect.Repeated
+		message := messageWithFields(field)
+
+		plan, diagnostics := NewPlanner().planSliceShape(message, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindSlice, plan.Kind)
+		require.NotNil(t, plan.Elem)
+		assert.Equal(t, TypeKindCustom, plan.Elem.Kind)
+		assert.Equal(t, "Box", plan.Elem.Ref.Name)
 	})
 
 	t.Run("reports invalid conversions", func(t *testing.T) {
@@ -228,6 +431,28 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 					false,
 				),
 				diagnostic: "second result must be error",
+			},
+			{
+				name: "missing type argument",
+				goType: plannerGoTypeWithArgs(
+					plannerTestPkg+".Set[T]",
+					nil,
+					plannerTestPkg+".CustomStringSetFromProto",
+					plannerTestPkg+".CustomStringSetToProto",
+					false,
+				),
+				diagnostic: "no type argument",
+			},
+			{
+				name: "unused type argument",
+				goType: plannerGoTypeWithArgs(
+					plannerTestPkg+".CustomString",
+					map[string]string{"T": plannerTestPkg + ".CustomString"},
+					plannerTestPkg+".CustomStringFromProto",
+					plannerTestPkg+".CustomStringToProto",
+					false,
+				),
+				diagnostic: "unused",
 			},
 		}
 
@@ -300,6 +525,18 @@ func plannerGoType(ref, fromProto, toProto string, asPointer bool) *tegopb.GoTyp
 	return goType
 }
 
+func plannerGoTypeWithArgs(ref string, args map[string]string, fromProto, toProto string, asPointer bool) *tegopb.GoType {
+	goType := plannerGoType(ref, fromProto, toProto, asPointer)
+	typeArgs := make(map[string]*tegopb.GoTypeArg, len(args))
+	for name, typ := range args {
+		arg := &tegopb.GoTypeArg{}
+		arg.SetType(typ)
+		typeArgs[name] = arg
+	}
+	goType.SetTypeArgs(typeArgs)
+	return goType
+}
+
 func messageForCommentTest(protoName protoreflect.Name, goName, comment string) *ProtoMessage {
 	return &ProtoMessage{
 		FullName: protoreflect.FullName("example.v1." + protoName),
@@ -323,4 +560,67 @@ func fieldForCommentTest(protoName protoreflect.Name, goName, comment string) *P
 		},
 		Options: &tegopb.FieldOptions{},
 	}
+}
+
+func plannerMapShape() (*ProtoMessage, *ProtoMessage) {
+	parent := plannerMessage("example.v1.StringsByName", "StringsByName")
+	entry := plannerMessage("example.v1.StringsByName.Map", "Map")
+	entry.Parent = parent
+	entry.Fields = []*ProtoField{
+		field("key", protoreflect.StringKind),
+		field("value", protoreflect.Int64Kind),
+	}
+	for _, field := range entry.Fields {
+		field.Parent = entry
+	}
+	parent.Messages = []*ProtoMessage{entry}
+	parent.Fields = []*ProtoField{repeatedMessageField("entries", entry)}
+	parent.Fields[0].Parent = parent
+	return parent, entry
+}
+
+func plannerMessage(fullName protoreflect.FullName, name protoreflect.Name) *ProtoMessage {
+	return &ProtoMessage{
+		FullName: fullName,
+		Name:     name,
+		Options:  &tegopb.MessageOptions{},
+	}
+}
+
+func plannerOneof(parent *ProtoMessage, name protoreflect.Name, fields ...*ProtoField) *ProtoOneof {
+	oneof := &ProtoOneof{
+		FullName: protoreflect.FullName(string(parent.FullName) + "." + string(name)),
+		Name:     name,
+		GoName:   goName(string(name)),
+		Parent:   parent,
+		Fields:   fields,
+	}
+	parent.Oneofs = append(parent.Oneofs, oneof)
+	parent.Fields = append(parent.Fields, fields...)
+	for _, field := range fields {
+		field.FullName = protoreflect.FullName(string(parent.FullName) + "." + string(field.Name))
+		field.Parent = parent
+		field.Oneof = oneof
+	}
+	return oneof
+}
+
+func enumField(name protoreflect.Name, enum *ProtoEnum) *ProtoField {
+	field := field(name, protoreflect.EnumKind)
+	field.Enum = enum
+	return field
+}
+
+func nullableOmittableField(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
+	field := field(name, kind)
+	field.Options = &tegopb.FieldOptions{}
+	field.Options.SetNullable(true)
+	field.Options.SetOmittable(true)
+	return field
+}
+
+func setMessageFieldOptionsOmittable(options *tegopb.MessageOptions, omittable bool) {
+	fields := &tegopb.MessageFieldsOptions{}
+	fields.SetOmittable(omittable)
+	options.SetFields(fields)
 }

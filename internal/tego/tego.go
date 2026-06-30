@@ -15,7 +15,9 @@ type FilePlan struct {
 	Output      FileOutputPlan
 	Package     PackageRef
 	Enums       []EnumPlan
+	Oneofs      []OneofPlan
 	Structs     []StructPlan
+	Mappings    []MappingPlan
 	Diagnostics []Diagnostic
 }
 
@@ -67,6 +69,22 @@ type EnumConstantValue struct {
 	String string
 }
 
+type OneofPlan struct {
+	ProtoName    protoreflect.FullName
+	Name         string
+	Comment      string
+	MarkerMethod string
+	Variants     []OneofVariantPlan
+}
+
+type OneofVariantPlan struct {
+	ProtoName protoreflect.FullName
+	Name      string
+	FieldName string
+	Comment   string
+	Type      TypePlan
+}
+
 type StructPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -100,6 +118,7 @@ const (
 	TypeKindStruct
 	TypeKindExternal
 	TypeKindCustom
+	TypeKindOneof
 	TypeKindPointer
 	TypeKindSlice
 	TypeKindMap
@@ -123,12 +142,17 @@ const (
 type GoTypeRef struct {
 	ImportPath string
 	Name       string
+	Args       []GoTypeRef
+	Pointer    *GoTypeRef
+	Slice      *GoTypeRef
 }
 
 type CustomGoTypePlan struct {
-	Ref       GoTypeRef
-	FromProto GoSymbolRef
-	ToProto   GoSymbolRef
+	Ref               GoTypeRef
+	FromProto         GoSymbolRef
+	FromProtoCanError bool
+	ToProto           GoSymbolRef
+	ToProtoCanError   bool
 }
 
 type GoSymbolRef struct {
@@ -142,8 +166,133 @@ type StructTagPlan struct {
 	Value string
 }
 
-// Diagnostic is a generalized type used for presenting helpful messages to Morph consumers to help
-// them find and fix issues found during planning.
+type MappingPlan struct {
+	ProtoName protoreflect.FullName
+	Name      string
+	ProtoRef  GoTypeRef
+	Type      TypePlan
+	FromProto MappingFunctionPlan
+	ToProto   MappingFunctionPlan
+	Fields    []FieldMappingPlan
+}
+
+type MappingFunctionPlan struct {
+	Name         string
+	ReceiverName string
+	Source       TypePlan
+	Target       TypePlan
+	CanError     bool
+}
+
+type FieldMappingPlan struct {
+	ProtoName protoreflect.FullName
+	Name      string
+	Proto     MappingFieldAccessPlan
+	FromProto MappingValuePlan
+	ToProto   MappingValuePlan
+}
+
+type MappingValuePlan struct {
+	Kind     MappingValueKind
+	Source   TypePlan
+	Target   TypePlan
+	CanError bool
+	Access   MappingAccessPlan
+	Oneof    *MappingOneofPlan
+	Struct   *MappingRefPlan
+	Custom   *CustomGoTypePlan
+	Enum     *MappingEnumPlan
+	Cast     *MappingCastPlan
+	Elem     *MappingValuePlan
+	Key      *MappingValuePlan
+	Value    *MappingValuePlan
+}
+
+type MappingAccessPlan struct {
+	Field         MappingFieldAccessPlan
+	Key           MappingFieldAccessPlan
+	Value         MappingFieldAccessPlan
+	Valid         MappingFieldAccessPlan
+	Oneof         MappingOneofAccessPlan
+	NullableForm  MappingNullableForm
+	ProtoType     TypePlan
+	ProtoElemType TypePlan
+}
+
+type MappingFieldAccessPlan struct {
+	Name   string
+	Getter string
+	Setter string
+	Has    string
+	Clear  string
+}
+
+type MappingOneofAccessPlan struct {
+	Name     string
+	Which    string
+	Value    MappingFieldAccessPlan
+	Null     MappingFieldAccessPlan
+	ValueRef GoTypeRef
+	NullRef  GoTypeRef
+}
+
+type MappingOneofPlan struct {
+	Which    string
+	Variants []MappingOneofVariantPlan
+}
+
+type MappingOneofVariantPlan struct {
+	ProtoName protoreflect.FullName
+	Name      string
+	FieldName string
+	Proto     MappingFieldAccessPlan
+	Case      GoTypeRef
+	Value     MappingValuePlan
+}
+
+type MappingNullableForm uint
+
+const (
+	MappingNullableFormNone MappingNullableForm = iota
+	MappingNullableFormPointer
+	MappingNullableFormOneof
+	MappingNullableFormValue
+)
+
+type MappingValueKind uint
+
+const (
+	MappingValueKindUnsupported MappingValueKind = iota
+	MappingValueKindDirect
+	MappingValueKindScalarCast
+	MappingValueKindEnum
+	MappingValueKindStruct
+	MappingValueKindCustom
+	MappingValueKindNullable
+	MappingValueKindSlice
+	MappingValueKindMap
+	MappingValueKindOmittable
+	MappingValueKindOneof
+)
+
+type MappingRefPlan struct {
+	Name   string
+	Source TypePlan
+	Target TypePlan
+}
+
+type MappingEnumPlan struct {
+	Source TypePlan
+	Target TypePlan
+}
+
+type MappingCastPlan struct {
+	Source TypePlan
+	Target TypePlan
+}
+
+// Diagnostic is a generalized type used for presenting helpful messages to users to help them find
+// and fix issues found during planning.
 type Diagnostic struct {
 	Level   DiagnosticLevel
 	Path    string

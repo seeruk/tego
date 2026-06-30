@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/seeruk/tego/internal/protogenx"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
@@ -49,26 +49,19 @@ func run() error {
 }
 
 func outputPathFromParams(params string) (string, error) {
-	for _, param := range strings.Split(params, ",") {
-		name, value, ok := strings.Cut(param, "=")
-		if !ok || strings.TrimSpace(name) != "path" {
-			continue
-		}
-
-		value = strings.TrimSpace(value)
-		if value == "" {
-			return "", fmt.Errorf("path option must not be empty")
-		}
-		return value, nil
+	value, ok := protogenx.ParameterValue(params, "path")
+	if !ok {
+		return "", fmt.Errorf("missing required path option")
 	}
-
-	return "", fmt.Errorf("missing required path option")
+	if value == "" {
+		return "", fmt.Errorf("path option must not be empty")
+	}
+	return value, nil
 }
 
 func writeErrorResponse(err error) {
 	fmt.Fprintln(os.Stderr, err)
-	msg := err.Error()
-	if writeErr := writeResponse(&pluginpb.CodeGeneratorResponse{Error: &msg}); writeErr != nil {
+	if writeErr := writeResponse(&pluginpb.CodeGeneratorResponse{Error: new(err.Error())}); writeErr != nil {
 		fmt.Fprintln(os.Stderr, writeErr)
 		os.Exit(1)
 	}
@@ -86,12 +79,9 @@ func writeResponse(resp *pluginpb.CodeGeneratorResponse) error {
 }
 
 func successResponse() *pluginpb.CodeGeneratorResponse {
-	features := uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS)
-	minEdition := int32(descriptorpb.Edition_EDITION_2023)
-	maxEdition := int32(descriptorpb.Edition_EDITION_2024)
 	return &pluginpb.CodeGeneratorResponse{
-		SupportedFeatures: &features,
-		MinimumEdition:    &minEdition,
-		MaximumEdition:    &maxEdition,
+		SupportedFeatures: new(uint64(pluginpb.CodeGeneratorResponse_FEATURE_SUPPORTS_EDITIONS)),
+		MinimumEdition:    new(int32(descriptorpb.Edition_EDITION_2023)),
+		MaximumEdition:    new(int32(descriptorpb.Edition_EDITION_2024)),
 	}
 }

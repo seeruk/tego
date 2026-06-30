@@ -1,0 +1,13 @@
+version: v2
+
+plugins:
+- local: protoc-gen-go
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/lab
+- local: protoc-gen-tego
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/lab

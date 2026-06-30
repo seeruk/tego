@@ -209,6 +209,20 @@ func TestSliceShapeHelpers(t *testing.T) {
 	})
 }
 
+func TestShapeIndexPrecedence(t *testing.T) {
+	t.Run("message go type prevents shape indexing", func(t *testing.T) {
+		message := messageWithFields(repeatedField("values", protoreflect.StringKind))
+		message.FullName = "example.v1.Values"
+		message.Options = &tegopb.MessageOptions{}
+		message.Options.SetGoType(goTypeRef("github.com/example/project.Values"))
+
+		builder := newShapeIndexBuilder()
+		require.NoError(t, builder.indexMessage(message))
+
+		assert.NotContains(t, builder.index.Slices, message.FullName)
+	})
+}
+
 func messageWithFields(fields ...*ProtoField) *ProtoMessage {
 	return &ProtoMessage{Fields: fields}
 }
