@@ -118,11 +118,17 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		require.NotNil(t, reviewer.FromProto.Oneof)
 		require.Len(t, reviewer.FromProto.Oneof.Variants, 1)
 		assert.Equal(t, "TicketInternal", reviewer.FromProto.Oneof.Variants[0].Name)
+
+		structData := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.struct_data")
+		assert.Equal(t, MappingValueKindStructMap, structData.FromProto.Kind)
+		assert.False(t, structData.FromProto.CanError)
+		assert.Equal(t, MappingValueKindStructMap, structData.ToProto.Kind)
+		assert.True(t, structData.ToProto.CanError)
 	})
 
 	t.Run("plans field tags and scalar types", func(t *testing.T) {
 		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
-		require.Len(t, ticket.Fields, 17)
+		require.Len(t, ticket.Fields, 18)
 
 		id := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.id")
 		assert.Equal(t, "ID", id.Name)
@@ -198,6 +204,11 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		latestHistoryEntry := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.latest_history_entry")
 		assert.Equal(t, TypeKindStruct, latestHistoryEntry.Type.Kind)
 		assert.Equal(t, "TicketHistoryEntry", latestHistoryEntry.Type.Ref.Name)
+
+		structData := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.struct_data")
+		assert.Equal(t, TypeKindMap, structData.Type.Kind)
+		assert.Equal(t, ScalarKindString, structData.Type.Key.Scalar)
+		assert.Equal(t, ScalarKindAny, structData.Type.Value.Scalar)
 	})
 
 	t.Run("plans omittable input fields", func(t *testing.T) {

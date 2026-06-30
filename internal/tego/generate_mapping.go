@@ -333,6 +333,8 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 		return ctx.renderSlice(plan, source)
 	case MappingValueKindMap:
 		return ctx.renderMap(plan, source)
+	case MappingValueKindStructMap:
+		return ctx.renderStructMap(plan, source)
 	case MappingValueKindOmittable:
 		return "", fmt.Errorf("omittable mapping must be rendered at field level")
 	default:
@@ -570,6 +572,50 @@ func (ctx *mappingRenderContext) renderMap(plan MappingValuePlan, source string)
 	return ctx.renderNativeMap(plan, source, plan.Target, *plan.Key, *plan.Value)
 }
 
+func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source string) (string, error) {
+	if isStructpbStructPointer(plan.Source) && isStringAnyMap(plan.Target) {
+		targetType, err := generateType(ctx.g, plan.Target)
+		if err != nil {
+			return "", err
+		}
+		tmp := ctx.tempName("structMap")
+		ctx.line("var " + tmp + " " + targetType)
+		ctx.line("if " + source + " != nil {")
+		ctx.indent++
+		ctx.line(tmp + " = " + source + ".AsMap()")
+		ctx.indent--
+		ctx.line("}")
+		return tmp, nil
+	}
+
+	if isStringAnyMap(plan.Source) && isStructpbStructPointer(plan.Target) {
+		if !ctx.canError {
+			return "", fmt.Errorf("struct map to proto mapping requires an erroring mapper")
+		}
+		targetType, err := generateType(ctx.g, plan.Target)
+		if err != nil {
+			return "", err
+		}
+		tmp := ctx.tempName("struct")
+		ctx.line("var " + tmp + " " + targetType)
+		ctx.line("if " + source + " != nil {")
+		ctx.indent++
+		mapped := ctx.tempName("mapped")
+		ctx.line(mapped + ", err := " + structpbNewStruct(ctx.g) + "(" + source + ")")
+		ctx.line("if err != nil {")
+		ctx.indent++
+		ctx.line("return " + ctx.errorReturn)
+		ctx.indent--
+		ctx.line("}")
+		ctx.line(tmp + " = " + mapped)
+		ctx.indent--
+		ctx.line("}")
+		return tmp, nil
+	}
+
+	return "", fmt.Errorf("unsupported struct map mapping")
+}
+
 func (ctx *mappingRenderContext) renderNativeMap(
 	plan MappingValuePlan,
 	source string,
@@ -684,6 +730,13 @@ func structpbNullValue(g *protogen.GeneratedFile) string {
 	return g.QualifiedGoIdent(protogen.GoIdent{
 		GoImportPath: structpbImportPath,
 		GoName:       "NullValue_NULL_VALUE",
+	})
+}
+
+func structpbNewStruct(g *protogen.GeneratedFile) string {
+	return g.QualifiedGoIdent(protogen.GoIdent{
+		GoImportPath: structpbImportPath,
+		GoName:       "NewStruct",
 	})
 }
 

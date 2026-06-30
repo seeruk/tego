@@ -137,6 +137,7 @@ const (
 	ScalarKindFloat64            // from double
 	ScalarKindString             // from string
 	ScalarKindBytes              // from bytes
+	ScalarKindAny                // from well-known dynamic values
 )
 
 type GoTypeRef struct {
@@ -273,6 +274,7 @@ const (
 	MappingValueKindMap
 	MappingValueKindOmittable
 	MappingValueKindOneof
+	MappingValueKindStructMap
 )
 
 type MappingRefPlan struct {

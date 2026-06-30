@@ -132,6 +132,7 @@ type Ticket struct {
 	xxx_hidden_History            *Ticket_History         `protobuf:"bytes,15,opt,name=history"`
 	xxx_hidden_LatestHistoryEntry *Ticket_History_Entry   `protobuf:"bytes,16,opt,name=latest_history_entry,json=latestHistoryEntry"`
 	xxx_hidden_Reviewer           isTicket_Reviewer       `protobuf_oneof:"reviewer"`
+	xxx_hidden_StructData         *structpb.Struct        `protobuf:"bytes,19,opt,name=struct_data,json=structData"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
@@ -311,24 +312,31 @@ func (x *Ticket) GetExternalRef() string {
 	return ""
 }
 
+func (x *Ticket) GetStructData() *structpb.Struct {
+	if x != nil {
+		return x.xxx_hidden_StructData
+	}
+	return nil
+}
+
 func (x *Ticket) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 17)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 18)
 }
 
 func (x *Ticket) SetTitle(v string) {
 	x.xxx_hidden_Title = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 17)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 18)
 }
 
 func (x *Ticket) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 17)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 18)
 }
 
 func (x *Ticket) SetStatus(v TicketStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 17)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 18)
 }
 
 func (x *Ticket) SetAssignee(v *NullablePerson) {
@@ -341,7 +349,7 @@ func (x *Ticket) SetAuthor(v *Person) {
 
 func (x *Ticket) SetVersion(v string) {
 	x.xxx_hidden_Version = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 17)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 18)
 }
 
 func (x *Ticket) SetMetadata(v map[string]string) {
@@ -366,7 +374,7 @@ func (x *Ticket) SetLabels(v []string) {
 
 func (x *Ticket) SetVisibility(v Ticket_Visibility) {
 	x.xxx_hidden_Visibility = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 17)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 18)
 }
 
 func (x *Ticket) SetAuditEvents(v []*Ticket_AuditEvent) {
@@ -391,6 +399,10 @@ func (x *Ticket) SetInternal(v *Person) {
 
 func (x *Ticket) SetExternalRef(v string) {
 	x.xxx_hidden_Reviewer = &ticket_ExternalRef{v}
+}
+
+func (x *Ticket) SetStructData(v *structpb.Struct) {
+	x.xxx_hidden_StructData = v
 }
 
 func (x *Ticket) HasId() bool {
@@ -486,6 +498,13 @@ func (x *Ticket) HasExternalRef() bool {
 	return ok
 }
 
+func (x *Ticket) HasStructData() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_StructData != nil
+}
+
 func (x *Ticket) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -548,6 +567,10 @@ func (x *Ticket) ClearExternalRef() {
 	}
 }
 
+func (x *Ticket) ClearStructData() {
+	x.xxx_hidden_StructData = nil
+}
+
 const Ticket_Reviewer_not_set_case case_Ticket_Reviewer = 0
 const Ticket_Internal_case case_Ticket_Reviewer = 17
 const Ticket_ExternalRef_case case_Ticket_Reviewer = 18
@@ -589,6 +612,7 @@ type Ticket_builder struct {
 	Internal    *Person
 	ExternalRef *string
 	// -- end of xxx_hidden_Reviewer
+	StructData *structpb.Struct
 }
 
 func (b0 Ticket_builder) Build() *Ticket {
@@ -596,25 +620,25 @@ func (b0 Ticket_builder) Build() *Ticket {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 17)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 18)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Title != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 17)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 18)
 		x.xxx_hidden_Title = b.Title
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 17)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 18)
 		x.xxx_hidden_Description = b.Description
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 17)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 18)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_Assignee = b.Assignee
 	x.xxx_hidden_Author = b.Author
 	if b.Version != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 17)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 18)
 		x.xxx_hidden_Version = b.Version
 	}
 	x.xxx_hidden_Metadata = b.Metadata
@@ -623,7 +647,7 @@ func (b0 Ticket_builder) Build() *Ticket {
 	x.xxx_hidden_WatcherIds = b.WatcherIds
 	x.xxx_hidden_Labels = b.Labels
 	if b.Visibility != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 17)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 18)
 		x.xxx_hidden_Visibility = *b.Visibility
 	}
 	x.xxx_hidden_AuditEvents = &b.AuditEvents
@@ -635,6 +659,7 @@ func (b0 Ticket_builder) Build() *Ticket {
 	if b.ExternalRef != nil {
 		x.xxx_hidden_Reviewer = &ticket_ExternalRef{*b.ExternalRef}
 	}
+	x.xxx_hidden_StructData = b.StructData
 	return m0
 }
 
@@ -2058,7 +2083,7 @@ var File_proto_yirapb_v1_yira_proto protoreflect.FileDescriptor
 
 const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproto/yirapb/v1/yira.proto\x12\tyirapb.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\"\xb1\x10\n" +
+	"\x1aproto/yirapb/v1/yira.proto\x12\tyirapb.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\"\xeb\x10\n" +
 	"\x06Ticket\x12*\n" +
 	"\x02id\x18\x01 \x01(\tB\x1a҅\n" +
 	"\x16*\x14\n" +
@@ -2092,7 +2117,9 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\x14latest_history_entry\x18\x10 \x01(\v2\x1f.yirapb.v1.Ticket.History.EntryR\x12latestHistoryEntry\x12/\n" +
 	"\binternal\x18\x11 \x01(\v2\x11.yirapb.v1.PersonH\x00R\binternal\x12+\n" +
 	"\fexternal_ref\x18\x12 \x01(\tB\x06҅\n" +
-	"\x02 \x01H\x00R\vexternalRef\x1aS\n" +
+	"\x02 \x01H\x00R\vexternalRef\x128\n" +
+	"\vstruct_data\x18\x13 \x01(\v2\x17.google.protobuf.StructR\n" +
+	"structData\x1aS\n" +
 	"\n" +
 	"AuditEvent\x12\x14\n" +
 	"\x05actor\x18\x01 \x01(\tR\x05actor\x12/\n" +
@@ -2190,7 +2217,8 @@ var file_proto_yirapb_v1_yira_proto_goTypes = []any{
 	nil,                            // 16: yirapb.v1.Ticket.WorkflowStatusesEntry
 	(*Ticket_History_Entry)(nil),   // 17: yirapb.v1.Ticket.History.Entry
 	(*TicketsByPeople_Map)(nil),    // 18: yirapb.v1.TicketsByPeople.Map
-	(structpb.NullValue)(0),        // 19: google.protobuf.NullValue
+	(*structpb.Struct)(nil),        // 19: google.protobuf.Struct
+	(structpb.NullValue)(0),        // 20: google.protobuf.NullValue
 }
 var file_proto_yirapb_v1_yira_proto_depIdxs = []int32{
 	0,  // 0: yirapb.v1.Ticket.status:type_name -> yirapb.v1.TicketStatus
@@ -2204,29 +2232,30 @@ var file_proto_yirapb_v1_yira_proto_depIdxs = []int32{
 	13, // 8: yirapb.v1.Ticket.history:type_name -> yirapb.v1.Ticket.History
 	17, // 9: yirapb.v1.Ticket.latest_history_entry:type_name -> yirapb.v1.Ticket.History.Entry
 	5,  // 10: yirapb.v1.Ticket.internal:type_name -> yirapb.v1.Person
-	4,  // 11: yirapb.v1.UpdateTicketRequest.input:type_name -> yirapb.v1.TicketInput
-	0,  // 12: yirapb.v1.TicketInput.status:type_name -> yirapb.v1.TicketStatus
-	5,  // 13: yirapb.v1.TicketInput.assignee:type_name -> yirapb.v1.Person
-	5,  // 14: yirapb.v1.People.people:type_name -> yirapb.v1.Person
-	5,  // 15: yirapb.v1.NullablePerson.person:type_name -> yirapb.v1.Person
-	19, // 16: yirapb.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
-	5,  // 17: yirapb.v1.NullablePersonValue.value:type_name -> yirapb.v1.Person
-	7,  // 18: yirapb.v1.NullablePeople.people:type_name -> yirapb.v1.NullablePerson
-	9,  // 19: yirapb.v1.NullableNullablePeople.people:type_name -> yirapb.v1.NullablePeople
-	19, // 20: yirapb.v1.NullableNullablePeople.null:type_name -> google.protobuf.NullValue
-	18, // 21: yirapb.v1.TicketsByPeople.entries:type_name -> yirapb.v1.TicketsByPeople.Map
-	0,  // 22: yirapb.v1.Ticket.AuditEvent.status:type_name -> yirapb.v1.TicketStatus
-	17, // 23: yirapb.v1.Ticket.History.entries:type_name -> yirapb.v1.Ticket.History.Entry
-	5,  // 24: yirapb.v1.Ticket.WatchersByRoleEntry.value:type_name -> yirapb.v1.Person
-	0,  // 25: yirapb.v1.Ticket.WorkflowStatusesEntry.value:type_name -> yirapb.v1.TicketStatus
-	1,  // 26: yirapb.v1.Ticket.History.Entry.visibility:type_name -> yirapb.v1.Ticket.Visibility
-	5,  // 27: yirapb.v1.TicketsByPeople.Map.key:type_name -> yirapb.v1.Person
-	10, // 28: yirapb.v1.TicketsByPeople.Map.value:type_name -> yirapb.v1.NullableNullablePeople
-	29, // [29:29] is the sub-list for method output_type
-	29, // [29:29] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	19, // 11: yirapb.v1.Ticket.struct_data:type_name -> google.protobuf.Struct
+	4,  // 12: yirapb.v1.UpdateTicketRequest.input:type_name -> yirapb.v1.TicketInput
+	0,  // 13: yirapb.v1.TicketInput.status:type_name -> yirapb.v1.TicketStatus
+	5,  // 14: yirapb.v1.TicketInput.assignee:type_name -> yirapb.v1.Person
+	5,  // 15: yirapb.v1.People.people:type_name -> yirapb.v1.Person
+	5,  // 16: yirapb.v1.NullablePerson.person:type_name -> yirapb.v1.Person
+	20, // 17: yirapb.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
+	5,  // 18: yirapb.v1.NullablePersonValue.value:type_name -> yirapb.v1.Person
+	7,  // 19: yirapb.v1.NullablePeople.people:type_name -> yirapb.v1.NullablePerson
+	9,  // 20: yirapb.v1.NullableNullablePeople.people:type_name -> yirapb.v1.NullablePeople
+	20, // 21: yirapb.v1.NullableNullablePeople.null:type_name -> google.protobuf.NullValue
+	18, // 22: yirapb.v1.TicketsByPeople.entries:type_name -> yirapb.v1.TicketsByPeople.Map
+	0,  // 23: yirapb.v1.Ticket.AuditEvent.status:type_name -> yirapb.v1.TicketStatus
+	17, // 24: yirapb.v1.Ticket.History.entries:type_name -> yirapb.v1.Ticket.History.Entry
+	5,  // 25: yirapb.v1.Ticket.WatchersByRoleEntry.value:type_name -> yirapb.v1.Person
+	0,  // 26: yirapb.v1.Ticket.WorkflowStatusesEntry.value:type_name -> yirapb.v1.TicketStatus
+	1,  // 27: yirapb.v1.Ticket.History.Entry.visibility:type_name -> yirapb.v1.Ticket.Visibility
+	5,  // 28: yirapb.v1.TicketsByPeople.Map.key:type_name -> yirapb.v1.Person
+	10, // 29: yirapb.v1.TicketsByPeople.Map.value:type_name -> yirapb.v1.NullableNullablePeople
+	30, // [30:30] is the sub-list for method output_type
+	30, // [30:30] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_proto_yirapb_v1_yira_proto_init() }

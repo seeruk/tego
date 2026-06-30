@@ -233,6 +233,8 @@ func scalarTypeName(kind ScalarKind) string {
 		return "float64"
 	case ScalarKindBytes:
 		return "[]byte"
+	case ScalarKindAny:
+		return "any"
 	default:
 		return "string"
 	}

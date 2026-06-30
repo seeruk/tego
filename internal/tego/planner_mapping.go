@@ -441,15 +441,8 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 		}
 	}
 
-	if source.Kind == TypeKindPointer || target.Kind == TypeKindPointer {
-		elem := p.planMappingValue(pointerMappingElem(source, direction), pointerMappingElem(target, direction), direction)
-		return MappingValuePlan{
-			Kind:     MappingValueKindNullable,
-			Source:   source,
-			Target:   target,
-			CanError: elem.CanError,
-			Elem:     &elem,
-		}
+	if structMap, ok := structpbStructMapMapping(source, target); ok {
+		return structMap
 	}
 
 	if source.Kind == TypeKindEnum && target.Kind == TypeKindEnum {
@@ -480,10 +473,41 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 		}
 	}
 
+	if source.Kind == TypeKindPointer || target.Kind == TypeKindPointer {
+		elem := p.planMappingValue(pointerMappingElem(source, direction), pointerMappingElem(target, direction), direction)
+		return MappingValuePlan{
+			Kind:     MappingValueKindNullable,
+			Source:   source,
+			Target:   target,
+			CanError: elem.CanError,
+			Elem:     &elem,
+		}
+	}
+
 	return MappingValuePlan{
 		Kind:   MappingValueKindUnsupported,
 		Source: source,
 		Target: target,
+	}
+}
+
+func structpbStructMapMapping(source TypePlan, target TypePlan) (MappingValuePlan, bool) {
+	switch {
+	case isStructpbStructPointer(source) && isStringAnyMap(target):
+		return MappingValuePlan{
+			Kind:   MappingValueKindStructMap,
+			Source: source,
+			Target: target,
+		}, true
+	case isStringAnyMap(source) && isStructpbStructPointer(target):
+		return MappingValuePlan{
+			Kind:     MappingValueKindStructMap,
+			Source:   source,
+			Target:   target,
+			CanError: true,
+		}, true
+	default:
+		return MappingValuePlan{}, false
 	}
 }
 
@@ -535,6 +559,21 @@ func needsScalarCast(source TypePlan, target TypePlan) bool {
 		return true
 	}
 	return source.Scalar == ScalarKindInt64 || source.Scalar == ScalarKindUint64
+}
+
+func isStructpbStructPointer(plan TypePlan) bool {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return false
+	}
+	return plan.Elem.Ref.ImportPath == structpbImportPath && plan.Elem.Ref.Name == "Struct"
+}
+
+func isStringAnyMap(plan TypePlan) bool {
+	if plan.Kind != TypeKindMap || plan.Key == nil || plan.Value == nil {
+		return false
+	}
+	return plan.Key.Kind == TypeKindScalar && plan.Key.Scalar == ScalarKindString &&
+		plan.Value.Kind == TypeKindScalar && plan.Value.Scalar == ScalarKindAny
 }
 
 func nullableMappingElemTypes(source TypePlan, target TypePlan, direction mappingDirection) (TypePlan, TypePlan) {

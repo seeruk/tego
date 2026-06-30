@@ -53,6 +53,35 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.Equal(t, "PersonToProto", toProto.Struct.Name)
 	})
 
+	t.Run("plans identical foreign proto pointers as direct mappings", func(t *testing.T) {
+		foreign := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: "google.golang.org/protobuf/types/known/structpb", Name: "Struct"},
+		})
+
+		fromProto := planner.planMappingValue(foreign, foreign, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(foreign, foreign, mappingDirectionToProto)
+
+		assert.Equal(t, MappingValueKindDirect, fromProto.Kind)
+		assert.Equal(t, MappingValueKindDirect, toProto.Kind)
+	})
+
+	t.Run("plans structpb struct map conversions", func(t *testing.T) {
+		protoStruct := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: "google.golang.org/protobuf/types/known/structpb", Name: "Struct"},
+		})
+		nativeStruct := structpbStructMapType()
+
+		fromProto := planner.planMappingValue(protoStruct, nativeStruct, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(nativeStruct, protoStruct, mappingDirectionToProto)
+
+		assert.Equal(t, MappingValueKindStructMap, fromProto.Kind)
+		assert.False(t, fromProto.CanError)
+		assert.Equal(t, MappingValueKindStructMap, toProto.Kind)
+		assert.True(t, toProto.CanError)
+	})
+
 	t.Run("plans nullable pointers", func(t *testing.T) {
 		target := pointerType(stringType)
 

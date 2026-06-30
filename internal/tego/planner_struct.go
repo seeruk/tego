@@ -15,6 +15,7 @@ const (
 	errorTypeName = "error"
 
 	durationFullName  = protoreflect.FullName("google.protobuf.Duration")
+	structFullName    = protoreflect.FullName("google.protobuf.Struct")
 	timestampFullName = protoreflect.FullName("google.protobuf.Timestamp")
 )
 
@@ -237,6 +238,8 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		return externalType("time", "Time"), nil
 	case durationFullName:
 		return externalType("time", "Duration"), nil
+	case structFullName:
+		return structpbStructMapType(), nil
 	}
 
 	if _, ok := si.Nullables[message.FullName]; ok {
@@ -268,10 +271,11 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		}, nil
 	}
 
-	return TypePlan{
+	// Unknown imported messages stay as proto-native pointers until Tego defines a richer strategy.
+	return pointerType(TypePlan{
 		Kind: TypeKindExternal,
 		Ref:  protoMessageRef(message),
-	}, nil
+	}), nil
 }
 
 func (p *Planner) planNullableShape(message *ProtoMessage, si *ShapeIndex) (TypePlan, []Diagnostic) {
@@ -606,6 +610,16 @@ func scalarType(kind ScalarKind) TypePlan {
 	return TypePlan{
 		Kind:   TypeKindScalar,
 		Scalar: kind,
+	}
+}
+
+func structpbStructMapType() TypePlan {
+	key := scalarType(ScalarKindString)
+	value := scalarType(ScalarKindAny)
+	return TypePlan{
+		Kind:  TypeKindMap,
+		Key:   &key,
+		Value: &value,
 	}
 }
 

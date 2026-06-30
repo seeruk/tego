@@ -56,6 +56,7 @@ type Ticket struct {
 	History            TicketHistory
 	LatestHistoryEntry TicketHistoryEntry
 	Reviewer           TicketReviewer
+	StructData         map[string]any
 }
 
 type TicketAuditEvent struct {
@@ -147,6 +148,11 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 	case yirapbv1.Ticket_Internal_case:
 		target.Reviewer = TicketInternal{Internal: PersonFromProto(source.GetInternal())}
 	}
+	var structMap17 map[string]any
+	if source.GetStructData() != nil {
+		structMap17 = source.GetStructData().AsMap()
+	}
+	target.StructData = structMap17
 	return target, nil
 }
 
@@ -215,6 +221,15 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
+	var struct18 *structpb.Struct
+	if source.StructData != nil {
+		mapped19, err := structpb.NewStruct(source.StructData)
+		if err != nil {
+			return nil, err
+		}
+		struct18 = mapped19
+	}
+	target.SetStructData(struct18)
 	return target, nil
 }
 

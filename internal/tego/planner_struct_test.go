@@ -72,6 +72,34 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		require.Empty(t, diagnostics)
 		elem := requirePointerElem(t, stringValue, TypeKindScalar)
 		assert.Equal(t, ScalarKindString, elem.Scalar)
+
+		descriptorIndex := buildYiraDescriptorIndex(t)
+		structMessage := requireMessage(t, descriptorIndex, "google.protobuf.Struct")
+		structPlan, diagnostics := planner.planSingularFieldType(messageField("data", structMessage), shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindMap, structPlan.Kind)
+		assert.Equal(t, ScalarKindString, structPlan.Key.Scalar)
+		assert.Equal(t, ScalarKindAny, structPlan.Value.Scalar)
+
+		valueMessage := requireMessage(t, descriptorIndex, "google.protobuf.Value")
+		valuePlan, diagnostics := planner.planSingularFieldType(messageField("value", valueMessage), shapeIndex)
+		require.Empty(t, diagnostics)
+		valueElem := requirePointerElem(t, valuePlan, TypeKindExternal)
+		assert.Equal(t, GoTypeRef{
+			ImportPath: "google.golang.org/protobuf/types/known/structpb",
+			Name:       "Value",
+		}, valueElem.Ref)
+
+		nullValue := requireEnum(t, descriptorIndex, "google.protobuf.NullValue")
+		nullField := field("null", protoreflect.EnumKind)
+		nullField.Enum = nullValue
+
+		nullPlan := planner.planEnumType(nullField)
+		assert.Equal(t, TypeKindExternal, nullPlan.Kind)
+		assert.Equal(t, GoTypeRef{
+			ImportPath: "google.golang.org/protobuf/types/known/structpb",
+			Name:       "NullValue",
+		}, nullPlan.Ref)
 	})
 }
 

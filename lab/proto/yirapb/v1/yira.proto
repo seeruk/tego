@@ -90,6 +90,8 @@ message Ticket {
     Person internal = 17;
     string external_ref = 18 [(tego.field).omit = true];
   }
+
+  google.protobuf.Struct struct_data = 19;
 }
 
 message UpdateTicketRequest {
