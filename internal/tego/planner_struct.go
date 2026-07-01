@@ -15,8 +15,11 @@ const (
 	errorTypeName = "error"
 
 	durationFullName  = protoreflect.FullName("google.protobuf.Duration")
+	emptyFullName     = protoreflect.FullName("google.protobuf.Empty")
+	listValueFullName = protoreflect.FullName("google.protobuf.ListValue")
 	structFullName    = protoreflect.FullName("google.protobuf.Struct")
 	timestampFullName = protoreflect.FullName("google.protobuf.Timestamp")
+	valueFullName     = protoreflect.FullName("google.protobuf.Value")
 )
 
 var wrapperScalarTypes = map[protoreflect.FullName]ScalarKind{
@@ -238,8 +241,14 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		return externalType("time", "Time"), nil
 	case durationFullName:
 		return externalType("time", "Duration"), nil
+	case emptyFullName:
+		return emptyStructType(), nil
+	case listValueFullName:
+		return dynamicListValueType(), nil
 	case structFullName:
-		return structpbStructMapType(), nil
+		return dynamicStructType(), nil
+	case valueFullName:
+		return dynamicValueType(), nil
 	}
 
 	if _, ok := si.Nullables[message.FullName]; ok {
@@ -613,14 +622,20 @@ func scalarType(kind ScalarKind) TypePlan {
 	}
 }
 
-func structpbStructMapType() TypePlan {
-	key := scalarType(ScalarKindString)
-	value := scalarType(ScalarKindAny)
-	return TypePlan{
-		Kind:  TypeKindMap,
-		Key:   &key,
-		Value: &value,
-	}
+func dynamicListValueType() TypePlan {
+	return externalType(tegoImportPath, "ListValue")
+}
+
+func dynamicStructType() TypePlan {
+	return externalType(tegoImportPath, "Struct")
+}
+
+func dynamicValueType() TypePlan {
+	return externalType(tegoImportPath, "Value")
+}
+
+func emptyStructType() TypePlan {
+	return TypePlan{Kind: TypeKindEmptyStruct}
 }
 
 func externalType(importPath, name string) TypePlan {

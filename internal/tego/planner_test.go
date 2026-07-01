@@ -90,6 +90,8 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 
 		request := mappingByProtoName(t, file, "yirapb.v1.UpdateTicketRequest")
 		assert.Equal(t, "utr", request.ToProto.ReceiverName)
+		assert.False(t, request.FromProto.CanError)
+		assert.True(t, request.ToProto.CanError)
 	})
 
 	t.Run("plans representative field mappings", func(t *testing.T) {
@@ -120,15 +122,45 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.Equal(t, "TicketInternal", reviewer.FromProto.Oneof.Variants[0].Name)
 
 		structData := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.struct_data")
-		assert.Equal(t, MappingValueKindStructMap, structData.FromProto.Kind)
+		require.NotNil(t, structData.FromProto.Dynamic)
+		require.NotNil(t, structData.ToProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, structData.FromProto.Kind)
+		assert.Equal(t, MappingDynamicKindStruct, structData.FromProto.Dynamic.Kind)
 		assert.False(t, structData.FromProto.CanError)
-		assert.Equal(t, MappingValueKindStructMap, structData.ToProto.Kind)
+		assert.Equal(t, MappingValueKindDynamic, structData.ToProto.Kind)
+		assert.Equal(t, MappingDynamicKindStruct, structData.ToProto.Dynamic.Kind)
 		assert.True(t, structData.ToProto.CanError)
+
+		marker := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.marker")
+		assert.Equal(t, MappingValueKindEmptyStruct, marker.FromProto.Kind)
+		assert.False(t, marker.FromProto.CanError)
+		assert.Equal(t, MappingValueKindEmptyStruct, marker.ToProto.Kind)
+		assert.False(t, marker.ToProto.CanError)
+
+		dynamicValue := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_value")
+		require.NotNil(t, dynamicValue.FromProto.Dynamic)
+		require.NotNil(t, dynamicValue.ToProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, dynamicValue.FromProto.Kind)
+		assert.Equal(t, MappingDynamicKindValue, dynamicValue.FromProto.Dynamic.Kind)
+		assert.False(t, dynamicValue.FromProto.CanError)
+		assert.Equal(t, MappingValueKindDynamic, dynamicValue.ToProto.Kind)
+		assert.Equal(t, MappingDynamicKindValue, dynamicValue.ToProto.Dynamic.Kind)
+		assert.True(t, dynamicValue.ToProto.CanError)
+
+		dynamicList := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_list")
+		require.NotNil(t, dynamicList.FromProto.Dynamic)
+		require.NotNil(t, dynamicList.ToProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, dynamicList.FromProto.Kind)
+		assert.Equal(t, MappingDynamicKindListValue, dynamicList.FromProto.Dynamic.Kind)
+		assert.False(t, dynamicList.FromProto.CanError)
+		assert.Equal(t, MappingValueKindDynamic, dynamicList.ToProto.Kind)
+		assert.Equal(t, MappingDynamicKindListValue, dynamicList.ToProto.Dynamic.Kind)
+		assert.True(t, dynamicList.ToProto.CanError)
 	})
 
 	t.Run("plans field tags and scalar types", func(t *testing.T) {
 		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
-		require.Len(t, ticket.Fields, 18)
+		require.Len(t, ticket.Fields, 21)
 
 		id := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.id")
 		assert.Equal(t, "ID", id.Name)
@@ -206,9 +238,16 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.Equal(t, "TicketHistoryEntry", latestHistoryEntry.Type.Ref.Name)
 
 		structData := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.struct_data")
-		assert.Equal(t, TypeKindMap, structData.Type.Kind)
-		assert.Equal(t, ScalarKindString, structData.Type.Key.Scalar)
-		assert.Equal(t, ScalarKindAny, structData.Type.Value.Scalar)
+		assert.Equal(t, dynamicStructType(), structData.Type)
+
+		marker := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.marker")
+		assert.Equal(t, TypeKindEmptyStruct, marker.Type.Kind)
+
+		dynamicValue := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_value")
+		assert.Equal(t, dynamicValueType(), dynamicValue.Type)
+
+		dynamicList := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_list")
+		assert.Equal(t, dynamicListValueType(), dynamicList.Type)
 	})
 
 	t.Run("plans omittable input fields", func(t *testing.T) {
@@ -221,6 +260,10 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assignee := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.assignee")
 		assert.Equal(t, TypeKindOmittable, assignee.Type.Kind)
 		assert.Equal(t, TypeKindPointer, assignee.Type.Elem.Kind)
+
+		metadataPatch := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.metadata_patch")
+		assert.Equal(t, TypeKindOmittable, metadataPatch.Type.Kind)
+		assert.Equal(t, dynamicValueType(), *metadataPatch.Type.Elem)
 
 		version := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.version")
 		assert.Equal(t, TypeKindScalar, version.Type.Kind)

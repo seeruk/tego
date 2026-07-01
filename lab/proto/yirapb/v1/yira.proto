@@ -1,6 +1,7 @@
 edition = "2024";
 package yirapb.v1;
 
+import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "tego/options.proto";
 
@@ -92,6 +93,9 @@ message Ticket {
   }
 
   google.protobuf.Struct struct_data = 19;
+  google.protobuf.Empty marker = 20;
+  google.protobuf.Value dynamic_value = 21;
+  google.protobuf.ListValue dynamic_list = 22;
 }
 
 message UpdateTicketRequest {
@@ -109,6 +113,7 @@ message TicketInput {
 
   // Required fields would not be generated as omittable.
   string version = 6 [(tego.field).omittable = false];
+  google.protobuf.Value metadata_patch = 7;
 }
 
 message Person {

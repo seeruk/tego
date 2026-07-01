@@ -441,8 +441,20 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 		}
 	}
 
-	if structMap, ok := structpbStructMapMapping(source, target); ok {
+	if structMap, ok := structpbStructMapMapping(source, target, direction); ok {
 		return structMap
+	}
+
+	if emptyStruct, ok := emptypbEmptyStructMapping(source, target, direction); ok {
+		return emptyStruct
+	}
+
+	if dynamicValue, ok := structpbValueMapping(source, target, direction); ok {
+		return dynamicValue
+	}
+
+	if dynamicList, ok := structpbListValueMapping(source, target, direction); ok {
+		return dynamicList
 	}
 
 	if source.Kind == TypeKindEnum && target.Kind == TypeKindEnum {
@@ -491,20 +503,109 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 	}
 }
 
-func structpbStructMapMapping(source TypePlan, target TypePlan) (MappingValuePlan, bool) {
-	switch {
-	case isStructpbStructPointer(source) && isStringAnyMap(target):
+func structpbStructMapMapping(source TypePlan, target TypePlan, direction mappingDirection) (MappingValuePlan, bool) {
+	switch direction {
+	case mappingDirectionFromProto:
+		if !isStructpbStructPointer(source) || !isTegoStruct(target) {
+			return MappingValuePlan{}, false
+		}
 		return MappingValuePlan{
-			Kind:   MappingValueKindStructMap,
-			Source: source,
-			Target: target,
+			Kind:    MappingValueKindDynamic,
+			Source:  source,
+			Target:  target,
+			Dynamic: &MappingDynamicPlan{Kind: MappingDynamicKindStruct},
 		}, true
-	case isStringAnyMap(source) && isStructpbStructPointer(target):
+	case mappingDirectionToProto:
+		if !isTegoStruct(source) || !isStructpbStructPointer(target) {
+			return MappingValuePlan{}, false
+		}
 		return MappingValuePlan{
-			Kind:     MappingValueKindStructMap,
+			Kind:     MappingValueKindDynamic,
 			Source:   source,
 			Target:   target,
 			CanError: true,
+			Dynamic:  &MappingDynamicPlan{Kind: MappingDynamicKindStruct},
+		}, true
+	default:
+		return MappingValuePlan{}, false
+	}
+}
+
+func emptypbEmptyStructMapping(source TypePlan, target TypePlan, direction mappingDirection) (MappingValuePlan, bool) {
+	switch direction {
+	case mappingDirectionFromProto:
+		if !isEmptypbEmptyPointer(source) || target.Kind != TypeKindEmptyStruct {
+			return MappingValuePlan{}, false
+		}
+		return MappingValuePlan{
+			Kind:   MappingValueKindEmptyStruct,
+			Source: source,
+			Target: target,
+		}, true
+	case mappingDirectionToProto:
+		if source.Kind != TypeKindEmptyStruct || !isEmptypbEmptyPointer(target) {
+			return MappingValuePlan{}, false
+		}
+		return MappingValuePlan{
+			Kind:   MappingValueKindEmptyStruct,
+			Source: source,
+			Target: target,
+		}, true
+	default:
+		return MappingValuePlan{}, false
+	}
+}
+
+func structpbValueMapping(source TypePlan, target TypePlan, direction mappingDirection) (MappingValuePlan, bool) {
+	switch direction {
+	case mappingDirectionFromProto:
+		if !isStructpbValuePointer(source) || !isTegoValue(target) {
+			return MappingValuePlan{}, false
+		}
+		return MappingValuePlan{
+			Kind:    MappingValueKindDynamic,
+			Source:  source,
+			Target:  target,
+			Dynamic: &MappingDynamicPlan{Kind: MappingDynamicKindValue},
+		}, true
+	case mappingDirectionToProto:
+		if !isTegoValue(source) || !isStructpbValuePointer(target) {
+			return MappingValuePlan{}, false
+		}
+		return MappingValuePlan{
+			Kind:     MappingValueKindDynamic,
+			Source:   source,
+			Target:   target,
+			CanError: true,
+			Dynamic:  &MappingDynamicPlan{Kind: MappingDynamicKindValue},
+		}, true
+	default:
+		return MappingValuePlan{}, false
+	}
+}
+
+func structpbListValueMapping(source TypePlan, target TypePlan, direction mappingDirection) (MappingValuePlan, bool) {
+	switch direction {
+	case mappingDirectionFromProto:
+		if !isStructpbListValuePointer(source) || !isTegoListValue(target) {
+			return MappingValuePlan{}, false
+		}
+		return MappingValuePlan{
+			Kind:    MappingValueKindDynamic,
+			Source:  source,
+			Target:  target,
+			Dynamic: &MappingDynamicPlan{Kind: MappingDynamicKindListValue},
+		}, true
+	case mappingDirectionToProto:
+		if !isTegoListValue(source) || !isStructpbListValuePointer(target) {
+			return MappingValuePlan{}, false
+		}
+		return MappingValuePlan{
+			Kind:     MappingValueKindDynamic,
+			Source:   source,
+			Target:   target,
+			CanError: true,
+			Dynamic:  &MappingDynamicPlan{Kind: MappingDynamicKindListValue},
 		}, true
 	default:
 		return MappingValuePlan{}, false
@@ -554,6 +655,98 @@ func mappingStructRef(source TypePlan, target TypePlan, direction mappingDirecti
 	}, true
 }
 
+func propagateMappingErrors(plan *Plan) {
+	for {
+		refs := mappingErrorRefs(plan)
+		var changed bool
+		for fileIndex := range plan.Files {
+			for mappingIndex := range plan.Files[fileIndex].Mappings {
+				mapping := &plan.Files[fileIndex].Mappings[mappingIndex]
+				changed = propagateMappingFunctionErrors(&mapping.FromProto, mapping.Fields, true, refs) || changed
+				changed = propagateMappingFunctionErrors(&mapping.ToProto, mapping.Fields, false, refs) || changed
+			}
+		}
+		if !changed {
+			return
+		}
+	}
+}
+
+func mappingErrorRefs(plan *Plan) map[string]bool {
+	refs := make(map[string]bool)
+	for _, file := range plan.Files {
+		for _, mapping := range file.Mappings {
+			refs[mapping.FromProto.Name] = mapping.FromProto.CanError
+			refs[mapping.ToProto.Name] = mapping.ToProto.CanError
+		}
+	}
+	return refs
+}
+
+func propagateMappingFunctionErrors(function *MappingFunctionPlan, fields []FieldMappingPlan, fromProto bool, refs map[string]bool) bool {
+	var changed bool
+	for index := range fields {
+		var value *MappingValuePlan
+		if fromProto {
+			value = &fields[index].FromProto
+		} else {
+			value = &fields[index].ToProto
+		}
+		changed = propagateMappingValueErrors(value, refs) || changed
+		if value.CanError && !function.CanError {
+			function.CanError = true
+			changed = true
+		}
+	}
+	return changed
+}
+
+func propagateMappingValueErrors(value *MappingValuePlan, refs map[string]bool) bool {
+	var changed bool
+
+	if value.Struct != nil && refs[value.Struct.Name] && !value.CanError {
+		value.CanError = true
+		changed = true
+	}
+
+	if value.Elem != nil {
+		changed = propagateMappingValueErrors(value.Elem, refs) || changed
+		if value.Elem.CanError && !value.CanError {
+			value.CanError = true
+			changed = true
+		}
+	}
+
+	if value.Key != nil {
+		changed = propagateMappingValueErrors(value.Key, refs) || changed
+		if value.Key.CanError && !value.CanError {
+			value.CanError = true
+			changed = true
+		}
+	}
+
+	if value.Value != nil {
+		changed = propagateMappingValueErrors(value.Value, refs) || changed
+		if value.Value.CanError && !value.CanError {
+			value.CanError = true
+			changed = true
+		}
+	}
+
+	if value.Oneof != nil {
+		for index := range value.Oneof.Variants {
+			variant := &value.Oneof.Variants[index]
+			changed = propagateMappingValueErrors(&variant.Value, refs) || changed
+			if variant.Value.CanError && !value.CanError {
+				value.CanError = true
+				changed = true
+			}
+		}
+	}
+
+	return changed
+}
+
 func needsScalarCast(source TypePlan, target TypePlan) bool {
 	if source.Scalar != target.Scalar {
 		return true
@@ -568,12 +761,37 @@ func isStructpbStructPointer(plan TypePlan) bool {
 	return plan.Elem.Ref.ImportPath == structpbImportPath && plan.Elem.Ref.Name == "Struct"
 }
 
-func isStringAnyMap(plan TypePlan) bool {
-	if plan.Kind != TypeKindMap || plan.Key == nil || plan.Value == nil {
+func isStructpbValuePointer(plan TypePlan) bool {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
 		return false
 	}
-	return plan.Key.Kind == TypeKindScalar && plan.Key.Scalar == ScalarKindString &&
-		plan.Value.Kind == TypeKindScalar && plan.Value.Scalar == ScalarKindAny
+	return plan.Elem.Ref.ImportPath == structpbImportPath && plan.Elem.Ref.Name == "Value"
+}
+
+func isStructpbListValuePointer(plan TypePlan) bool {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return false
+	}
+	return plan.Elem.Ref.ImportPath == structpbImportPath && plan.Elem.Ref.Name == "ListValue"
+}
+
+func isEmptypbEmptyPointer(plan TypePlan) bool {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return false
+	}
+	return plan.Elem.Ref.ImportPath == emptypbImportPath && plan.Elem.Ref.Name == "Empty"
+}
+
+func isTegoStruct(plan TypePlan) bool {
+	return plan.Kind == TypeKindExternal && plan.Ref.ImportPath == tegoImportPath && plan.Ref.Name == "Struct"
+}
+
+func isTegoValue(plan TypePlan) bool {
+	return plan.Kind == TypeKindExternal && plan.Ref.ImportPath == tegoImportPath && plan.Ref.Name == "Value"
+}
+
+func isTegoListValue(plan TypePlan) bool {
+	return plan.Kind == TypeKindExternal && plan.Ref.ImportPath == tegoImportPath && plan.Ref.Name == "ListValue"
 }
 
 func nullableMappingElemTypes(source TypePlan, target TypePlan, direction mappingDirection) (TypePlan, TypePlan) {

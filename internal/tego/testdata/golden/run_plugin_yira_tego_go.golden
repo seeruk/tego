@@ -3,9 +3,11 @@ package yirav1
 
 import (
 	errors "errors"
+	tego "github.com/seeruk/tego"
 	plannertest "github.com/seeruk/tego/internal/tego/testdata/plannertest"
 	yirapbv1 "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1"
 	omittable "github.com/seeruk/tego/omittable"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -56,7 +58,10 @@ type Ticket struct {
 	History            TicketHistory
 	LatestHistoryEntry TicketHistoryEntry
 	Reviewer           TicketReviewer
-	StructData         map[string]any
+	StructData         tego.Struct
+	Marker             struct{}
+	DynamicValue       tego.Value
+	DynamicList        tego.ListValue
 }
 
 type TicketAuditEvent struct {
@@ -79,11 +84,12 @@ type UpdateTicketRequest struct {
 }
 
 type TicketInput struct {
-	Title       omittable.Of[string]
-	Description omittable.Of[string]
-	Status      omittable.Of[TicketStatus]
-	Assignee    omittable.Of[*Person]
-	Version     string
+	Title         omittable.Of[string]
+	Description   omittable.Of[string]
+	Status        omittable.Of[TicketStatus]
+	Assignee      omittable.Of[*Person]
+	Version       string
+	MetadataPatch omittable.Of[tego.Value]
 }
 
 type Person struct {
@@ -98,61 +104,72 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 	}
 	target.ID = source.GetId()
 	target.Title = source.GetTitle()
-	mapped1, err := plannertest.DescriptionFromProto(source.GetDescription())
+	description, err := plannertest.DescriptionFromProto(source.GetDescription())
 	if err != nil {
 		return target, err
 	}
-	target.Description = mapped1
+	target.Description = description
 	target.Status = TicketStatus(source.GetStatus())
-	var nullable2 *Person
+	var assignee *Person
 	if source.GetAssignee() != nil && source.GetAssignee().WhichValue() == yirapbv1.NullablePerson_Person_case {
-		nullable2 = new(PersonFromProto(source.GetAssignee().GetPerson()))
+		assignee = new(PersonFromProto(source.GetAssignee().GetPerson()))
 	}
-	target.Assignee = nullable2
+	target.Assignee = assignee
 	target.Author = PersonFromProto(source.GetAuthor())
 	target.Version = source.GetVersion()
-	items3 := make(map[string]string, len(source.GetMetadata()))
-	for key4, value5 := range source.GetMetadata() {
-		items3[key4] = value5
+	metadata := make(map[string]string, len(source.GetMetadata()))
+	for metadataKey, metadataValue := range source.GetMetadata() {
+		metadata[metadataKey] = metadataValue
 	}
-	target.Metadata = items3
-	items6 := make(map[string]Person, len(source.GetWatchersByRole()))
-	for key7, value8 := range source.GetWatchersByRole() {
-		items6[key7] = PersonFromProto(value8)
+	target.Metadata = metadata
+	watchersByRole := make(map[string]Person, len(source.GetWatchersByRole()))
+	for watchersByRoleKey, watchersByRoleValue := range source.GetWatchersByRole() {
+		watchersByRole[watchersByRoleKey] = PersonFromProto(watchersByRoleValue)
 	}
-	target.WatchersByRole = items6
-	items9 := make(map[string]TicketStatus, len(source.GetWorkflowStatuses()))
-	for key10, value11 := range source.GetWorkflowStatuses() {
-		items9[key10] = TicketStatus(value11)
+	target.WatchersByRole = watchersByRole
+	workflowStatuses := make(map[string]TicketStatus, len(source.GetWorkflowStatuses()))
+	for workflowStatusesKey, workflowStatusesValue := range source.GetWorkflowStatuses() {
+		workflowStatuses[workflowStatusesKey] = TicketStatus(workflowStatusesValue)
 	}
-	target.WorkflowStatuses = items9
-	items12 := make([]string, 0, len(source.GetWatcherIds()))
-	for _, item13 := range source.GetWatcherIds() {
-		items12 = append(items12, item13)
+	target.WorkflowStatuses = workflowStatuses
+	watcherIDs := make([]string, 0, len(source.GetWatcherIds()))
+	for _, watcherIDsItem := range source.GetWatcherIds() {
+		watcherIDs = append(watcherIDs, watcherIDsItem)
 	}
-	target.WatcherIDs = items12
-	mapped14, err := plannertest.CustomStringSetFromProto(source.GetLabels())
+	target.WatcherIDs = watcherIDs
+	labels, err := plannertest.CustomStringSetFromProto(source.GetLabels())
 	if err != nil {
 		return target, err
 	}
-	target.Labels = mapped14
+	target.Labels = labels
 	target.Visibility = TicketVisibility(source.GetVisibility())
-	items15 := make([]TicketAuditEvent, 0, len(source.GetAuditEvents()))
-	for _, item16 := range source.GetAuditEvents() {
-		items15 = append(items15, TicketAuditEventFromProto(item16))
+	auditEvents := make([]TicketAuditEvent, 0, len(source.GetAuditEvents()))
+	for _, auditEventsItem := range source.GetAuditEvents() {
+		auditEvents = append(auditEvents, TicketAuditEventFromProto(auditEventsItem))
 	}
-	target.AuditEvents = items15
+	target.AuditEvents = auditEvents
 	target.History = TicketHistoryFromProto(source.GetHistory())
 	target.LatestHistoryEntry = TicketHistoryEntryFromProto(source.GetLatestHistoryEntry())
 	switch source.WhichReviewer() {
 	case yirapbv1.Ticket_Internal_case:
 		target.Reviewer = TicketInternal{Internal: PersonFromProto(source.GetInternal())}
 	}
-	var structMap17 map[string]any
+	var structData tego.Struct
 	if source.GetStructData() != nil {
-		structMap17 = source.GetStructData().AsMap()
+		structData = source.GetStructData().AsMap()
 	}
-	target.StructData = structMap17
+	target.StructData = structData
+	target.Marker = struct{}{}
+	var dynamicValue tego.Value
+	if source.GetDynamicValue() != nil {
+		dynamicValue = source.GetDynamicValue().AsInterface()
+	}
+	target.DynamicValue = dynamicValue
+	var dynamicList tego.ListValue
+	if source.GetDynamicList() != nil {
+		dynamicList = source.GetDynamicList().AsSlice()
+	}
+	target.DynamicList = dynamicList
 	return target, nil
 }
 
@@ -160,76 +177,91 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 	target := new(yirapbv1.Ticket)
 	target.SetId(source.ID)
 	target.SetTitle(source.Title)
-	mapped1, err := plannertest.DescriptionToProto(source.Description)
+	description, err := plannertest.DescriptionToProto(source.Description)
 	if err != nil {
 		return nil, err
 	}
-	target.SetDescription(mapped1)
+	target.SetDescription(description)
 	target.SetStatus(yirapbv1.TicketStatus(source.Status))
-	var nullable2 *yirapbv1.NullablePerson
+	var assignee *yirapbv1.NullablePerson
 	if source.Assignee != nil {
-		nullable2 = new(yirapbv1.NullablePerson)
-		nullable2.SetPerson(PersonToProto(*source.Assignee))
+		assignee = new(yirapbv1.NullablePerson)
+		assignee.SetPerson(PersonToProto(*source.Assignee))
 	} else {
-		nullable2 = new(yirapbv1.NullablePerson)
-		nullable2.SetNull(structpb.NullValue_NULL_VALUE)
+		assignee = new(yirapbv1.NullablePerson)
+		assignee.SetNull(structpb.NullValue_NULL_VALUE)
 	}
-	target.SetAssignee(nullable2)
+	target.SetAssignee(assignee)
 	target.SetAuthor(PersonToProto(source.Author))
 	target.SetVersion(source.Version)
-	items3 := make(map[string]string, len(source.Metadata))
-	for key4, value5 := range source.Metadata {
-		items3[key4] = value5
+	metadata := make(map[string]string, len(source.Metadata))
+	for metadataKey, metadataValue := range source.Metadata {
+		metadata[metadataKey] = metadataValue
 	}
-	target.SetMetadata(items3)
-	items6 := make(map[string]*yirapbv1.Person, len(source.WatchersByRole))
-	for key7, value8 := range source.WatchersByRole {
-		items6[key7] = PersonToProto(value8)
+	target.SetMetadata(metadata)
+	watchersByRole := make(map[string]*yirapbv1.Person, len(source.WatchersByRole))
+	for watchersByRoleKey, watchersByRoleValue := range source.WatchersByRole {
+		watchersByRole[watchersByRoleKey] = PersonToProto(watchersByRoleValue)
 	}
-	target.SetWatchersByRole(items6)
-	items9 := make(map[string]yirapbv1.TicketStatus, len(source.WorkflowStatuses))
-	for key10, value11 := range source.WorkflowStatuses {
-		items9[key10] = yirapbv1.TicketStatus(value11)
+	target.SetWatchersByRole(watchersByRole)
+	workflowStatuses := make(map[string]yirapbv1.TicketStatus, len(source.WorkflowStatuses))
+	for workflowStatusesKey, workflowStatusesValue := range source.WorkflowStatuses {
+		workflowStatuses[workflowStatusesKey] = yirapbv1.TicketStatus(workflowStatusesValue)
 	}
-	target.SetWorkflowStatuses(items9)
-	items12 := make([]string, 0, len(source.WatcherIDs))
-	for _, item13 := range source.WatcherIDs {
-		items12 = append(items12, item13)
+	target.SetWorkflowStatuses(workflowStatuses)
+	watcherIDs := make([]string, 0, len(source.WatcherIDs))
+	for _, watcherIDsItem := range source.WatcherIDs {
+		watcherIDs = append(watcherIDs, watcherIDsItem)
 	}
-	target.SetWatcherIds(items12)
-	mapped14, err := plannertest.CustomStringSetToProto(source.Labels)
+	target.SetWatcherIds(watcherIDs)
+	labels, err := plannertest.CustomStringSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
-	target.SetLabels(mapped14)
+	target.SetLabels(labels)
 	target.SetVisibility(yirapbv1.Ticket_Visibility(source.Visibility))
-	items15 := make([]*yirapbv1.Ticket_AuditEvent, 0, len(source.AuditEvents))
-	for _, item16 := range source.AuditEvents {
-		items15 = append(items15, TicketAuditEventToProto(item16))
+	auditEvents := make([]*yirapbv1.Ticket_AuditEvent, 0, len(source.AuditEvents))
+	for _, auditEventsItem := range source.AuditEvents {
+		auditEvents = append(auditEvents, TicketAuditEventToProto(auditEventsItem))
 	}
-	target.SetAuditEvents(items15)
+	target.SetAuditEvents(auditEvents)
 	target.SetHistory(TicketHistoryToProto(source.History))
 	target.SetLatestHistoryEntry(TicketHistoryEntryToProto(source.LatestHistoryEntry))
-	switch value17 := source.Reviewer.(type) {
+	switch reviewer := source.Reviewer.(type) {
 	case nil:
 	case TicketInternal:
-		target.SetInternal(PersonToProto(value17.Internal))
+		target.SetInternal(PersonToProto(reviewer.Internal))
 	case *TicketInternal:
-		if value17 != nil {
-			target.SetInternal(PersonToProto(value17.Internal))
+		if reviewer != nil {
+			target.SetInternal(PersonToProto(reviewer.Internal))
 		}
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
-	var struct18 *structpb.Struct
+	var structData *structpb.Struct
 	if source.StructData != nil {
-		mapped19, err := structpb.NewStruct(source.StructData)
+		var err error
+		structData, err = structpb.NewStruct(source.StructData)
 		if err != nil {
 			return nil, err
 		}
-		struct18 = mapped19
 	}
-	target.SetStructData(struct18)
+	target.SetStructData(structData)
+	target.SetMarker(new(emptypb.Empty))
+	dynamicValue, err := structpb.NewValue(source.DynamicValue)
+	if err != nil {
+		return nil, err
+	}
+	target.SetDynamicValue(dynamicValue)
+	var dynamicList *structpb.ListValue
+	if source.DynamicList != nil {
+		var err error
+		dynamicList, err = structpb.NewList(source.DynamicList)
+		if err != nil {
+			return nil, err
+		}
+	}
+	target.SetDynamicList(dynamicList)
 	return target, nil
 }
 
@@ -263,21 +295,21 @@ func TicketHistoryFromProto(source *yirapbv1.Ticket_History) TicketHistory {
 	if source == nil {
 		return target
 	}
-	items1 := make([]TicketHistoryEntry, 0, len(source.GetEntries()))
-	for _, item2 := range source.GetEntries() {
-		items1 = append(items1, TicketHistoryEntryFromProto(item2))
+	entries := make([]TicketHistoryEntry, 0, len(source.GetEntries()))
+	for _, entriesItem := range source.GetEntries() {
+		entries = append(entries, TicketHistoryEntryFromProto(entriesItem))
 	}
-	target.Entries = items1
+	target.Entries = entries
 	return target
 }
 
 func TicketHistoryToProto(source TicketHistory) *yirapbv1.Ticket_History {
 	target := new(yirapbv1.Ticket_History)
-	items1 := make([]*yirapbv1.Ticket_History_Entry, 0, len(source.Entries))
-	for _, item2 := range source.Entries {
-		items1 = append(items1, TicketHistoryEntryToProto(item2))
+	entries := make([]*yirapbv1.Ticket_History_Entry, 0, len(source.Entries))
+	for _, entriesItem := range source.Entries {
+		entries = append(entries, TicketHistoryEntryToProto(entriesItem))
 	}
-	target.SetEntries(items1)
+	target.SetEntries(entries)
 	return target
 }
 
@@ -316,14 +348,18 @@ func UpdateTicketRequestFromProto(source *yirapbv1.UpdateTicketRequest) UpdateTi
 	return target
 }
 
-func UpdateTicketRequestToProto(source UpdateTicketRequest) *yirapbv1.UpdateTicketRequest {
+func UpdateTicketRequestToProto(source UpdateTicketRequest) (*yirapbv1.UpdateTicketRequest, error) {
 	target := new(yirapbv1.UpdateTicketRequest)
 	target.SetId(source.ID)
-	target.SetInput(TicketInputToProto(source.Input))
-	return target
+	input, err := TicketInputToProto(source.Input)
+	if err != nil {
+		return nil, err
+	}
+	target.SetInput(input)
+	return target, nil
 }
 
-func (utr UpdateTicketRequest) ToProto() *yirapbv1.UpdateTicketRequest {
+func (utr UpdateTicketRequest) ToProto() (*yirapbv1.UpdateTicketRequest, error) {
 	return UpdateTicketRequestToProto(utr)
 }
 
@@ -348,19 +384,28 @@ func TicketInputFromProto(source *yirapbv1.TicketInput) TicketInput {
 		target.Status = omittable.None[TicketStatus]()
 	}
 	if source.HasAssignee() {
-		var nullable1 *Person
+		var assignee *Person
 		if source.GetAssignee() != nil {
-			nullable1 = new(PersonFromProto(source.GetAssignee()))
+			assignee = new(PersonFromProto(source.GetAssignee()))
 		}
-		target.Assignee = omittable.Some(nullable1)
+		target.Assignee = omittable.Some(assignee)
 	} else {
 		target.Assignee = omittable.None[*Person]()
 	}
 	target.Version = source.GetVersion()
+	if source.HasMetadataPatch() {
+		var metadataPatch tego.Value
+		if source.GetMetadataPatch() != nil {
+			metadataPatch = source.GetMetadataPatch().AsInterface()
+		}
+		target.MetadataPatch = omittable.Some(metadataPatch)
+	} else {
+		target.MetadataPatch = omittable.None[tego.Value]()
+	}
 	return target
 }
 
-func TicketInputToProto(source TicketInput) *yirapbv1.TicketInput {
+func TicketInputToProto(source TicketInput) (*yirapbv1.TicketInput, error) {
 	target := new(yirapbv1.TicketInput)
 	if source.Title.Valid {
 		target.SetTitle(source.Title.Value)
@@ -372,19 +417,26 @@ func TicketInputToProto(source TicketInput) *yirapbv1.TicketInput {
 		target.SetStatus(yirapbv1.TicketStatus(source.Status.Value))
 	}
 	if source.Assignee.Valid {
-		var nullable1 *yirapbv1.Person
+		var assignee *yirapbv1.Person
 		if source.Assignee.Value != nil {
-			nullable1 = new(yirapbv1.Person)
-			nullable1 = PersonToProto(*source.Assignee.Value)
+			assignee = new(yirapbv1.Person)
+			assignee = PersonToProto(*source.Assignee.Value)
 		} else {
 		}
-		target.SetAssignee(nullable1)
+		target.SetAssignee(assignee)
 	}
 	target.SetVersion(source.Version)
-	return target
+	if source.MetadataPatch.Valid {
+		metadataPatch, err := structpb.NewValue(source.MetadataPatch.Value)
+		if err != nil {
+			return nil, err
+		}
+		target.SetMetadataPatch(metadataPatch)
+	}
+	return target, nil
 }
 
-func (ti TicketInput) ToProto() *yirapbv1.TicketInput {
+func (ti TicketInput) ToProto() (*yirapbv1.TicketInput, error) {
 	return TicketInputToProto(ti)
 }
 

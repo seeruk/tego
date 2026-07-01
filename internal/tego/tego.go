@@ -123,6 +123,7 @@ const (
 	TypeKindSlice
 	TypeKindMap
 	TypeKindOmittable
+	TypeKindEmptyStruct
 )
 
 type ScalarKind uint
@@ -204,6 +205,7 @@ type MappingValuePlan struct {
 	Custom   *CustomGoTypePlan
 	Enum     *MappingEnumPlan
 	Cast     *MappingCastPlan
+	Dynamic  *MappingDynamicPlan
 	Elem     *MappingValuePlan
 	Key      *MappingValuePlan
 	Value    *MappingValuePlan
@@ -274,8 +276,21 @@ const (
 	MappingValueKindMap
 	MappingValueKindOmittable
 	MappingValueKindOneof
-	MappingValueKindStructMap
+	MappingValueKindEmptyStruct
+	MappingValueKindDynamic
 )
+
+type MappingDynamicKind uint
+
+const (
+	MappingDynamicKindStruct MappingDynamicKind = iota
+	MappingDynamicKindValue
+	MappingDynamicKindListValue
+)
+
+type MappingDynamicPlan struct {
+	Kind MappingDynamicKind
+}
 
 type MappingRefPlan struct {
 	Name   string

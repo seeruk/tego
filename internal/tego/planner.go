@@ -51,6 +51,8 @@ func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 		plan.Files = append(plan.Files, p.planFile(file, si))
 	}
 
+	propagateMappingErrors(&plan)
+
 	return plan, nil
 }
 

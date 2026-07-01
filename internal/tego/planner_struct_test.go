@@ -73,22 +73,25 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		elem := requirePointerElem(t, stringValue, TypeKindScalar)
 		assert.Equal(t, ScalarKindString, elem.Scalar)
 
+		empty, diagnostics := planner.planSingularFieldType(messageField("marker", &ProtoMessage{FullName: emptyFullName}), shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, emptyStructType(), empty)
+
 		descriptorIndex := buildYiraDescriptorIndex(t)
 		structMessage := requireMessage(t, descriptorIndex, "google.protobuf.Struct")
 		structPlan, diagnostics := planner.planSingularFieldType(messageField("data", structMessage), shapeIndex)
 		require.Empty(t, diagnostics)
-		assert.Equal(t, TypeKindMap, structPlan.Kind)
-		assert.Equal(t, ScalarKindString, structPlan.Key.Scalar)
-		assert.Equal(t, ScalarKindAny, structPlan.Value.Scalar)
+		assert.Equal(t, dynamicStructType(), structPlan)
 
 		valueMessage := requireMessage(t, descriptorIndex, "google.protobuf.Value")
 		valuePlan, diagnostics := planner.planSingularFieldType(messageField("value", valueMessage), shapeIndex)
 		require.Empty(t, diagnostics)
-		valueElem := requirePointerElem(t, valuePlan, TypeKindExternal)
-		assert.Equal(t, GoTypeRef{
-			ImportPath: "google.golang.org/protobuf/types/known/structpb",
-			Name:       "Value",
-		}, valueElem.Ref)
+		assert.Equal(t, dynamicValueType(), valuePlan)
+
+		listValueMessage := requireMessage(t, descriptorIndex, "google.protobuf.ListValue")
+		listValuePlan, diagnostics := planner.planSingularFieldType(messageField("list_value", listValueMessage), shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, dynamicListValueType(), listValuePlan)
 
 		nullValue := requireEnum(t, descriptorIndex, "google.protobuf.NullValue")
 		nullField := field("null", protoreflect.EnumKind)

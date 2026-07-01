@@ -87,35 +87,35 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 	case generatedpb.Person_Name_case:
 		target.Value = PersonName{Name: source.GetName()}
 	case generatedpb.Person_BestFriend_case:
-		mapped1, err := PersonFromProto(source.GetBestFriend())
+		bestFriend, err := PersonFromProto(source.GetBestFriend())
 		if err != nil {
 			return target, err
 		}
-		target.Value = PersonBestFriend{BestFriend: mapped1}
+		target.Value = PersonBestFriend{BestFriend: bestFriend}
 	case generatedpb.Person_DescriptionValue_case:
-		mapped2, err := plannertest.DescriptionFromProto(source.GetDescriptionValue())
+		description, err := plannertest.DescriptionFromProto(source.GetDescriptionValue())
 		if err != nil {
 			return target, err
 		}
-		target.Value = PersonDescriptionValue{Description: mapped2}
+		target.Value = PersonDescriptionValue{Description: description}
 	}
 	target.Version = int(source.GetVersion())
 	target.Status = UintStatus(source.GetStatus())
-	mapped3, err := plannertest.DescriptionFromProto(source.GetDescription())
+	description2, err := plannertest.DescriptionFromProto(source.GetDescription())
 	if err != nil {
 		return target, err
 	}
-	target.Description = mapped3
-	items4 := make([]string, 0, len(source.GetWatcherIds()))
-	for _, item5 := range source.GetWatcherIds() {
-		items4 = append(items4, item5)
+	target.Description = description2
+	watcherIDs := make([]string, 0, len(source.GetWatcherIds()))
+	for _, watcherIDsItem := range source.GetWatcherIds() {
+		watcherIDs = append(watcherIDs, watcherIDsItem)
 	}
-	target.WatcherIDs = items4
-	items6 := make(map[string]string, len(source.GetMetadata()))
-	for key7, value8 := range source.GetMetadata() {
-		items6[key7] = value8
+	target.WatcherIDs = watcherIDs
+	metadata := make(map[string]string, len(source.GetMetadata()))
+	for metadataKey, metadataValue := range source.GetMetadata() {
+		metadata[metadataKey] = metadataValue
 	}
-	target.Metadata = items6
+	target.Metadata = metadata
 	if source.HasOptionalName() {
 		target.OptionalName = omittable.Some(source.GetOptionalName())
 	} else {
@@ -127,62 +127,62 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 func PersonToProto(source Person) (*generatedpb.Person, error) {
 	target := new(generatedpb.Person)
 	target.SetId(source.ID)
-	switch value1 := source.Value.(type) {
+	switch value := source.Value.(type) {
 	case nil:
 	case PersonName:
-		target.SetName(value1.Name)
+		target.SetName(value.Name)
 	case *PersonName:
-		if value1 != nil {
-			target.SetName(value1.Name)
+		if value != nil {
+			target.SetName(value.Name)
 		}
 	case PersonBestFriend:
-		mapped2, err := PersonToProto(value1.BestFriend)
+		bestFriend, err := PersonToProto(value.BestFriend)
 		if err != nil {
 			return nil, err
 		}
-		target.SetBestFriend(mapped2)
+		target.SetBestFriend(bestFriend)
 	case *PersonBestFriend:
-		if value1 != nil {
-			mapped3, err := PersonToProto(value1.BestFriend)
+		if value != nil {
+			bestFriend2, err := PersonToProto(value.BestFriend)
 			if err != nil {
 				return nil, err
 			}
-			target.SetBestFriend(mapped3)
+			target.SetBestFriend(bestFriend2)
 		}
 	case PersonDescriptionValue:
-		mapped4, err := (value1.Description)
+		description, err := (value.Description)
 		if err != nil {
 			return nil, err
 		}
-		target.SetDescriptionValue(mapped4)
+		target.SetDescriptionValue(description)
 	case *PersonDescriptionValue:
-		if value1 != nil {
-			mapped5, err := (value1.Description)
+		if value != nil {
+			description2, err := (value.Description)
 			if err != nil {
 				return nil, err
 			}
-			target.SetDescriptionValue(mapped5)
+			target.SetDescriptionValue(description2)
 		}
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
 	target.SetVersion(int(source.Version))
 	target.SetStatus(generatedpb.UintStatus(source.Status))
-	mapped6, err := (source.Description)
+	description3, err := (source.Description)
 	if err != nil {
 		return nil, err
 	}
-	target.SetDescription(mapped6)
-	items7 := make([]string, 0, len(source.WatcherIDs))
-	for _, item8 := range source.WatcherIDs {
-		items7 = append(items7, item8)
+	target.SetDescription(description3)
+	watcherIDs := make([]string, 0, len(source.WatcherIDs))
+	for _, watcherIDsItem := range source.WatcherIDs {
+		watcherIDs = append(watcherIDs, watcherIDsItem)
 	}
-	target.SetWatcherIds(items7)
-	items9 := make(map[string]string, len(source.Metadata))
-	for key10, value11 := range source.Metadata {
-		items9[key10] = value11
+	target.SetWatcherIds(watcherIDs)
+	metadata := make(map[string]string, len(source.Metadata))
+	for metadataKey, metadataValue := range source.Metadata {
+		metadata[metadataKey] = metadataValue
 	}
-	target.SetMetadata(items9)
+	target.SetMetadata(metadata)
 	if source.OptionalName.Valid {
 		target.SetOptionalName(source.OptionalName.Value)
 	}

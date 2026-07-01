@@ -3,6 +3,7 @@ package tego
 import (
 	"testing"
 
+	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -71,15 +72,177 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 			Kind: TypeKindExternal,
 			Ref:  GoTypeRef{ImportPath: "google.golang.org/protobuf/types/known/structpb", Name: "Struct"},
 		})
-		nativeStruct := structpbStructMapType()
+		nativeStruct := dynamicStructType()
 
 		fromProto := planner.planMappingValue(protoStruct, nativeStruct, mappingDirectionFromProto)
 		toProto := planner.planMappingValue(nativeStruct, protoStruct, mappingDirectionToProto)
 
-		assert.Equal(t, MappingValueKindStructMap, fromProto.Kind)
+		require.NotNil(t, fromProto.Dynamic)
+		require.NotNil(t, toProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, fromProto.Kind)
+		assert.Equal(t, MappingDynamicKindStruct, fromProto.Dynamic.Kind)
 		assert.False(t, fromProto.CanError)
-		assert.Equal(t, MappingValueKindStructMap, toProto.Kind)
+		assert.Equal(t, MappingValueKindDynamic, toProto.Kind)
+		assert.Equal(t, MappingDynamicKindStruct, toProto.Dynamic.Kind)
 		assert.True(t, toProto.CanError)
+
+		_, ok := structpbStructMapMapping(protoStruct, nativeStruct, mappingDirectionToProto)
+		assert.False(t, ok)
+		_, ok = structpbStructMapMapping(nativeStruct, protoStruct, mappingDirectionFromProto)
+		assert.False(t, ok)
+	})
+
+	t.Run("plans structpb value conversions", func(t *testing.T) {
+		protoValue := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: structpbImportPath, Name: "Value"},
+		})
+		nativeValue := dynamicValueType()
+
+		fromProto := planner.planMappingValue(protoValue, nativeValue, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(nativeValue, protoValue, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Dynamic)
+		require.NotNil(t, toProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, fromProto.Kind)
+		assert.Equal(t, MappingDynamicKindValue, fromProto.Dynamic.Kind)
+		assert.False(t, fromProto.CanError)
+		assert.Equal(t, MappingValueKindDynamic, toProto.Kind)
+		assert.Equal(t, MappingDynamicKindValue, toProto.Dynamic.Kind)
+		assert.True(t, toProto.CanError)
+	})
+
+	t.Run("plans structpb list value conversions", func(t *testing.T) {
+		protoList := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: structpbImportPath, Name: "ListValue"},
+		})
+		nativeList := dynamicListValueType()
+
+		fromProto := planner.planMappingValue(protoList, nativeList, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(nativeList, protoList, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Dynamic)
+		require.NotNil(t, toProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, fromProto.Kind)
+		assert.Equal(t, MappingDynamicKindListValue, fromProto.Dynamic.Kind)
+		assert.False(t, fromProto.CanError)
+		assert.Equal(t, MappingValueKindDynamic, toProto.Kind)
+		assert.Equal(t, MappingDynamicKindListValue, toProto.Dynamic.Kind)
+		assert.True(t, toProto.CanError)
+	})
+
+	t.Run("plans nullable structpb value conversions", func(t *testing.T) {
+		protoValue := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: structpbImportPath, Name: "Value"},
+		})
+		nativeValue := pointerType(dynamicValueType())
+		field := nullableMessageField("dynamic_value", &ProtoMessage{FullName: valueFullName})
+
+		fromProto := planner.planFieldMappingValue(field, protoValue, nativeValue, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, nativeValue, protoValue, &ShapeIndex{}, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Kind)
+		require.NotNil(t, fromProto.Elem.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, fromProto.Elem.Kind)
+		assert.Equal(t, MappingDynamicKindValue, fromProto.Elem.Dynamic.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Kind)
+		require.NotNil(t, toProto.Elem.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, toProto.Elem.Kind)
+		assert.Equal(t, MappingDynamicKindValue, toProto.Elem.Dynamic.Kind)
+	})
+
+	t.Run("plans omittable structpb value conversions", func(t *testing.T) {
+		protoValue := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: structpbImportPath, Name: "Value"},
+		})
+		nativeValue := dynamicValueType()
+		field := messageField("dynamic_value", &ProtoMessage{FullName: valueFullName})
+		options := &tegopb.FieldOptions{}
+		options.SetOmittable(true)
+		field.Options = options
+
+		fromProto := planner.planFieldMappingValue(
+			field,
+			protoValue,
+			TypePlan{Kind: TypeKindOmittable, Elem: &nativeValue},
+			&ShapeIndex{},
+			mappingDirectionFromProto,
+		)
+
+		require.NotNil(t, fromProto.Elem)
+		assert.Equal(t, MappingValueKindOmittable, fromProto.Kind)
+		require.NotNil(t, fromProto.Elem.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, fromProto.Elem.Kind)
+		assert.Equal(t, MappingDynamicKindValue, fromProto.Elem.Dynamic.Kind)
+	})
+
+	t.Run("plans emptypb empty struct conversions", func(t *testing.T) {
+		protoEmpty := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: emptypbImportPath, Name: "Empty"},
+		})
+		nativeEmpty := emptyStructType()
+
+		fromProto := planner.planMappingValue(protoEmpty, nativeEmpty, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(nativeEmpty, protoEmpty, mappingDirectionToProto)
+
+		assert.Equal(t, MappingValueKindEmptyStruct, fromProto.Kind)
+		assert.False(t, fromProto.CanError)
+		assert.Equal(t, MappingValueKindEmptyStruct, toProto.Kind)
+		assert.False(t, toProto.CanError)
+
+		_, ok := emptypbEmptyStructMapping(protoEmpty, nativeEmpty, mappingDirectionToProto)
+		assert.False(t, ok)
+		_, ok = emptypbEmptyStructMapping(nativeEmpty, protoEmpty, mappingDirectionFromProto)
+		assert.False(t, ok)
+	})
+
+	t.Run("plans nullable empty struct conversions", func(t *testing.T) {
+		protoEmpty := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: emptypbImportPath, Name: "Empty"},
+		})
+		nativeEmpty := pointerType(emptyStructType())
+		field := nullableMessageField("marker", &ProtoMessage{FullName: emptyFullName})
+
+		fromProto := planner.planFieldMappingValue(field, protoEmpty, nativeEmpty, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, nativeEmpty, protoEmpty, &ShapeIndex{}, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Kind)
+		assert.Equal(t, MappingValueKindEmptyStruct, fromProto.Elem.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Kind)
+		assert.Equal(t, MappingValueKindEmptyStruct, toProto.Elem.Kind)
+	})
+
+	t.Run("plans omittable empty struct conversions", func(t *testing.T) {
+		protoEmpty := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: emptypbImportPath, Name: "Empty"},
+		})
+		nativeEmpty := emptyStructType()
+		field := messageField("marker", &ProtoMessage{FullName: emptyFullName})
+		options := &tegopb.FieldOptions{}
+		options.SetOmittable(true)
+		field.Options = options
+
+		fromProto := planner.planFieldMappingValue(
+			field,
+			protoEmpty,
+			TypePlan{Kind: TypeKindOmittable, Elem: &nativeEmpty},
+			&ShapeIndex{},
+			mappingDirectionFromProto,
+		)
+
+		require.NotNil(t, fromProto.Elem)
+		assert.Equal(t, MappingValueKindOmittable, fromProto.Kind)
+		assert.Equal(t, MappingValueKindEmptyStruct, fromProto.Elem.Kind)
 	})
 
 	t.Run("plans nullable pointers", func(t *testing.T) {
