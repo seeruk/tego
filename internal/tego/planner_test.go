@@ -31,46 +31,52 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 			Path:          "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
 			GeneratorPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/yira.tego.go",
 		}, file.Output)
-		require.Len(t, file.Diagnostics, 1)
-		assert.Equal(t, DiagnosticLevelWarning, file.Diagnostics[0].Level)
-		assert.Equal(t, "yirapb.v1.TicketInput.assignee", file.Diagnostics[0].Path)
-		assert.Contains(t, file.Diagnostics[0].Message, "cannot preserve null")
+		require.Empty(t, file.Diagnostics)
 	})
 
 	t.Run("includes enum plans", func(t *testing.T) {
-		require.Len(t, file.Enums, 2)
+		require.Len(t, file.Enums, 4)
 		assert.Equal(t, protoreflect.FullName("yirapb.v1.TicketStatus"), file.Enums[0].ProtoName)
 
 		visibility := enumByProtoName(t, file, "yirapb.v1.Ticket.Visibility")
 		assert.Equal(t, "TicketVisibility", visibility.Name)
 		public := enumConstantByProtoName(t, visibility, "yirapb.v1.Ticket.VISIBILITY_PUBLIC")
 		assert.Equal(t, "TicketVisibilityPublic", public.Name)
+
+		eventKind := enumByProtoName(t, file, "yirapb.v1.TicketEvent.Kind")
+		assert.Equal(t, "TicketEventKind", eventKind.Name)
 	})
 
 	t.Run("includes ordinary struct plans", func(t *testing.T) {
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.ListTicketsRequest"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.ListTicketsResponse"))
 		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket"))
-		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket.AuditEvent"))
-		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket.History"))
-		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Ticket.History.Entry"))
-		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.TicketInput"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.TicketDraft"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.TicketPatch"))
+		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.TicketEvent"))
 		require.NotZero(t, structByProtoName(t, file, "yirapb.v1.Person"))
 
 		assert.False(t, hasStructPlan(file, "yirapb.v1.NullablePerson"))
-		assert.False(t, hasStructPlan(file, "yirapb.v1.People"))
-		assert.False(t, hasStructPlan(file, "yirapb.v1.TicketsByPeople"))
+		assert.False(t, hasStructPlan(file, "yirapb.v1.DueDate"))
+		assert.False(t, hasStructPlan(file, "yirapb.v1.Labels"))
+		assert.False(t, hasStructPlan(file, "yirapb.v1.PersonList"))
+		assert.False(t, hasStructPlan(file, "yirapb.v1.TicketsByStatus"))
 	})
 
 	t.Run("includes ordinary mapping plans", func(t *testing.T) {
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.ListTicketsRequest"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.ListTicketsResponse"))
 		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket"))
-		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket.AuditEvent"))
-		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket.History"))
-		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Ticket.History.Entry"))
-		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.TicketInput"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.TicketDraft"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.TicketPatch"))
+		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.TicketEvent"))
 		require.NotZero(t, mappingByProtoName(t, file, "yirapb.v1.Person"))
 
 		assert.False(t, hasMappingPlan(file, "yirapb.v1.NullablePerson"))
-		assert.False(t, hasMappingPlan(file, "yirapb.v1.People"))
-		assert.False(t, hasMappingPlan(file, "yirapb.v1.TicketsByPeople"))
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.DueDate"))
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.Labels"))
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.PersonList"))
+		assert.False(t, hasMappingPlan(file, "yirapb.v1.TicketsByStatus"))
 	})
 
 	t.Run("plans mapping function names and errability", func(t *testing.T) {
@@ -90,7 +96,7 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 
 		request := mappingByProtoName(t, file, "yirapb.v1.UpdateTicketRequest")
 		assert.Equal(t, "utr", request.ToProto.ReceiverName)
-		assert.False(t, request.FromProto.CanError)
+		assert.True(t, request.FromProto.CanError)
 		assert.True(t, request.ToProto.CanError)
 	})
 
@@ -102,10 +108,12 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.Equal(t, "Id", id.Proto.Name)
 		assert.Equal(t, MappingValueKindDirect, id.FromProto.Kind)
 
-		description := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.description")
-		assert.Equal(t, MappingValueKindCustom, description.FromProto.Kind)
-		assert.True(t, description.FromProto.CanError)
-		assert.True(t, description.ToProto.CanError)
+		dueDate := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.due_date")
+		assert.Equal(t, MappingValueKindFlatten, dueDate.FromProto.Kind)
+		require.NotNil(t, dueDate.FromProto.Elem)
+		assert.Equal(t, MappingValueKindCustom, dueDate.FromProto.Elem.Kind)
+		assert.True(t, dueDate.FromProto.CanError)
+		assert.True(t, dueDate.ToProto.CanError)
 
 		status := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.status")
 		assert.Equal(t, MappingValueKindEnum, status.FromProto.Kind)
@@ -115,52 +123,38 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.Equal(t, MappingValueKindNullable, assignee.FromProto.Kind)
 		assert.Equal(t, MappingValueKindNullable, assignee.ToProto.Kind)
 
-		reviewer := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.reviewer")
-		assert.Equal(t, MappingValueKindOneof, reviewer.FromProto.Kind)
-		require.NotNil(t, reviewer.FromProto.Oneof)
-		require.Len(t, reviewer.FromProto.Oneof.Variants, 1)
-		assert.Equal(t, "TicketInternal", reviewer.FromProto.Oneof.Variants[0].Name)
+		source := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.source")
+		assert.Equal(t, MappingValueKindOneof, source.FromProto.Kind)
+		require.NotNil(t, source.FromProto.Oneof)
+		require.Len(t, source.FromProto.Oneof.Variants, 2)
+		assert.Equal(t, "TicketManualSource", source.FromProto.Oneof.Variants[0].Name)
+		assert.Equal(t, "TicketIntegrationSource", source.FromProto.Oneof.Variants[1].Name)
 
-		structData := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.struct_data")
-		require.NotNil(t, structData.FromProto.Dynamic)
-		require.NotNil(t, structData.ToProto.Dynamic)
-		assert.Equal(t, MappingValueKindDynamic, structData.FromProto.Kind)
-		assert.Equal(t, MappingDynamicKindStruct, structData.FromProto.Dynamic.Kind)
-		assert.False(t, structData.FromProto.CanError)
-		assert.Equal(t, MappingValueKindDynamic, structData.ToProto.Kind)
-		assert.Equal(t, MappingDynamicKindStruct, structData.ToProto.Dynamic.Kind)
-		assert.True(t, structData.ToProto.CanError)
+		metadata := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.metadata")
+		require.NotNil(t, metadata.FromProto.Dynamic)
+		require.NotNil(t, metadata.ToProto.Dynamic)
+		assert.Equal(t, MappingValueKindDynamic, metadata.FromProto.Kind)
+		assert.Equal(t, MappingDynamicKindStruct, metadata.FromProto.Dynamic.Kind)
+		assert.False(t, metadata.FromProto.CanError)
+		assert.Equal(t, MappingValueKindDynamic, metadata.ToProto.Kind)
+		assert.Equal(t, MappingDynamicKindStruct, metadata.ToProto.Dynamic.Kind)
+		assert.True(t, metadata.ToProto.CanError)
 
-		marker := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.marker")
-		assert.Equal(t, MappingValueKindEmptyStruct, marker.FromProto.Kind)
-		assert.False(t, marker.FromProto.CanError)
-		assert.Equal(t, MappingValueKindEmptyStruct, marker.ToProto.Kind)
-		assert.False(t, marker.ToProto.CanError)
+		event := mappingByProtoName(t, file, "yirapb.v1.TicketEvent")
+		payload := fieldMappingByProtoName(t, event, "yirapb.v1.TicketEvent.payload")
+		require.NotNil(t, payload.FromProto.Dynamic)
+		assert.Equal(t, MappingDynamicKindValue, payload.FromProto.Dynamic.Kind)
+		assert.True(t, payload.ToProto.CanError)
 
-		dynamicValue := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_value")
-		require.NotNil(t, dynamicValue.FromProto.Dynamic)
-		require.NotNil(t, dynamicValue.ToProto.Dynamic)
-		assert.Equal(t, MappingValueKindDynamic, dynamicValue.FromProto.Kind)
-		assert.Equal(t, MappingDynamicKindValue, dynamicValue.FromProto.Dynamic.Kind)
-		assert.False(t, dynamicValue.FromProto.CanError)
-		assert.Equal(t, MappingValueKindDynamic, dynamicValue.ToProto.Kind)
-		assert.Equal(t, MappingDynamicKindValue, dynamicValue.ToProto.Dynamic.Kind)
-		assert.True(t, dynamicValue.ToProto.CanError)
-
-		dynamicList := fieldMappingByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_list")
-		require.NotNil(t, dynamicList.FromProto.Dynamic)
-		require.NotNil(t, dynamicList.ToProto.Dynamic)
-		assert.Equal(t, MappingValueKindDynamic, dynamicList.FromProto.Kind)
-		assert.Equal(t, MappingDynamicKindListValue, dynamicList.FromProto.Dynamic.Kind)
-		assert.False(t, dynamicList.FromProto.CanError)
-		assert.Equal(t, MappingValueKindDynamic, dynamicList.ToProto.Kind)
-		assert.Equal(t, MappingDynamicKindListValue, dynamicList.ToProto.Dynamic.Kind)
-		assert.True(t, dynamicList.ToProto.CanError)
+		attachments := fieldMappingByProtoName(t, event, "yirapb.v1.TicketEvent.attachments")
+		require.NotNil(t, attachments.FromProto.Dynamic)
+		assert.Equal(t, MappingDynamicKindListValue, attachments.FromProto.Dynamic.Kind)
+		assert.True(t, attachments.ToProto.CanError)
 	})
 
 	t.Run("plans field tags and scalar types", func(t *testing.T) {
 		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
-		require.Len(t, ticket.Fields, 21)
+		require.Len(t, ticket.Fields, 15)
 
 		id := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.id")
 		assert.Equal(t, "ID", id.Name)
@@ -169,24 +163,20 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		require.Len(t, id.Tags, 1)
 		assert.Equal(t, StructTagPlan{Key: "json", Value: "id,omitempty"}, id.Tags[0])
 
-		title := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.title")
-		require.Len(t, title.Tags, 1)
-		assert.Equal(t, StructTagPlan{Key: "json", Value: "title,omitempty"}, title.Tags[0])
-
-		reviewer := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.reviewer")
-		assert.Equal(t, "Reviewer", reviewer.Name)
-		assert.Equal(t, TypeKindOneof, reviewer.Type.Kind)
-		assert.Equal(t, "TicketReviewer", reviewer.Type.Ref.Name)
+		source := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.source")
+		assert.Equal(t, "Source", source.Name)
+		assert.Equal(t, TypeKindOneof, source.Type.Kind)
+		assert.Equal(t, "TicketSource", source.Type.Ref.Name)
 	})
 
 	t.Run("plans custom enum struct map and slice types", func(t *testing.T) {
 		ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
 
-		description := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.description")
-		descriptionCustom := requirePointerElem(t, description.Type, TypeKindCustom)
-		assert.Equal(t, GoTypeRef{ImportPath: plannerTestPkg, Name: "Description"}, descriptionCustom.Ref)
-		assert.Equal(t, GoSymbolRef{ImportPath: plannerTestPkg, Name: "DescriptionFromProto"}, descriptionCustom.Custom.FromProto)
-		assert.Equal(t, GoSymbolRef{ImportPath: plannerTestPkg, Name: "DescriptionToProto"}, descriptionCustom.Custom.ToProto)
+		dueDate := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.due_date")
+		assert.Equal(t, TypeKindCustom, dueDate.Type.Kind)
+		assert.Equal(t, GoTypeRef{ImportPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types", Name: "Date"}, dueDate.Type.Ref)
+		assert.Equal(t, GoSymbolRef{ImportPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types", Name: "DateFromProto"}, dueDate.Type.Custom.FromProto)
+		assert.Equal(t, GoSymbolRef{ImportPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types", Name: "DateToProto"}, dueDate.Type.Custom.ToProto)
 
 		status := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.status")
 		assert.Equal(t, TypeKindEnum, status.Type.Kind)
@@ -198,74 +188,58 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1", assigneeElem.Ref.ImportPath)
 		assert.Equal(t, "Person", assigneeElem.Ref.Name)
 
-		metadata := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.metadata")
-		assert.Equal(t, TypeKindMap, metadata.Type.Kind)
-		assert.Equal(t, ScalarKindString, metadata.Type.Key.Scalar)
-		assert.Equal(t, ScalarKindString, metadata.Type.Value.Scalar)
-
-		watchersByRole := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.watchers_by_role")
-		assert.Equal(t, TypeKindStruct, watchersByRole.Type.Value.Kind)
-		assert.Equal(t, "Person", watchersByRole.Type.Value.Ref.Name)
-
-		watcherIDs := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.watcher_ids")
-		assert.Equal(t, "WatcherIDs", watcherIDs.Name)
-		assert.Equal(t, TypeKindSlice, watcherIDs.Type.Kind)
-		assert.Equal(t, ScalarKindString, watcherIDs.Type.Elem.Scalar)
+		watchers := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.watchers")
+		assert.Equal(t, TypeKindSlice, watchers.Type.Kind)
+		assert.Equal(t, TypeKindStruct, watchers.Type.Elem.Kind)
+		assert.Equal(t, "Person", watchers.Type.Elem.Ref.Name)
 
 		labels := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.labels")
 		assert.Equal(t, TypeKindCustom, labels.Type.Kind)
 		assert.Equal(t, GoTypeRef{
-			ImportPath: plannerTestPkg,
+			ImportPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types",
 			Name:       "Set",
-			Args:       []GoTypeRef{{ImportPath: plannerTestPkg, Name: "CustomString"}},
+			Args: []GoTypeRef{{
+				ImportPath: "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types",
+				Name:       "Label",
+			}},
 		}, labels.Type.Ref)
 
 		visibility := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.visibility")
 		assert.Equal(t, TypeKindEnum, visibility.Type.Kind)
 		assert.Equal(t, "TicketVisibility", visibility.Type.Ref.Name)
 
-		auditEvents := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.audit_events")
-		assert.Equal(t, TypeKindSlice, auditEvents.Type.Kind)
-		assert.Equal(t, TypeKindStruct, auditEvents.Type.Elem.Kind)
-		assert.Equal(t, "TicketAuditEvent", auditEvents.Type.Elem.Ref.Name)
+		events := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.events")
+		assert.Equal(t, TypeKindSlice, events.Type.Kind)
+		assert.Equal(t, TypeKindStruct, events.Type.Elem.Kind)
+		assert.Equal(t, "TicketEvent", events.Type.Elem.Ref.Name)
 
-		history := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.history")
-		assert.Equal(t, TypeKindStruct, history.Type.Kind)
-		assert.Equal(t, "TicketHistory", history.Type.Ref.Name)
+		metadata := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.metadata")
+		assert.Equal(t, dynamicStructType(), metadata.Type)
 
-		latestHistoryEntry := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.latest_history_entry")
-		assert.Equal(t, TypeKindStruct, latestHistoryEntry.Type.Kind)
-		assert.Equal(t, "TicketHistoryEntry", latestHistoryEntry.Type.Ref.Name)
+		event := structByProtoName(t, file, "yirapb.v1.TicketEvent")
+		payload := fieldPlanByProtoName(t, event, "yirapb.v1.TicketEvent.payload")
+		assert.Equal(t, dynamicValueType(), payload.Type)
 
-		structData := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.struct_data")
-		assert.Equal(t, dynamicStructType(), structData.Type)
-
-		marker := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.marker")
-		assert.Equal(t, TypeKindEmptyStruct, marker.Type.Kind)
-
-		dynamicValue := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_value")
-		assert.Equal(t, dynamicValueType(), dynamicValue.Type)
-
-		dynamicList := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.dynamic_list")
-		assert.Equal(t, dynamicListValueType(), dynamicList.Type)
+		attachments := fieldPlanByProtoName(t, event, "yirapb.v1.TicketEvent.attachments")
+		assert.Equal(t, dynamicListValueType(), attachments.Type)
 	})
 
-	t.Run("plans omittable input fields", func(t *testing.T) {
-		input := structByProtoName(t, file, "yirapb.v1.TicketInput")
+	t.Run("plans omittable patch fields", func(t *testing.T) {
+		patch := structByProtoName(t, file, "yirapb.v1.TicketPatch")
 
-		title := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.title")
+		title := fieldPlanByProtoName(t, patch, "yirapb.v1.TicketPatch.title")
 		assert.Equal(t, TypeKindOmittable, title.Type.Kind)
 		assert.Equal(t, ScalarKindString, title.Type.Elem.Scalar)
 
-		assignee := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.assignee")
+		assignee := fieldPlanByProtoName(t, patch, "yirapb.v1.TicketPatch.assignee")
 		assert.Equal(t, TypeKindOmittable, assignee.Type.Kind)
 		assert.Equal(t, TypeKindPointer, assignee.Type.Elem.Kind)
 
-		metadataPatch := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.metadata_patch")
-		assert.Equal(t, TypeKindOmittable, metadataPatch.Type.Kind)
-		assert.Equal(t, dynamicValueType(), *metadataPatch.Type.Elem)
+		metadata := fieldPlanByProtoName(t, patch, "yirapb.v1.TicketPatch.metadata")
+		assert.Equal(t, TypeKindOmittable, metadata.Type.Kind)
+		assert.Equal(t, dynamicStructType(), *metadata.Type.Elem)
 
-		version := fieldPlanByProtoName(t, input, "yirapb.v1.TicketInput.version")
+		version := fieldPlanByProtoName(t, patch, "yirapb.v1.TicketPatch.version")
 		assert.Equal(t, TypeKindScalar, version.Type.Kind)
 	})
 }

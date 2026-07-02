@@ -25,7 +25,7 @@ func TestRunPlugin(t *testing.T) {
 
 	var diagnostics strings.Builder
 	require.NoError(t, runPlugin(plugin, &diagnostics))
-	assert.Contains(t, diagnostics.String(), "warning: yirapb.v1.TicketInput.assignee")
+	assert.Empty(t, diagnostics.String())
 
 	response := plugin.Response()
 	require.Empty(t, response.GetError())
@@ -53,7 +53,7 @@ func TestRunPluginModuleRoot(t *testing.T) {
 
 		var diagnostics strings.Builder
 		require.NoError(t, runPlugin(plugin, &diagnostics))
-		assert.Contains(t, diagnostics.String(), "warning: yirapb.v1.TicketInput.assignee")
+		assert.Empty(t, diagnostics.String())
 		require.Empty(t, plugin.Response().GetError())
 		require.Len(t, plugin.Response().GetFile(), 1)
 	})
@@ -69,9 +69,8 @@ func TestRunPluginModuleRoot(t *testing.T) {
 		err = runPlugin(plugin, &diagnostics)
 		require.Error(t, err)
 		assert.EqualError(t, err, "generate: plan contains fatal diagnostics")
-		assert.Contains(t, diagnostics.String(), "fatal: yirapb.v1.Ticket.description: couldn't resolve go_type")
+		assert.Contains(t, diagnostics.String(), "fatal: yirapb.v1.Labels.values: couldn't resolve go_type")
 		assert.Contains(t, diagnostics.String(), "load package")
-		assert.Contains(t, diagnostics.String(), "warning: yirapb.v1.TicketInput.assignee")
 	})
 }
 

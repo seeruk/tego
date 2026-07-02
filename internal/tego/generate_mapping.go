@@ -152,6 +152,9 @@ func generateToProtoField(ctx *mappingRenderContext, field FieldMappingPlan) err
 		if field.ToProto.Kind == MappingValueKindOmittable {
 			return generateToProtoOmittableField(ctx, field)
 		}
+		if field.ToProto.Kind == MappingValueKindNullable && !isProtoPointer(field.ToProto.Target) {
+			return generateToProtoNullablePresenceField(ctx, field)
+		}
 
 		expr, err := ctx.renderValue(field.ToProto, "source."+field.Name)
 		if err != nil {
@@ -160,6 +163,22 @@ func generateToProtoField(ctx *mappingRenderContext, field FieldMappingPlan) err
 		ctx.line("target." + field.Proto.Setter + "(" + expr + ")")
 		return nil
 	})
+}
+
+func generateToProtoNullablePresenceField(ctx *mappingRenderContext, field FieldMappingPlan) error {
+	if field.ToProto.Elem == nil {
+		return fmt.Errorf("nullable mapping is missing an element")
+	}
+
+	ctx.line("if source." + field.Name + " != nil {")
+	childSource := mappingChildSource("source."+field.Name, field.ToProto.Source, field.ToProto.Elem.Source)
+	expr, err := ctx.renderValue(*field.ToProto.Elem, childSource)
+	if err != nil {
+		return err
+	}
+	ctx.line("target." + field.Proto.Setter + "(" + expr + ")")
+	ctx.line("}")
+	return nil
 }
 
 func generateFromProtoOneofField(ctx *mappingRenderContext, field FieldMappingPlan) error {
@@ -245,7 +264,11 @@ func generateFromProtoOmittableField(ctx *mappingRenderContext, field FieldMappi
 	some := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "Some"})
 	none := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "None"})
 
-	ctx.line("if source." + field.Proto.Has + "() {")
+	presence := "source." + field.Proto.Has + "()"
+	if field.Proto.Has == "" {
+		presence = "source." + field.Proto.Getter + "() != nil"
+	}
+	ctx.line("if " + presence + " {")
 	expr, err := ctx.renderValue(*field.FromProto.Elem, "source."+field.Proto.Getter+"()")
 	if err != nil {
 		return err
@@ -338,6 +361,18 @@ func (ctx *mappingRenderContext) renderValueWithTempNameHint(
 	return expr, err
 }
 
+func (ctx *mappingRenderContext) renderValueWithTempNameHintSuffix(
+	name string,
+	plan MappingValuePlan,
+	source string,
+) (string, error) {
+	hint := name
+	if ctx.tempHint != "" {
+		hint = ctx.tempHint + goName(name)
+	}
+	return ctx.renderValueWithTempNameHint(hint, plan, source)
+}
+
 func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source string) (string, error) {
 	switch plan.Kind {
 	case MappingValueKindDirect:
@@ -368,6 +403,8 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 		return ctx.renderDynamic(plan, source)
 	case MappingValueKindEmptyStruct:
 		return ctx.renderEmptyStruct(plan)
+	case MappingValueKindFlatten:
+		return ctx.renderFlatten(plan, source)
 	case MappingValueKindOmittable:
 		return "", fmt.Errorf("omittable mapping must be rendered at field level")
 	default:
@@ -409,7 +446,7 @@ func (ctx *mappingRenderContext) renderNullable(plan MappingValuePlan, source st
 	if plan.Elem == nil {
 		return "", fmt.Errorf("nullable mapping is missing an element")
 	}
-	if isProtoPointer(plan.Source) {
+	if isProtoPointer(plan.Source) || isNullableFromConcreteProto(plan) {
 		return ctx.renderNullableFromProto(plan, source)
 	}
 	return ctx.renderNullableToProto(plan, source)
@@ -437,7 +474,15 @@ func (ctx *mappingRenderContext) renderNullableFromProto(plan MappingValuePlan, 
 		}
 		ctx.line("}")
 	default:
-		ctx.line("if " + source + " != nil {")
+		condition := source + " != nil"
+		if plan.Source.Kind != TypeKindPointer {
+			var ok bool
+			condition, ok = nullablePresenceCondition(source, plan.Access.Field)
+			if !ok {
+				return "", fmt.Errorf("nullable scalar mapping is missing presence access")
+			}
+		}
+		ctx.line("if " + condition + " {")
 		childSource := mappingChildSource(source, plan.Source, plan.Elem.Source)
 		if err := ctx.renderNullableFromValue(plan, tmp, childSource); err != nil {
 			return "", err
@@ -590,6 +635,49 @@ func (ctx *mappingRenderContext) renderShapeSlice(plan MappingValuePlan, source 
 	}
 	ctx.line(tmp + " := " + empty)
 	ctx.line(tmp + "." + plan.Access.Field.Setter + "(" + inner + ")")
+	return tmp, nil
+}
+
+func (ctx *mappingRenderContext) renderFlatten(plan MappingValuePlan, source string) (string, error) {
+	if plan.Elem == nil {
+		return "", fmt.Errorf("flatten mapping is missing an element")
+	}
+	if isProtoPointer(plan.Source) {
+		return ctx.renderFlattenFromProto(plan, source)
+	}
+	return ctx.renderFlattenToProto(plan, source)
+}
+
+func (ctx *mappingRenderContext) renderFlattenFromProto(plan MappingValuePlan, source string) (string, error) {
+	targetType, err := generateType(ctx.g, plan.Target)
+	if err != nil {
+		return "", err
+	}
+
+	tmp := ctx.tempName("value")
+	ctx.line("var " + tmp + " " + targetType)
+	ctx.line("if " + source + " != nil {")
+	child, err := ctx.renderValueWithTempNameHintSuffix(plan.Access.Field.Name, *plan.Elem, source+"."+plan.Access.Field.Getter+"()")
+	if err != nil {
+		return "", err
+	}
+	ctx.line(tmp + " = " + child)
+	ctx.line("}")
+	return tmp, nil
+}
+
+func (ctx *mappingRenderContext) renderFlattenToProto(plan MappingValuePlan, source string) (string, error) {
+	tmp := ctx.tempName("value")
+	empty, err := newValueExpr(ctx.g, plan.Target)
+	if err != nil {
+		return "", err
+	}
+	ctx.line(tmp + " := " + empty)
+	child, err := ctx.renderValueWithTempNameHintSuffix(plan.Access.Field.Name, *plan.Elem, source)
+	if err != nil {
+		return "", err
+	}
+	ctx.line(tmp + "." + plan.Access.Field.Setter + "(" + child + ")")
 	return tmp, nil
 }
 
@@ -898,6 +986,22 @@ func mappingChildSource(source string, sourceType TypePlan, childSource TypePlan
 
 func isProtoPointer(plan TypePlan) bool {
 	return plan.Kind == TypeKindPointer && plan.Elem != nil && plan.Elem.Kind == TypeKindExternal
+}
+
+func isNullableFromConcreteProto(plan MappingValuePlan) bool {
+	return plan.Source.Kind != TypeKindPointer && plan.Target.Kind == TypeKindPointer && !isProtoPointer(plan.Target)
+}
+
+func nullablePresenceCondition(source string, access MappingFieldAccessPlan) (string, bool) {
+	if access.Getter == "" || access.Has == "" {
+		return "", false
+	}
+
+	receiver, ok := strings.CutSuffix(source, "."+access.Getter+"()")
+	if !ok {
+		return "", false
+	}
+	return receiver + "." + access.Has + "()", true
 }
 
 type tempNameAllocator struct {

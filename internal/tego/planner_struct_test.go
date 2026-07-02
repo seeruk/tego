@@ -13,19 +13,18 @@ import (
 const plannerTestPkg = "github.com/seeruk/tego/internal/tego/testdata/plannertest"
 
 func TestPlannerPlanFieldTypes(t *testing.T) {
-	t.Run("flattens nested shapes", func(t *testing.T) {
+	t.Run("flattens slice shapes", func(t *testing.T) {
 		descriptorIndex := buildYiraDescriptorIndex(t)
 		shapeIndex, err := BuildShapeIndex(descriptorIndex)
 		require.NoError(t, err)
 
-		message := requireMessage(t, descriptorIndex, "yirapb.v1.NullableNullablePeople")
-		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("people", message), shapeIndex)
+		message := requireMessage(t, descriptorIndex, "yirapb.v1.PersonList")
+		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("watchers", message), shapeIndex)
 
 		require.Empty(t, diagnostics)
-		assert.Equal(t, TypeKindPointer, plan.Kind)
-		slice := requirePointerElem(t, plan, TypeKindSlice)
-		person := requirePointerElem(t, *slice.Elem, TypeKindStruct)
-		assert.Equal(t, "Person", person.Ref.Name)
+		assert.Equal(t, TypeKindSlice, plan.Kind)
+		assert.Equal(t, TypeKindStruct, plan.Elem.Kind)
+		assert.Equal(t, "Person", plan.Elem.Ref.Name)
 	})
 
 	t.Run("flattens map shapes", func(t *testing.T) {
@@ -33,15 +32,16 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		shapeIndex, err := BuildShapeIndex(descriptorIndex)
 		require.NoError(t, err)
 
-		message := requireMessage(t, descriptorIndex, "yirapb.v1.TicketsByPeople")
-		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("tickets_by_people", message), shapeIndex)
+		message := requireMessage(t, descriptorIndex, "yirapb.v1.TicketsByStatus")
+		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("tickets_by_status", message), shapeIndex)
 
 		require.Empty(t, diagnostics)
 		assert.Equal(t, TypeKindMap, plan.Kind)
-		assert.Equal(t, TypeKindStruct, plan.Key.Kind)
-		assert.Equal(t, "Person", plan.Key.Ref.Name)
+		assert.Equal(t, TypeKindEnum, plan.Key.Kind)
+		assert.Equal(t, "TicketStatus", plan.Key.Ref.Name)
 		assert.Equal(t, TypeKindSlice, plan.Value.Kind)
-		assert.Equal(t, TypeKindPointer, plan.Value.Elem.Kind)
+		assert.Equal(t, TypeKindStruct, plan.Value.Elem.Kind)
+		assert.Equal(t, "Ticket", plan.Value.Elem.Ref.Name)
 	})
 
 	t.Run("flattens indexed map entry messages", func(t *testing.T) {
@@ -496,6 +496,147 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 				require.NotEmpty(t, diagnostics)
 				assert.True(t, HasFatalDiagnostics(diagnostics))
 				assert.Contains(t, diagnostics[0].Message, tt.diagnostic)
+			})
+		}
+	})
+}
+
+func TestPlannerFlattenShapes(t *testing.T) {
+	t.Run("uses field go type as the whole flattened value", func(t *testing.T) {
+		values := fieldWithPlannerGoType("values", plannerGoTypeWithArgs(
+			plannerTestPkg+".Set[T]",
+			map[string]string{"T": plannerTestPkg + ".CustomString"},
+			plannerTestPkg+".CustomStringSetFromProto",
+			plannerTestPkg+".CustomStringSetToProto",
+			false,
+		))
+		values.Cardinality = protoreflect.Repeated
+		message := plannerMessage("example.v1.Labels", "Labels")
+		message.Fields = []*ProtoField{values}
+
+		plan, diagnostics := NewPlanner().planMessageType(messageField("labels", message), &ShapeIndex{
+			Flattens: map[protoreflect.FullName]*ProtoMessage{message.FullName: message},
+		})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.Equal(t, GoTypeRef{
+			ImportPath: plannerTestPkg,
+			Name:       "Set",
+			Args:       []GoTypeRef{{ImportPath: plannerTestPkg, Name: "CustomString"}},
+		}, plan.Ref)
+	})
+
+	t.Run("flattens lone fields without go type normally", func(t *testing.T) {
+		values := repeatedField("values", protoreflect.StringKind)
+		message := plannerMessage("example.v1.Values", "Values")
+		message.Fields = []*ProtoField{values}
+
+		plan, diagnostics := NewPlanner().planMessageType(messageField("values", message), &ShapeIndex{
+			Flattens: map[protoreflect.FullName]*ProtoMessage{message.FullName: message},
+		})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindSlice, plan.Kind)
+		require.NotNil(t, plan.Elem)
+		assert.Equal(t, ScalarKindString, plan.Elem.Scalar)
+	})
+}
+
+func TestFlattenMessageDiagnostics(t *testing.T) {
+	t.Run("warns when infer shape is explicitly set", func(t *testing.T) {
+		for _, inferShape := range []bool{true, false} {
+			message := plannerMessage("example.v1.Labels", "Labels")
+			message.Fields = []*ProtoField{repeatedField("values", protoreflect.StringKind)}
+			message.Options.SetFlatten(true)
+			message.Options.SetInferShape(inferShape)
+
+			diagnostics := flattenMessageDiagnostics(message)
+
+			require.Len(t, diagnostics, 1)
+			assert.Equal(t, DiagnosticLevelWarning, diagnostics[0].Level)
+			assert.Equal(t, "infer_shape only controls automatic shape detection when flatten is not set", diagnostics[0].Message)
+		}
+	})
+
+	t.Run("reports invalid flatten declarations", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			message *ProtoMessage
+			want    string
+		}{
+			{
+				name:    "no fields",
+				message: plannerMessage("example.v1.Empty", "Empty"),
+				want:    "exactly one field",
+			},
+			{
+				name: "multiple fields",
+				message: func() *ProtoMessage {
+					message := plannerMessage("example.v1.Pair", "Pair")
+					message.Fields = []*ProtoField{
+						field("first", protoreflect.StringKind),
+						field("second", protoreflect.StringKind),
+					}
+					return message
+				}(),
+				want: "exactly one field",
+			},
+			{
+				name: "oneof",
+				message: func() *ProtoMessage {
+					message := plannerMessage("example.v1.Choice", "Choice")
+					plannerOneof(message, "value", field("name", protoreflect.StringKind))
+					return message
+				}(),
+				want: "must not declare oneofs",
+			},
+			{
+				name: "message go type",
+				message: func() *ProtoMessage {
+					message := plannerMessage("example.v1.Custom", "Custom")
+					message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+					message.Options.SetGoType(plannerGoType(
+						plannerTestPkg+".CustomString",
+						plannerTestPkg+".CustomStringFromProto",
+						plannerTestPkg+".CustomStringToProto",
+						false,
+					))
+					return message
+				}(),
+				want: "conflicts with message-level go_type",
+			},
+			{
+				name: "nested enum",
+				message: func() *ProtoMessage {
+					message := plannerMessage("example.v1.Wrapper", "Wrapper")
+					message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+					message.Enums = []*ProtoEnum{{Name: "Kind"}}
+					return message
+				}(),
+				want: "must not declare nested enums",
+			},
+			{
+				name: "nested message",
+				message: func() *ProtoMessage {
+					message := plannerMessage("example.v1.Wrapper", "Wrapper")
+					message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+					message.Messages = []*ProtoMessage{{Name: "Metadata"}}
+					return message
+				}(),
+				want: "must not declare nested messages",
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				tt.message.Options.SetFlatten(true)
+
+				diagnostics := flattenMessageDiagnostics(tt.message)
+
+				require.NotEmpty(t, diagnostics)
+				assert.True(t, HasFatalDiagnostics(diagnostics))
+				assert.Contains(t, diagnostics[0].Message, tt.want)
 			})
 		}
 	})

@@ -676,6 +676,7 @@ type MessageOptions struct {
 	xxx_hidden_Omit        bool                   `protobuf:"varint,4,opt,name=omit"`
 	xxx_hidden_Fields      *MessageFieldsOptions  `protobuf:"bytes,5,opt,name=fields"`
 	xxx_hidden_InferShape  bool                   `protobuf:"varint,6,opt,name=infer_shape,json=inferShape,def=1"`
+	xxx_hidden_Flatten     bool                   `protobuf:"varint,7,opt,name=flatten"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -762,14 +763,21 @@ func (x *MessageOptions) GetInferShape() bool {
 	return Default_MessageOptions_InferShape
 }
 
+func (x *MessageOptions) GetFlatten() bool {
+	if x != nil {
+		return x.xxx_hidden_Flatten
+	}
+	return false
+}
+
 func (x *MessageOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
 }
 
 func (x *MessageOptions) SetComment(v string) {
 	x.xxx_hidden_Comment = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *MessageOptions) SetGoType(v *GoType) {
@@ -778,7 +786,7 @@ func (x *MessageOptions) SetGoType(v *GoType) {
 
 func (x *MessageOptions) SetOmit(v bool) {
 	x.xxx_hidden_Omit = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
 func (x *MessageOptions) SetFields(v *MessageFieldsOptions) {
@@ -787,7 +795,12 @@ func (x *MessageOptions) SetFields(v *MessageFieldsOptions) {
 
 func (x *MessageOptions) SetInferShape(v bool) {
 	x.xxx_hidden_InferShape = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *MessageOptions) SetFlatten(v bool) {
+	x.xxx_hidden_Flatten = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
 }
 
 func (x *MessageOptions) HasName() bool {
@@ -832,6 +845,13 @@ func (x *MessageOptions) HasInferShape() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
+func (x *MessageOptions) HasFlatten() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
 func (x *MessageOptions) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -859,6 +879,11 @@ func (x *MessageOptions) ClearInferShape() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
 }
 
+func (x *MessageOptions) ClearFlatten() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Flatten = false
+}
+
 type MessageOptions_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -872,11 +897,14 @@ type MessageOptions_builder struct {
 	GoType *GoType
 	// omit indicates that this message should not generate a corresponding Go type.
 	Omit *bool
-	// fields is used to specify options that apply to the fields on this message.
+	// fields is used to specify options that apply to all fields on this message.
 	Fields *MessageFieldsOptions
 	// infer_shape may be set to false to disable inferring a shape for this message. That means, Tego
 	// will not flatten this message when it's used as a field in another message based on the shape.
 	InferShape *bool
+	// flatten indicates that this message should be explicitly flattened to its single field when
+	// used as a field in another message.
+	Flatten *bool
 }
 
 func (b0 MessageOptions_builder) Build() *MessageOptions {
@@ -884,22 +912,26 @@ func (b0 MessageOptions_builder) Build() *MessageOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Comment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_Comment = b.Comment
 	}
 	x.xxx_hidden_GoType = b.GoType
 	if b.Omit != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
 		x.xxx_hidden_Omit = *b.Omit
 	}
 	x.xxx_hidden_Fields = b.Fields
 	if b.InferShape != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
 		x.xxx_hidden_InferShape = *b.InferShape
+	}
+	if b.Flatten != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_Flatten = *b.Flatten
 	}
 	return m0
 }
@@ -965,10 +997,10 @@ func (x *MessageFieldsOptions) ClearOmittable() {
 type MessageFieldsOptions_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// omittable indicates that the fields on this message should generate as omittable fields
-	// in the generated Go code by default. This is intended for types where you want to be able to
-	// identify presence of a field; for example, an input type for updating a resource where you only
-	// want to update the fields that are present in the input.
+	// omittable indicates that the fields on this message should generate as omittable fields in the
+	// generated Go code by default. This is intended for types where you want to be able to identify
+	// presence of a field; for example, an input type for updating a resource where you only want to
+	// update the fields that are present in the input.
 	Omittable *bool
 }
 
@@ -1228,9 +1260,10 @@ type FieldOptions_builder struct {
 	// This can be used to override the default behavior of the parent message's omittable option, or
 	// to simply mark an individual field as omittable.
 	Omittable *bool
-	// nullable indicates that this field should generate as a nullable field in the generated Go.
-	// This option will only work on fields that are messages, as they are nullable by default in the
-	// code generated by protoc-gen-go, unlike other types.
+	// nullable indicates that this field should generate as a pointer in the generated Go so callers
+	// can distinguish an unset protobuf field from its zero value. For scalar and enum fields, Tego
+	// uses protobuf presence. For message fields, nil represents absence unless the field uses a
+	// nullable shape that can encode explicit null.
 	Nullable *bool
 }
 
@@ -1926,7 +1959,7 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x04uint\x18\x04 \x01(\x04H\x00R\x04uint\x12\x12\n" +
 	"\x03int\x18\x05 \x01(\x03H\x00R\x03int\x12\x18\n" +
 	"\x06string\x18\x06 \x01(\tH\x00R\x06stringB\a\n" +
-	"\x05value\"\xd4\x01\n" +
+	"\x05value\"\xee\x01\n" +
 	"\x0eMessageOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12%\n" +
@@ -1934,7 +1967,8 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x04omit\x18\x04 \x01(\bR\x04omit\x122\n" +
 	"\x06fields\x18\x05 \x01(\v2\x1a.tego.MessageFieldsOptionsR\x06fields\x12%\n" +
 	"\vinfer_shape\x18\x06 \x01(\b:\x04trueR\n" +
-	"inferShape\"4\n" +
+	"inferShape\x12\x18\n" +
+	"\aflatten\x18\a \x01(\bR\aflatten\"4\n" +
 	"\x14MessageFieldsOptions\x12\x1c\n" +
 	"\tomittable\x18\x01 \x01(\bR\tomittable\"\x8a\x02\n" +
 	"\fFieldOptions\x12\x12\n" +

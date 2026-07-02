@@ -289,6 +289,44 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.Equal(t, MappingValueKindOmittable, plan.Kind)
 		assert.Equal(t, MappingValueKindDirect, plan.Elem.Kind)
 	})
+
+	t.Run("plans explicit flatten wrappers", func(t *testing.T) {
+		values := fieldWithPlannerGoType("values", plannerGoTypeWithArgs(
+			plannerTestPkg+".Set[T]",
+			map[string]string{"T": plannerTestPkg + ".CustomString"},
+			plannerTestPkg+".CustomStringSetFromProto",
+			plannerTestPkg+".CustomStringSetToProto",
+			false,
+		))
+		values.Cardinality = protoreflect.Repeated
+
+		shape := plannerMessage("example.v1.Labels", "Labels")
+		shape.GoName = "Labels"
+		values.Parent = shape
+		shape.Fields = []*ProtoField{values}
+
+		field := messageField("labels", shape)
+		field.FullName = "example.v1.Ticket.labels"
+		shapeIndex := &ShapeIndex{
+			Flattens: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape},
+		}
+
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindFlatten, fromProto.Kind)
+		assert.Equal(t, MappingValueKindCustom, fromProto.Elem.Kind)
+		assert.True(t, fromProto.CanError)
+		assert.Equal(t, MappingValueKindFlatten, toProto.Kind)
+		assert.Equal(t, MappingValueKindCustom, toProto.Elem.Kind)
+		assert.True(t, toProto.CanError)
+	})
 }
 
 func TestPlannerPlanMappingCustomGoTypes(t *testing.T) {

@@ -97,6 +97,8 @@ func (p *Planner) planFileMessage(plan *FilePlan, message *ProtoMessage, si *Sha
 		p.planFileEnum(plan, enum)
 	}
 
+	plan.Diagnostics = append(plan.Diagnostics, flattenMessageDiagnostics(message)...)
+
 	structPlan, diagnostics, ok := p.planStruct(message, si)
 	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 	if ok {
@@ -110,6 +112,48 @@ func (p *Planner) planFileMessage(plan *FilePlan, message *ProtoMessage, si *Sha
 	for _, nested := range message.Messages {
 		p.planFileMessage(plan, nested, si)
 	}
+}
+
+func flattenMessageDiagnostics(message *ProtoMessage) []Diagnostic {
+	if !message.Options.GetFlatten() {
+		return nil
+	}
+
+	path := string(message.FullName)
+
+	var diagnostics []Diagnostic
+	if message.Options.HasInferShape() {
+		diagnostics = append(diagnostics, warningDiagnostic(
+			path,
+			"infer_shape only controls automatic shape detection when flatten is not set",
+		))
+	}
+	if message.Options.HasGoType() {
+		diagnostics = append(diagnostics, fatalDiagnostic(
+			path,
+			"flatten conflicts with message-level go_type; use field-level go_type on the flattened field",
+		))
+	}
+	if len(message.Fields) != 1 {
+		diagnostics = append(diagnostics, fatalDiagnostic(path, "flatten message must have exactly one field"))
+	}
+	if len(message.Oneofs) > 0 {
+		diagnostics = append(diagnostics, fatalDiagnostic(path, "flatten message must not declare oneofs"))
+	}
+	if len(message.Enums) > 0 {
+		diagnostics = append(diagnostics, fatalDiagnostic(path, "flatten message must not declare nested enums"))
+	}
+	if len(message.Messages) > 0 {
+		diagnostics = append(diagnostics, fatalDiagnostic(path, "flatten message must not declare nested messages"))
+	}
+	for _, field := range message.Fields {
+		if field.Oneof != nil {
+			diagnostics = append(diagnostics, fatalDiagnostic(path, "flatten message field must not be part of a oneof"))
+			break
+		}
+	}
+
+	return diagnostics
 }
 
 func (p *Planner) planFileOneof(plan *FilePlan, oneof *ProtoOneof, si *ShapeIndex) {

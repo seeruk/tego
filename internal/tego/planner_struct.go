@@ -227,6 +227,10 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(string(field.FullName), "missing message descriptor")}
 	}
 
+	if _, ok := si.Flattens[message.FullName]; ok {
+		return p.planFlattenShape(message, si)
+	}
+
 	if message.Options.HasGoType() {
 		return p.planCustomGoType(message.Options.GetGoType(), sourcePatternForMessage(message), string(field.FullName))
 	}
@@ -299,6 +303,14 @@ func (p *Planner) planNullableShape(message *ProtoMessage, si *ShapeIndex) (Type
 	}
 
 	return TypePlan{}, []Diagnostic{fatalDiagnostic(string(message.FullName), "nullable shape has no value field")}
+}
+
+func (p *Planner) planFlattenShape(message *ProtoMessage, si *ShapeIndex) (TypePlan, []Diagnostic) {
+	field, ok := flattenShapeField(message)
+	if !ok {
+		return TypePlan{}, []Diagnostic{fatalDiagnostic(string(message.FullName), "flatten shape has no field")}
+	}
+	return p.planFieldBaseType(field, si)
 }
 
 func (p *Planner) planSliceShape(message *ProtoMessage, si *ShapeIndex) (TypePlan, []Diagnostic) {
@@ -581,6 +593,9 @@ func isIndexedShape(message *ProtoMessage, si *ShapeIndex) bool {
 		return true
 	}
 	if _, ok := si.Maps[message.FullName]; ok {
+		return true
+	}
+	if _, ok := si.Flattens[message.FullName]; ok {
 		return true
 	}
 	return false

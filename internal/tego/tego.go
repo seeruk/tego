@@ -278,6 +278,7 @@ const (
 	MappingValueKindOneof
 	MappingValueKindEmptyStruct
 	MappingValueKindDynamic
+	MappingValueKindFlatten
 )
 
 type MappingDynamicKind uint

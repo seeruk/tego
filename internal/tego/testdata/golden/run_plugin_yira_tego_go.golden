@@ -4,22 +4,31 @@ package yirav1
 import (
 	errors "errors"
 	tego "github.com/seeruk/tego"
-	plannertest "github.com/seeruk/tego/internal/tego/testdata/plannertest"
 	yirapbv1 "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1"
+	types "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types"
 	omittable "github.com/seeruk/tego/omittable"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
-// TicketStatus is the current lifecycle state of a ticket.
 type TicketStatus uint
 
 const (
-	TicketStatusUnspecified TicketStatus = 0
-	// TicketStatusOpen means work can begin.
+	// TicketStatus is the current lifecycle state of a ticket.
+	TicketStatusUnknown    TicketStatus = 0
 	TicketStatusOpen       TicketStatus = 1
 	TicketStatusInProgress TicketStatus = 2
-	TicketStatusClosed     TicketStatus = 3
+	TicketStatusBlocked    TicketStatus = 3
+	TicketStatusClosed     TicketStatus = 4
+)
+
+type TicketPriority uint
+
+const (
+	TicketPriorityUnspecified TicketPriority = 0
+	TicketPriorityLow         TicketPriority = 1
+	TicketPriorityNormal      TicketPriority = 2
+	TicketPriorityHigh        TicketPriority = 3
 )
 
 type TicketVisibility uint
@@ -30,71 +39,447 @@ const (
 	TicketVisibilityPrivate     TicketVisibility = 2
 )
 
-type TicketReviewer interface {
-	isTicketReviewer()
+type TicketEventKind uint
+
+const (
+	TicketEventKindUnspecified TicketEventKind = 0
+	TicketEventKindCreated     TicketEventKind = 1
+	TicketEventKindUpdated     TicketEventKind = 2
+	TicketEventKindCommented   TicketEventKind = 3
+	TicketEventKindClosed      TicketEventKind = 4
+)
+
+type TicketSource interface {
+	isTicketSource()
 }
 
-type TicketInternal struct {
-	Internal Person
+type TicketManualSource struct {
+	ManualSource string
 }
 
-func (TicketInternal) isTicketReviewer() {}
+func (TicketManualSource) isTicketSource() {}
 
-type Ticket struct {
-	ID                 string `json:"id,omitempty"`
-	Title              string `json:"title,omitempty"`
-	Description        *plannertest.Description
-	Status             TicketStatus
-	Assignee           *Person
-	Author             Person
-	Version            string
-	Metadata           map[string]string
-	WatchersByRole     map[string]Person
-	WorkflowStatuses   map[string]TicketStatus
-	WatcherIDs         []string
-	Labels             plannertest.Set[plannertest.CustomString]
-	Visibility         TicketVisibility
-	AuditEvents        []TicketAuditEvent
-	History            TicketHistory
-	LatestHistoryEntry TicketHistoryEntry
-	Reviewer           TicketReviewer
-	StructData         tego.Struct
-	Marker             struct{}
-	DynamicValue       tego.Value
-	DynamicList        tego.ListValue
+type TicketIntegrationSource struct {
+	IntegrationSource *anypb.Any
 }
 
-type TicketAuditEvent struct {
-	Actor  string
-	Status TicketStatus
+func (TicketIntegrationSource) isTicketSource() {}
+
+type ListTicketsRequest struct {
+	ProjectID string
+	Filter    TicketFilter
+	Cursor    CursorRequest
 }
 
-type TicketHistory struct {
-	Entries []TicketHistoryEntry
+type ListTicketsResponse struct {
+	Tickets         []Ticket
+	TicketsByStatus map[TicketStatus][]Ticket
+	Cursor          CursorResponse
 }
 
-type TicketHistoryEntry struct {
-	Note       string
-	Visibility TicketVisibility
+type GetTicketRequest struct {
+	TicketID string
+}
+
+type GetTicketResponse struct {
+	Ticket Ticket
+}
+
+type CreateTicketRequest struct {
+	Ticket TicketDraft
+}
+
+type CreateTicketResponse struct {
+	Ticket Ticket
 }
 
 type UpdateTicketRequest struct {
-	ID    string
-	Input TicketInput
+	TicketID string
+	Patch    TicketPatch
 }
 
-type TicketInput struct {
-	Title         omittable.Of[string]
-	Description   omittable.Of[string]
-	Status        omittable.Of[TicketStatus]
-	Assignee      omittable.Of[*Person]
-	Version       string
-	MetadataPatch omittable.Of[tego.Value]
+type UpdateTicketResponse struct {
+	Ticket Ticket
+}
+
+type CloseTicketRequest struct {
+	TicketID   string
+	Resolution string
+}
+
+type WatchTicketEventsRequest struct {
+	ProjectID string
+	TicketID  string
+}
+
+type Ticket struct {
+	ID          string `json:"id,omitempty"`
+	ProjectID   string
+	Title       string
+	Description string
+	Status      TicketStatus
+	Priority    TicketPriority
+	Assignee    *Person
+	Reporter    Person
+	Watchers    []Person
+	Labels      types.Set[types.Label]
+	DueDate     types.Date
+	Visibility  TicketVisibility
+	Metadata    tego.Struct
+	Source      TicketSource
+	Events      []TicketEvent
+}
+
+type TicketDraft struct {
+	ProjectID   string
+	Title       string
+	Description string
+	Priority    TicketPriority
+	Reporter    Person
+	DueDate     types.Date
+	Labels      types.Set[types.Label]
+	Metadata    tego.Struct
+}
+
+type TicketPatch struct {
+	Title       omittable.Of[string]
+	Description omittable.Of[string]
+	Status      omittable.Of[TicketStatus]
+	Priority    omittable.Of[TicketPriority]
+	Assignee    omittable.Of[*Person]
+	DueDate     omittable.Of[types.Date]
+	Labels      omittable.Of[types.Set[types.Label]]
+	Metadata    omittable.Of[tego.Struct]
+	Version     string
+}
+
+type TicketFilter struct {
+	Statuses []TicketStatus
+	Assignee *Person
+	Labels   types.Set[types.Label]
+}
+
+type TicketEvent struct {
+	ID          string
+	Kind        TicketEventKind
+	Actor       Person
+	Note        string
+	Payload     tego.Value
+	Attachments tego.ListValue
 }
 
 type Person struct {
-	FirstName string
-	LastName  string
+	ID          string
+	DisplayName string
+	Email       string
+}
+
+type CursorRequest struct {
+	Limit       int32
+	AfterCursor string
+}
+
+type CursorResponse struct {
+	NextCursor string
+}
+
+func ListTicketsRequestFromProto(source *yirapbv1.ListTicketsRequest) (ListTicketsRequest, error) {
+	var target ListTicketsRequest
+	if source == nil {
+		return target, nil
+	}
+	target.ProjectID = source.GetProjectId()
+	filter, err := TicketFilterFromProto(source.GetFilter())
+	if err != nil {
+		return target, err
+	}
+	target.Filter = filter
+	target.Cursor = CursorRequestFromProto(source.GetCursor())
+	return target, nil
+}
+
+func ListTicketsRequestToProto(source ListTicketsRequest) (*yirapbv1.ListTicketsRequest, error) {
+	target := new(yirapbv1.ListTicketsRequest)
+	target.SetProjectId(source.ProjectID)
+	filter, err := TicketFilterToProto(source.Filter)
+	if err != nil {
+		return nil, err
+	}
+	target.SetFilter(filter)
+	target.SetCursor(CursorRequestToProto(source.Cursor))
+	return target, nil
+}
+
+func (ltr ListTicketsRequest) ToProto() (*yirapbv1.ListTicketsRequest, error) {
+	return ListTicketsRequestToProto(ltr)
+}
+
+func ListTicketsResponseFromProto(source *yirapbv1.ListTicketsResponse) (ListTicketsResponse, error) {
+	var target ListTicketsResponse
+	if source == nil {
+		return target, nil
+	}
+	tickets := make([]Ticket, 0, len(source.GetTickets()))
+	for _, ticketsItem := range source.GetTickets() {
+		tickets2, err := TicketFromProto(ticketsItem)
+		if err != nil {
+			return target, err
+		}
+		tickets = append(tickets, tickets2)
+	}
+	target.Tickets = tickets
+	ticketsByStatus := make(map[TicketStatus][]Ticket)
+	if source.GetTicketsByStatus() != nil {
+		for _, ticketsByStatusEntry := range source.GetTicketsByStatus().GetEntries() {
+			ticketsByStatus2 := make([]Ticket, 0, len(ticketsByStatusEntry.GetValue()))
+			for _, ticketsByStatusItem := range ticketsByStatusEntry.GetValue() {
+				ticketsByStatus3, err := TicketFromProto(ticketsByStatusItem)
+				if err != nil {
+					return target, err
+				}
+				ticketsByStatus2 = append(ticketsByStatus2, ticketsByStatus3)
+			}
+			ticketsByStatus[TicketStatus(ticketsByStatusEntry.GetKey())] = ticketsByStatus2
+		}
+	}
+	target.TicketsByStatus = ticketsByStatus
+	target.Cursor = CursorResponseFromProto(source.GetCursor())
+	return target, nil
+}
+
+func ListTicketsResponseToProto(source ListTicketsResponse) (*yirapbv1.ListTicketsResponse, error) {
+	target := new(yirapbv1.ListTicketsResponse)
+	tickets := make([]*yirapbv1.Ticket, 0, len(source.Tickets))
+	for _, ticketsItem := range source.Tickets {
+		tickets2, err := TicketToProto(ticketsItem)
+		if err != nil {
+			return nil, err
+		}
+		tickets = append(tickets, tickets2)
+	}
+	target.SetTickets(tickets)
+	ticketsByStatusEntries := make([]*yirapbv1.TicketsByStatus_Map, 0, len(source.TicketsByStatus))
+	for ticketsByStatusKey, ticketsByStatusValue := range source.TicketsByStatus {
+		ticketsByStatusEntry := new(yirapbv1.TicketsByStatus_Map)
+		ticketsByStatus := make([]*yirapbv1.Ticket, 0, len(ticketsByStatusValue))
+		for _, ticketsByStatusItem := range ticketsByStatusValue {
+			ticketsByStatus2, err := TicketToProto(ticketsByStatusItem)
+			if err != nil {
+				return nil, err
+			}
+			ticketsByStatus = append(ticketsByStatus, ticketsByStatus2)
+		}
+		ticketsByStatusEntry.SetKey(yirapbv1.TicketStatus(ticketsByStatusKey))
+		ticketsByStatusEntry.SetValue(ticketsByStatus)
+		ticketsByStatusEntries = append(ticketsByStatusEntries, ticketsByStatusEntry)
+	}
+	ticketsByStatus3 := new(yirapbv1.TicketsByStatus)
+	ticketsByStatus3.SetEntries(ticketsByStatusEntries)
+	target.SetTicketsByStatus(ticketsByStatus3)
+	target.SetCursor(CursorResponseToProto(source.Cursor))
+	return target, nil
+}
+
+func (ltr ListTicketsResponse) ToProto() (*yirapbv1.ListTicketsResponse, error) {
+	return ListTicketsResponseToProto(ltr)
+}
+
+func GetTicketRequestFromProto(source *yirapbv1.GetTicketRequest) GetTicketRequest {
+	var target GetTicketRequest
+	if source == nil {
+		return target
+	}
+	target.TicketID = source.GetTicketId()
+	return target
+}
+
+func GetTicketRequestToProto(source GetTicketRequest) *yirapbv1.GetTicketRequest {
+	target := new(yirapbv1.GetTicketRequest)
+	target.SetTicketId(source.TicketID)
+	return target
+}
+
+func (gtr GetTicketRequest) ToProto() *yirapbv1.GetTicketRequest {
+	return GetTicketRequestToProto(gtr)
+}
+
+func GetTicketResponseFromProto(source *yirapbv1.GetTicketResponse) (GetTicketResponse, error) {
+	var target GetTicketResponse
+	if source == nil {
+		return target, nil
+	}
+	ticket, err := TicketFromProto(source.GetTicket())
+	if err != nil {
+		return target, err
+	}
+	target.Ticket = ticket
+	return target, nil
+}
+
+func GetTicketResponseToProto(source GetTicketResponse) (*yirapbv1.GetTicketResponse, error) {
+	target := new(yirapbv1.GetTicketResponse)
+	ticket, err := TicketToProto(source.Ticket)
+	if err != nil {
+		return nil, err
+	}
+	target.SetTicket(ticket)
+	return target, nil
+}
+
+func (gtr GetTicketResponse) ToProto() (*yirapbv1.GetTicketResponse, error) {
+	return GetTicketResponseToProto(gtr)
+}
+
+func CreateTicketRequestFromProto(source *yirapbv1.CreateTicketRequest) (CreateTicketRequest, error) {
+	var target CreateTicketRequest
+	if source == nil {
+		return target, nil
+	}
+	ticket, err := TicketDraftFromProto(source.GetTicket())
+	if err != nil {
+		return target, err
+	}
+	target.Ticket = ticket
+	return target, nil
+}
+
+func CreateTicketRequestToProto(source CreateTicketRequest) (*yirapbv1.CreateTicketRequest, error) {
+	target := new(yirapbv1.CreateTicketRequest)
+	ticket, err := TicketDraftToProto(source.Ticket)
+	if err != nil {
+		return nil, err
+	}
+	target.SetTicket(ticket)
+	return target, nil
+}
+
+func (ctr CreateTicketRequest) ToProto() (*yirapbv1.CreateTicketRequest, error) {
+	return CreateTicketRequestToProto(ctr)
+}
+
+func CreateTicketResponseFromProto(source *yirapbv1.CreateTicketResponse) (CreateTicketResponse, error) {
+	var target CreateTicketResponse
+	if source == nil {
+		return target, nil
+	}
+	ticket, err := TicketFromProto(source.GetTicket())
+	if err != nil {
+		return target, err
+	}
+	target.Ticket = ticket
+	return target, nil
+}
+
+func CreateTicketResponseToProto(source CreateTicketResponse) (*yirapbv1.CreateTicketResponse, error) {
+	target := new(yirapbv1.CreateTicketResponse)
+	ticket, err := TicketToProto(source.Ticket)
+	if err != nil {
+		return nil, err
+	}
+	target.SetTicket(ticket)
+	return target, nil
+}
+
+func (ctr CreateTicketResponse) ToProto() (*yirapbv1.CreateTicketResponse, error) {
+	return CreateTicketResponseToProto(ctr)
+}
+
+func UpdateTicketRequestFromProto(source *yirapbv1.UpdateTicketRequest) (UpdateTicketRequest, error) {
+	var target UpdateTicketRequest
+	if source == nil {
+		return target, nil
+	}
+	target.TicketID = source.GetTicketId()
+	patch, err := TicketPatchFromProto(source.GetPatch())
+	if err != nil {
+		return target, err
+	}
+	target.Patch = patch
+	return target, nil
+}
+
+func UpdateTicketRequestToProto(source UpdateTicketRequest) (*yirapbv1.UpdateTicketRequest, error) {
+	target := new(yirapbv1.UpdateTicketRequest)
+	target.SetTicketId(source.TicketID)
+	patch, err := TicketPatchToProto(source.Patch)
+	if err != nil {
+		return nil, err
+	}
+	target.SetPatch(patch)
+	return target, nil
+}
+
+func (utr UpdateTicketRequest) ToProto() (*yirapbv1.UpdateTicketRequest, error) {
+	return UpdateTicketRequestToProto(utr)
+}
+
+func UpdateTicketResponseFromProto(source *yirapbv1.UpdateTicketResponse) (UpdateTicketResponse, error) {
+	var target UpdateTicketResponse
+	if source == nil {
+		return target, nil
+	}
+	ticket, err := TicketFromProto(source.GetTicket())
+	if err != nil {
+		return target, err
+	}
+	target.Ticket = ticket
+	return target, nil
+}
+
+func UpdateTicketResponseToProto(source UpdateTicketResponse) (*yirapbv1.UpdateTicketResponse, error) {
+	target := new(yirapbv1.UpdateTicketResponse)
+	ticket, err := TicketToProto(source.Ticket)
+	if err != nil {
+		return nil, err
+	}
+	target.SetTicket(ticket)
+	return target, nil
+}
+
+func (utr UpdateTicketResponse) ToProto() (*yirapbv1.UpdateTicketResponse, error) {
+	return UpdateTicketResponseToProto(utr)
+}
+
+func CloseTicketRequestFromProto(source *yirapbv1.CloseTicketRequest) CloseTicketRequest {
+	var target CloseTicketRequest
+	if source == nil {
+		return target
+	}
+	target.TicketID = source.GetTicketId()
+	target.Resolution = source.GetResolution()
+	return target
+}
+
+func CloseTicketRequestToProto(source CloseTicketRequest) *yirapbv1.CloseTicketRequest {
+	target := new(yirapbv1.CloseTicketRequest)
+	target.SetTicketId(source.TicketID)
+	target.SetResolution(source.Resolution)
+	return target
+}
+
+func (ctr CloseTicketRequest) ToProto() *yirapbv1.CloseTicketRequest {
+	return CloseTicketRequestToProto(ctr)
+}
+
+func WatchTicketEventsRequestFromProto(source *yirapbv1.WatchTicketEventsRequest) WatchTicketEventsRequest {
+	var target WatchTicketEventsRequest
+	if source == nil {
+		return target
+	}
+	target.ProjectID = source.GetProjectId()
+	target.TicketID = source.GetTicketId()
+	return target
+}
+
+func WatchTicketEventsRequestToProto(source WatchTicketEventsRequest) *yirapbv1.WatchTicketEventsRequest {
+	target := new(yirapbv1.WatchTicketEventsRequest)
+	target.SetProjectId(source.ProjectID)
+	target.SetTicketId(source.TicketID)
+	return target
+}
+
+func (wter WatchTicketEventsRequest) ToProto() *yirapbv1.WatchTicketEventsRequest {
+	return WatchTicketEventsRequestToProto(wter)
 }
 
 func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
@@ -103,86 +488,72 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 		return target, nil
 	}
 	target.ID = source.GetId()
+	target.ProjectID = source.GetProjectId()
 	target.Title = source.GetTitle()
-	description, err := plannertest.DescriptionFromProto(source.GetDescription())
-	if err != nil {
-		return target, err
-	}
-	target.Description = description
+	target.Description = source.GetDescription()
 	target.Status = TicketStatus(source.GetStatus())
+	target.Priority = TicketPriority(source.GetPriority())
 	var assignee *Person
 	if source.GetAssignee() != nil && source.GetAssignee().WhichValue() == yirapbv1.NullablePerson_Person_case {
 		assignee = new(PersonFromProto(source.GetAssignee().GetPerson()))
 	}
 	target.Assignee = assignee
-	target.Author = PersonFromProto(source.GetAuthor())
-	target.Version = source.GetVersion()
-	metadata := make(map[string]string, len(source.GetMetadata()))
-	for metadataKey, metadataValue := range source.GetMetadata() {
-		metadata[metadataKey] = metadataValue
+	target.Reporter = PersonFromProto(source.GetReporter())
+	var watchersSourceItems []*yirapbv1.Person
+	if source.GetWatchers() != nil {
+		watchersSourceItems = source.GetWatchers().GetPeople()
 	}
-	target.Metadata = metadata
-	watchersByRole := make(map[string]Person, len(source.GetWatchersByRole()))
-	for watchersByRoleKey, watchersByRoleValue := range source.GetWatchersByRole() {
-		watchersByRole[watchersByRoleKey] = PersonFromProto(watchersByRoleValue)
+	watchers := make([]Person, 0, len(watchersSourceItems))
+	for _, watchersItem := range watchersSourceItems {
+		watchers = append(watchers, PersonFromProto(watchersItem))
 	}
-	target.WatchersByRole = watchersByRole
-	workflowStatuses := make(map[string]TicketStatus, len(source.GetWorkflowStatuses()))
-	for workflowStatusesKey, workflowStatusesValue := range source.GetWorkflowStatuses() {
-		workflowStatuses[workflowStatusesKey] = TicketStatus(workflowStatusesValue)
-	}
-	target.WorkflowStatuses = workflowStatuses
-	watcherIDs := make([]string, 0, len(source.GetWatcherIds()))
-	for _, watcherIDsItem := range source.GetWatcherIds() {
-		watcherIDs = append(watcherIDs, watcherIDsItem)
-	}
-	target.WatcherIDs = watcherIDs
-	labels, err := plannertest.CustomStringSetFromProto(source.GetLabels())
-	if err != nil {
-		return target, err
+	target.Watchers = watchers
+	var labels types.Set[types.Label]
+	if source.GetLabels() != nil {
+		labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+		if err != nil {
+			return target, err
+		}
+		labels = labelsValues
 	}
 	target.Labels = labels
+	var dueDate types.Date
+	if source.GetDueDate() != nil {
+		dueDateValue, err := types.DateFromProto(source.GetDueDate().GetValue())
+		if err != nil {
+			return target, err
+		}
+		dueDate = dueDateValue
+	}
+	target.DueDate = dueDate
 	target.Visibility = TicketVisibility(source.GetVisibility())
-	auditEvents := make([]TicketAuditEvent, 0, len(source.GetAuditEvents()))
-	for _, auditEventsItem := range source.GetAuditEvents() {
-		auditEvents = append(auditEvents, TicketAuditEventFromProto(auditEventsItem))
+	var metadata tego.Struct
+	if source.GetMetadata() != nil {
+		metadata = source.GetMetadata().AsMap()
 	}
-	target.AuditEvents = auditEvents
-	target.History = TicketHistoryFromProto(source.GetHistory())
-	target.LatestHistoryEntry = TicketHistoryEntryFromProto(source.GetLatestHistoryEntry())
-	switch source.WhichReviewer() {
-	case yirapbv1.Ticket_Internal_case:
-		target.Reviewer = TicketInternal{Internal: PersonFromProto(source.GetInternal())}
+	target.Metadata = metadata
+	switch source.WhichSource() {
+	case yirapbv1.Ticket_ManualSource_case:
+		target.Source = TicketManualSource{ManualSource: source.GetManualSource()}
+	case yirapbv1.Ticket_IntegrationSource_case:
+		target.Source = TicketIntegrationSource{IntegrationSource: source.GetIntegrationSource()}
 	}
-	var structData tego.Struct
-	if source.GetStructData() != nil {
-		structData = source.GetStructData().AsMap()
+	events := make([]TicketEvent, 0, len(source.GetEvents()))
+	for _, eventsItem := range source.GetEvents() {
+		events = append(events, TicketEventFromProto(eventsItem))
 	}
-	target.StructData = structData
-	target.Marker = struct{}{}
-	var dynamicValue tego.Value
-	if source.GetDynamicValue() != nil {
-		dynamicValue = source.GetDynamicValue().AsInterface()
-	}
-	target.DynamicValue = dynamicValue
-	var dynamicList tego.ListValue
-	if source.GetDynamicList() != nil {
-		dynamicList = source.GetDynamicList().AsSlice()
-	}
-	target.DynamicList = dynamicList
+	target.Events = events
 	return target, nil
 }
 
 func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 	target := new(yirapbv1.Ticket)
 	target.SetId(source.ID)
+	target.SetProjectId(source.ProjectID)
 	target.SetTitle(source.Title)
-	description, err := plannertest.DescriptionToProto(source.Description)
-	if err != nil {
-		return nil, err
-	}
-	target.SetDescription(description)
+	target.SetDescription(source.Description)
 	target.SetStatus(yirapbv1.TicketStatus(source.Status))
+	target.SetPriority(yirapbv1.TicketPriority(source.Priority))
 	var assignee *yirapbv1.NullablePerson
 	if source.Assignee != nil {
 		assignee = new(yirapbv1.NullablePerson)
@@ -192,76 +563,64 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 		assignee.SetNull(structpb.NullValue_NULL_VALUE)
 	}
 	target.SetAssignee(assignee)
-	target.SetAuthor(PersonToProto(source.Author))
-	target.SetVersion(source.Version)
-	metadata := make(map[string]string, len(source.Metadata))
-	for metadataKey, metadataValue := range source.Metadata {
-		metadata[metadataKey] = metadataValue
+	target.SetReporter(PersonToProto(source.Reporter))
+	watchers := make([]*yirapbv1.Person, 0, len(source.Watchers))
+	for _, watchersItem := range source.Watchers {
+		watchers = append(watchers, PersonToProto(watchersItem))
 	}
-	target.SetMetadata(metadata)
-	watchersByRole := make(map[string]*yirapbv1.Person, len(source.WatchersByRole))
-	for watchersByRoleKey, watchersByRoleValue := range source.WatchersByRole {
-		watchersByRole[watchersByRoleKey] = PersonToProto(watchersByRoleValue)
-	}
-	target.SetWatchersByRole(watchersByRole)
-	workflowStatuses := make(map[string]yirapbv1.TicketStatus, len(source.WorkflowStatuses))
-	for workflowStatusesKey, workflowStatusesValue := range source.WorkflowStatuses {
-		workflowStatuses[workflowStatusesKey] = yirapbv1.TicketStatus(workflowStatusesValue)
-	}
-	target.SetWorkflowStatuses(workflowStatuses)
-	watcherIDs := make([]string, 0, len(source.WatcherIDs))
-	for _, watcherIDsItem := range source.WatcherIDs {
-		watcherIDs = append(watcherIDs, watcherIDsItem)
-	}
-	target.SetWatcherIds(watcherIDs)
-	labels, err := plannertest.CustomStringSetToProto(source.Labels)
+	watchers2 := new(yirapbv1.PersonList)
+	watchers2.SetPeople(watchers)
+	target.SetWatchers(watchers2)
+	labels := new(yirapbv1.Labels)
+	labelsValues, err := types.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
+	labels.SetValues(labelsValues)
 	target.SetLabels(labels)
-	target.SetVisibility(yirapbv1.Ticket_Visibility(source.Visibility))
-	auditEvents := make([]*yirapbv1.Ticket_AuditEvent, 0, len(source.AuditEvents))
-	for _, auditEventsItem := range source.AuditEvents {
-		auditEvents = append(auditEvents, TicketAuditEventToProto(auditEventsItem))
+	dueDate := new(yirapbv1.DueDate)
+	dueDateValue, err := types.DateToProto(source.DueDate)
+	if err != nil {
+		return nil, err
 	}
-	target.SetAuditEvents(auditEvents)
-	target.SetHistory(TicketHistoryToProto(source.History))
-	target.SetLatestHistoryEntry(TicketHistoryEntryToProto(source.LatestHistoryEntry))
-	switch reviewer := source.Reviewer.(type) {
+	dueDate.SetValue(dueDateValue)
+	target.SetDueDate(dueDate)
+	target.SetVisibility(yirapbv1.Ticket_Visibility(source.Visibility))
+	var metadata *structpb.Struct
+	if source.Metadata != nil {
+		var err error
+		metadata, err = structpb.NewStruct(source.Metadata)
+		if err != nil {
+			return nil, err
+		}
+	}
+	target.SetMetadata(metadata)
+	switch source2 := source.Source.(type) {
 	case nil:
-	case TicketInternal:
-		target.SetInternal(PersonToProto(reviewer.Internal))
-	case *TicketInternal:
-		if reviewer != nil {
-			target.SetInternal(PersonToProto(reviewer.Internal))
+	case TicketManualSource:
+		target.SetManualSource(source2.ManualSource)
+	case *TicketManualSource:
+		if source2 != nil {
+			target.SetManualSource(source2.ManualSource)
+		}
+	case TicketIntegrationSource:
+		target.SetIntegrationSource(source2.IntegrationSource)
+	case *TicketIntegrationSource:
+		if source2 != nil {
+			target.SetIntegrationSource(source2.IntegrationSource)
 		}
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
-	var structData *structpb.Struct
-	if source.StructData != nil {
-		var err error
-		structData, err = structpb.NewStruct(source.StructData)
+	events := make([]*yirapbv1.TicketEvent, 0, len(source.Events))
+	for _, eventsItem := range source.Events {
+		events2, err := TicketEventToProto(eventsItem)
 		if err != nil {
 			return nil, err
 		}
+		events = append(events, events2)
 	}
-	target.SetStructData(structData)
-	target.SetMarker(new(emptypb.Empty))
-	dynamicValue, err := structpb.NewValue(source.DynamicValue)
-	if err != nil {
-		return nil, err
-	}
-	target.SetDynamicValue(dynamicValue)
-	var dynamicList *structpb.ListValue
-	if source.DynamicList != nil {
-		var err error
-		dynamicList, err = structpb.NewList(source.DynamicList)
-		if err != nil {
-			return nil, err
-		}
-	}
-	target.SetDynamicList(dynamicList)
+	target.SetEvents(events)
 	return target, nil
 }
 
@@ -269,104 +628,83 @@ func (t Ticket) ToProto() (*yirapbv1.Ticket, error) {
 	return TicketToProto(t)
 }
 
-func TicketAuditEventFromProto(source *yirapbv1.Ticket_AuditEvent) TicketAuditEvent {
-	var target TicketAuditEvent
+func TicketDraftFromProto(source *yirapbv1.TicketDraft) (TicketDraft, error) {
+	var target TicketDraft
 	if source == nil {
-		return target
+		return target, nil
 	}
-	target.Actor = source.GetActor()
-	target.Status = TicketStatus(source.GetStatus())
-	return target
-}
-
-func TicketAuditEventToProto(source TicketAuditEvent) *yirapbv1.Ticket_AuditEvent {
-	target := new(yirapbv1.Ticket_AuditEvent)
-	target.SetActor(source.Actor)
-	target.SetStatus(yirapbv1.TicketStatus(source.Status))
-	return target
-}
-
-func (tae TicketAuditEvent) ToProto() *yirapbv1.Ticket_AuditEvent {
-	return TicketAuditEventToProto(tae)
-}
-
-func TicketHistoryFromProto(source *yirapbv1.Ticket_History) TicketHistory {
-	var target TicketHistory
-	if source == nil {
-		return target
+	target.ProjectID = source.GetProjectId()
+	target.Title = source.GetTitle()
+	target.Description = source.GetDescription()
+	target.Priority = TicketPriority(source.GetPriority())
+	target.Reporter = PersonFromProto(source.GetReporter())
+	var dueDate types.Date
+	if source.GetDueDate() != nil {
+		dueDateValue, err := types.DateFromProto(source.GetDueDate().GetValue())
+		if err != nil {
+			return target, err
+		}
+		dueDate = dueDateValue
 	}
-	entries := make([]TicketHistoryEntry, 0, len(source.GetEntries()))
-	for _, entriesItem := range source.GetEntries() {
-		entries = append(entries, TicketHistoryEntryFromProto(entriesItem))
+	target.DueDate = dueDate
+	var labels types.Set[types.Label]
+	if source.GetLabels() != nil {
+		labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+		if err != nil {
+			return target, err
+		}
+		labels = labelsValues
 	}
-	target.Entries = entries
-	return target
-}
-
-func TicketHistoryToProto(source TicketHistory) *yirapbv1.Ticket_History {
-	target := new(yirapbv1.Ticket_History)
-	entries := make([]*yirapbv1.Ticket_History_Entry, 0, len(source.Entries))
-	for _, entriesItem := range source.Entries {
-		entries = append(entries, TicketHistoryEntryToProto(entriesItem))
+	target.Labels = labels
+	var metadata tego.Struct
+	if source.GetMetadata() != nil {
+		metadata = source.GetMetadata().AsMap()
 	}
-	target.SetEntries(entries)
-	return target
-}
-
-func (th TicketHistory) ToProto() *yirapbv1.Ticket_History {
-	return TicketHistoryToProto(th)
-}
-
-func TicketHistoryEntryFromProto(source *yirapbv1.Ticket_History_Entry) TicketHistoryEntry {
-	var target TicketHistoryEntry
-	if source == nil {
-		return target
-	}
-	target.Note = source.GetNote()
-	target.Visibility = TicketVisibility(source.GetVisibility())
-	return target
-}
-
-func TicketHistoryEntryToProto(source TicketHistoryEntry) *yirapbv1.Ticket_History_Entry {
-	target := new(yirapbv1.Ticket_History_Entry)
-	target.SetNote(source.Note)
-	target.SetVisibility(yirapbv1.Ticket_Visibility(source.Visibility))
-	return target
-}
-
-func (the TicketHistoryEntry) ToProto() *yirapbv1.Ticket_History_Entry {
-	return TicketHistoryEntryToProto(the)
-}
-
-func UpdateTicketRequestFromProto(source *yirapbv1.UpdateTicketRequest) UpdateTicketRequest {
-	var target UpdateTicketRequest
-	if source == nil {
-		return target
-	}
-	target.ID = source.GetId()
-	target.Input = TicketInputFromProto(source.GetInput())
-	return target
-}
-
-func UpdateTicketRequestToProto(source UpdateTicketRequest) (*yirapbv1.UpdateTicketRequest, error) {
-	target := new(yirapbv1.UpdateTicketRequest)
-	target.SetId(source.ID)
-	input, err := TicketInputToProto(source.Input)
-	if err != nil {
-		return nil, err
-	}
-	target.SetInput(input)
+	target.Metadata = metadata
 	return target, nil
 }
 
-func (utr UpdateTicketRequest) ToProto() (*yirapbv1.UpdateTicketRequest, error) {
-	return UpdateTicketRequestToProto(utr)
+func TicketDraftToProto(source TicketDraft) (*yirapbv1.TicketDraft, error) {
+	target := new(yirapbv1.TicketDraft)
+	target.SetProjectId(source.ProjectID)
+	target.SetTitle(source.Title)
+	target.SetDescription(source.Description)
+	target.SetPriority(yirapbv1.TicketPriority(source.Priority))
+	target.SetReporter(PersonToProto(source.Reporter))
+	dueDate := new(yirapbv1.DueDate)
+	dueDateValue, err := types.DateToProto(source.DueDate)
+	if err != nil {
+		return nil, err
+	}
+	dueDate.SetValue(dueDateValue)
+	target.SetDueDate(dueDate)
+	labels := new(yirapbv1.Labels)
+	labelsValues, err := types.LabelSetToProto(source.Labels)
+	if err != nil {
+		return nil, err
+	}
+	labels.SetValues(labelsValues)
+	target.SetLabels(labels)
+	var metadata *structpb.Struct
+	if source.Metadata != nil {
+		var err error
+		metadata, err = structpb.NewStruct(source.Metadata)
+		if err != nil {
+			return nil, err
+		}
+	}
+	target.SetMetadata(metadata)
+	return target, nil
 }
 
-func TicketInputFromProto(source *yirapbv1.TicketInput) TicketInput {
-	var target TicketInput
+func (td TicketDraft) ToProto() (*yirapbv1.TicketDraft, error) {
+	return TicketDraftToProto(td)
+}
+
+func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
+	var target TicketPatch
 	if source == nil {
-		return target
+		return target, nil
 	}
 	if source.HasTitle() {
 		target.Title = omittable.Some(source.GetTitle())
@@ -383,30 +721,61 @@ func TicketInputFromProto(source *yirapbv1.TicketInput) TicketInput {
 	} else {
 		target.Status = omittable.None[TicketStatus]()
 	}
+	if source.HasPriority() {
+		target.Priority = omittable.Some(TicketPriority(source.GetPriority()))
+	} else {
+		target.Priority = omittable.None[TicketPriority]()
+	}
 	if source.HasAssignee() {
 		var assignee *Person
-		if source.GetAssignee() != nil {
-			assignee = new(PersonFromProto(source.GetAssignee()))
+		if source.GetAssignee() != nil && source.GetAssignee().WhichValue() == yirapbv1.NullablePerson_Person_case {
+			assignee = new(PersonFromProto(source.GetAssignee().GetPerson()))
 		}
 		target.Assignee = omittable.Some(assignee)
 	} else {
 		target.Assignee = omittable.None[*Person]()
 	}
-	target.Version = source.GetVersion()
-	if source.HasMetadataPatch() {
-		var metadataPatch tego.Value
-		if source.GetMetadataPatch() != nil {
-			metadataPatch = source.GetMetadataPatch().AsInterface()
+	if source.HasDueDate() {
+		var dueDate types.Date
+		if source.GetDueDate() != nil {
+			dueDateValue, err := types.DateFromProto(source.GetDueDate().GetValue())
+			if err != nil {
+				return target, err
+			}
+			dueDate = dueDateValue
 		}
-		target.MetadataPatch = omittable.Some(metadataPatch)
+		target.DueDate = omittable.Some(dueDate)
 	} else {
-		target.MetadataPatch = omittable.None[tego.Value]()
+		target.DueDate = omittable.None[types.Date]()
 	}
-	return target
+	if source.HasLabels() {
+		var labels types.Set[types.Label]
+		if source.GetLabels() != nil {
+			labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+			if err != nil {
+				return target, err
+			}
+			labels = labelsValues
+		}
+		target.Labels = omittable.Some(labels)
+	} else {
+		target.Labels = omittable.None[types.Set[types.Label]]()
+	}
+	if source.HasMetadata() {
+		var metadata tego.Struct
+		if source.GetMetadata() != nil {
+			metadata = source.GetMetadata().AsMap()
+		}
+		target.Metadata = omittable.Some(metadata)
+	} else {
+		target.Metadata = omittable.None[tego.Struct]()
+	}
+	target.Version = source.GetVersion()
+	return target, nil
 }
 
-func TicketInputToProto(source TicketInput) (*yirapbv1.TicketInput, error) {
-	target := new(yirapbv1.TicketInput)
+func TicketPatchToProto(source TicketPatch) (*yirapbv1.TicketPatch, error) {
+	target := new(yirapbv1.TicketPatch)
 	if source.Title.Valid {
 		target.SetTitle(source.Title.Value)
 	}
@@ -416,28 +785,161 @@ func TicketInputToProto(source TicketInput) (*yirapbv1.TicketInput, error) {
 	if source.Status.Valid {
 		target.SetStatus(yirapbv1.TicketStatus(source.Status.Value))
 	}
+	if source.Priority.Valid {
+		target.SetPriority(yirapbv1.TicketPriority(source.Priority.Value))
+	}
 	if source.Assignee.Valid {
-		var assignee *yirapbv1.Person
+		var assignee *yirapbv1.NullablePerson
 		if source.Assignee.Value != nil {
-			assignee = new(yirapbv1.Person)
-			assignee = PersonToProto(*source.Assignee.Value)
+			assignee = new(yirapbv1.NullablePerson)
+			assignee.SetPerson(PersonToProto(*source.Assignee.Value))
 		} else {
+			assignee = new(yirapbv1.NullablePerson)
+			assignee.SetNull(structpb.NullValue_NULL_VALUE)
 		}
 		target.SetAssignee(assignee)
 	}
-	target.SetVersion(source.Version)
-	if source.MetadataPatch.Valid {
-		metadataPatch, err := structpb.NewValue(source.MetadataPatch.Value)
+	if source.DueDate.Valid {
+		dueDate := new(yirapbv1.DueDate)
+		dueDateValue, err := types.DateToProto(source.DueDate.Value)
 		if err != nil {
 			return nil, err
 		}
-		target.SetMetadataPatch(metadataPatch)
+		dueDate.SetValue(dueDateValue)
+		target.SetDueDate(dueDate)
 	}
+	if source.Labels.Valid {
+		labels := new(yirapbv1.Labels)
+		labelsValues, err := types.LabelSetToProto(source.Labels.Value)
+		if err != nil {
+			return nil, err
+		}
+		labels.SetValues(labelsValues)
+		target.SetLabels(labels)
+	}
+	if source.Metadata.Valid {
+		var metadata *structpb.Struct
+		if source.Metadata.Value != nil {
+			var err error
+			metadata, err = structpb.NewStruct(source.Metadata.Value)
+			if err != nil {
+				return nil, err
+			}
+		}
+		target.SetMetadata(metadata)
+	}
+	target.SetVersion(source.Version)
 	return target, nil
 }
 
-func (ti TicketInput) ToProto() (*yirapbv1.TicketInput, error) {
-	return TicketInputToProto(ti)
+func (tp TicketPatch) ToProto() (*yirapbv1.TicketPatch, error) {
+	return TicketPatchToProto(tp)
+}
+
+func TicketFilterFromProto(source *yirapbv1.TicketFilter) (TicketFilter, error) {
+	var target TicketFilter
+	if source == nil {
+		return target, nil
+	}
+	statuses := make([]TicketStatus, 0, len(source.GetStatuses()))
+	for _, statusesItem := range source.GetStatuses() {
+		statuses = append(statuses, TicketStatus(statusesItem))
+	}
+	target.Statuses = statuses
+	var assignee *Person
+	if source.GetAssignee() != nil && source.GetAssignee().WhichValue() == yirapbv1.NullablePerson_Person_case {
+		assignee = new(PersonFromProto(source.GetAssignee().GetPerson()))
+	}
+	target.Assignee = assignee
+	var labels types.Set[types.Label]
+	if source.GetLabels() != nil {
+		labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+		if err != nil {
+			return target, err
+		}
+		labels = labelsValues
+	}
+	target.Labels = labels
+	return target, nil
+}
+
+func TicketFilterToProto(source TicketFilter) (*yirapbv1.TicketFilter, error) {
+	target := new(yirapbv1.TicketFilter)
+	statuses := make([]yirapbv1.TicketStatus, 0, len(source.Statuses))
+	for _, statusesItem := range source.Statuses {
+		statuses = append(statuses, yirapbv1.TicketStatus(statusesItem))
+	}
+	target.SetStatuses(statuses)
+	var assignee *yirapbv1.NullablePerson
+	if source.Assignee != nil {
+		assignee = new(yirapbv1.NullablePerson)
+		assignee.SetPerson(PersonToProto(*source.Assignee))
+	} else {
+		assignee = new(yirapbv1.NullablePerson)
+		assignee.SetNull(structpb.NullValue_NULL_VALUE)
+	}
+	target.SetAssignee(assignee)
+	labels := new(yirapbv1.Labels)
+	labelsValues, err := types.LabelSetToProto(source.Labels)
+	if err != nil {
+		return nil, err
+	}
+	labels.SetValues(labelsValues)
+	target.SetLabels(labels)
+	return target, nil
+}
+
+func (tf TicketFilter) ToProto() (*yirapbv1.TicketFilter, error) {
+	return TicketFilterToProto(tf)
+}
+
+func TicketEventFromProto(source *yirapbv1.TicketEvent) TicketEvent {
+	var target TicketEvent
+	if source == nil {
+		return target
+	}
+	target.ID = source.GetId()
+	target.Kind = TicketEventKind(source.GetKind())
+	target.Actor = PersonFromProto(source.GetActor())
+	target.Note = source.GetNote()
+	var payload tego.Value
+	if source.GetPayload() != nil {
+		payload = source.GetPayload().AsInterface()
+	}
+	target.Payload = payload
+	var attachments tego.ListValue
+	if source.GetAttachments() != nil {
+		attachments = source.GetAttachments().AsSlice()
+	}
+	target.Attachments = attachments
+	return target
+}
+
+func TicketEventToProto(source TicketEvent) (*yirapbv1.TicketEvent, error) {
+	target := new(yirapbv1.TicketEvent)
+	target.SetId(source.ID)
+	target.SetKind(yirapbv1.TicketEvent_Kind(source.Kind))
+	target.SetActor(PersonToProto(source.Actor))
+	target.SetNote(source.Note)
+	payload, err := structpb.NewValue(source.Payload)
+	if err != nil {
+		return nil, err
+	}
+	target.SetPayload(payload)
+	var attachments *structpb.ListValue
+	if source.Attachments != nil {
+		var err error
+		attachments, err = structpb.NewList(source.Attachments)
+		if err != nil {
+			return nil, err
+		}
+	}
+	target.SetAttachments(attachments)
+	return target, nil
+}
+
+func (te TicketEvent) ToProto() (*yirapbv1.TicketEvent, error) {
+	return TicketEventToProto(te)
 }
 
 func PersonFromProto(source *yirapbv1.Person) Person {
@@ -445,18 +947,60 @@ func PersonFromProto(source *yirapbv1.Person) Person {
 	if source == nil {
 		return target
 	}
-	target.FirstName = source.GetFirstName()
-	target.LastName = source.GetLastName()
+	target.ID = source.GetId()
+	target.DisplayName = source.GetDisplayName()
+	target.Email = source.GetEmail()
 	return target
 }
 
 func PersonToProto(source Person) *yirapbv1.Person {
 	target := new(yirapbv1.Person)
-	target.SetFirstName(source.FirstName)
-	target.SetLastName(source.LastName)
+	target.SetId(source.ID)
+	target.SetDisplayName(source.DisplayName)
+	target.SetEmail(source.Email)
 	return target
 }
 
 func (p Person) ToProto() *yirapbv1.Person {
 	return PersonToProto(p)
+}
+
+func CursorRequestFromProto(source *yirapbv1.CursorRequest) CursorRequest {
+	var target CursorRequest
+	if source == nil {
+		return target
+	}
+	target.Limit = source.GetLimit()
+	target.AfterCursor = source.GetAfterCursor()
+	return target
+}
+
+func CursorRequestToProto(source CursorRequest) *yirapbv1.CursorRequest {
+	target := new(yirapbv1.CursorRequest)
+	target.SetLimit(source.Limit)
+	target.SetAfterCursor(source.AfterCursor)
+	return target
+}
+
+func (cr CursorRequest) ToProto() *yirapbv1.CursorRequest {
+	return CursorRequestToProto(cr)
+}
+
+func CursorResponseFromProto(source *yirapbv1.CursorResponse) CursorResponse {
+	var target CursorResponse
+	if source == nil {
+		return target
+	}
+	target.NextCursor = source.GetNextCursor()
+	return target
+}
+
+func CursorResponseToProto(source CursorResponse) *yirapbv1.CursorResponse {
+	target := new(yirapbv1.CursorResponse)
+	target.SetNextCursor(source.NextCursor)
+	return target
+}
+
+func (cr CursorResponse) ToProto() *yirapbv1.CursorResponse {
+	return CursorResponseToProto(cr)
 }

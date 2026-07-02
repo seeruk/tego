@@ -13,6 +13,7 @@ type ShapeIndex struct {
 	Nullables map[protoreflect.FullName]*ProtoMessage
 	Maps      map[protoreflect.FullName]*ProtoMessage
 	Slices    map[protoreflect.FullName]*ProtoMessage
+	Flattens  map[protoreflect.FullName]*ProtoMessage
 }
 
 func BuildShapeIndex(di *DescriptorIndex) (*ShapeIndex, error) {
@@ -40,6 +41,7 @@ const (
 	shapeKindNullable
 	shapeKindMap
 	shapeKindSlice
+	shapeKindFlatten
 )
 
 func newShapeIndexBuilder() *shapeIndexBuilder {
@@ -48,6 +50,7 @@ func newShapeIndexBuilder() *shapeIndexBuilder {
 			Nullables: make(map[protoreflect.FullName]*ProtoMessage),
 			Maps:      make(map[protoreflect.FullName]*ProtoMessage),
 			Slices:    make(map[protoreflect.FullName]*ProtoMessage),
+			Flattens:  make(map[protoreflect.FullName]*ProtoMessage),
 		},
 		shapes: make(map[*ProtoMessage]shapeKind),
 		active: make(map[*ProtoMessage]bool),
@@ -72,6 +75,8 @@ func (b *shapeIndexBuilder) indexMessage(message *ProtoMessage) error {
 		b.index.Maps[message.FullName] = message
 	case shapeKindSlice:
 		b.index.Slices[message.FullName] = message
+	case shapeKindFlatten:
+		b.index.Flattens[message.FullName] = message
 	}
 
 	for _, nested := range message.Messages {
@@ -98,7 +103,9 @@ func (b *shapeIndexBuilder) classifyMessage(message *ProtoMessage) shapeKind {
 	defer delete(b.active, message)
 
 	kind := shapeKindNone
-	if !message.Options.HasGoType() && (!message.Options.HasInferShape() || message.Options.GetInferShape()) {
+	if message.Options.GetFlatten() && isFlattenShape(message) {
+		kind = shapeKindFlatten
+	} else if !message.Options.HasGoType() && (!message.Options.HasInferShape() || message.Options.GetInferShape()) {
 		switch {
 		case isNullableShape(message):
 			kind = shapeKindNullable
@@ -111,6 +118,19 @@ func (b *shapeIndexBuilder) classifyMessage(message *ProtoMessage) shapeKind {
 
 	b.shapes[message] = kind
 	return kind
+}
+
+func isFlattenShape(message *ProtoMessage) bool {
+	_, ok := flattenShapeField(message)
+	return ok
+}
+
+func flattenShapeField(message *ProtoMessage) (*ProtoField, bool) {
+	if message == nil || len(message.Enums) > 0 || len(message.Messages) > 0 || len(message.Oneofs) > 0 || len(message.Fields) != 1 {
+		return nil, false
+	}
+	field := message.Fields[0]
+	return field, field.Oneof == nil
 }
 
 func isNullableShape(message *ProtoMessage) bool {
@@ -271,11 +291,27 @@ func (b *shapeIndexBuilder) isComparableMessageField(field *ProtoField) bool {
 	switch b.classifyMessage(field.Message) {
 	case shapeKindNullable:
 		return true
+	case shapeKindFlatten:
+		flattened, ok := flattenShapeField(field.Message)
+		return ok && b.isComparableFlattenField(flattened)
 	case shapeKindMap, shapeKindSlice:
 		return false
 	default:
 		return b.isComparableMessage(field.Message)
 	}
+}
+
+func (b *shapeIndexBuilder) isComparableFlattenField(field *ProtoField) bool {
+	if field == nil {
+		return false
+	}
+
+	if field.Options.HasGoType() {
+		goType := field.Options.GetGoType()
+		return goType.GetComparable() || goType.GetAsPointer()
+	}
+
+	return b.isComparableField(field)
 }
 
 func (b *shapeIndexBuilder) isComparableMessage(message *ProtoMessage) bool {

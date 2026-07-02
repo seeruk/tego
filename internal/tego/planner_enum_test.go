@@ -20,13 +20,18 @@ func TestPlannerPlanEnumYiraFixture(t *testing.T) {
 
 	assert.Equal(t, protoreflect.FullName("yirapb.v1.TicketStatus"), plan.ProtoName)
 	assert.Equal(t, "TicketStatus", plan.Name)
-	assert.Equal(t, "TicketStatus is the current lifecycle state of a ticket.", plan.Comment)
+	assert.Empty(t, plan.Comment)
 	assert.Equal(t, EnumUnderlyingTypeUint, plan.Underlying)
-	require.Len(t, plan.Constants, 4)
+	require.Len(t, plan.Constants, 5)
+
+	unspecified := enumConstantByProtoName(t, plan, "yirapb.v1.TICKET_STATUS_UNSPECIFIED")
+	assert.Equal(t, "TicketStatusUnknown", unspecified.Name)
+	assert.Equal(t, "TicketStatus is the current lifecycle state of a ticket.", unspecified.Comment)
+	assert.Equal(t, uint(0), unspecified.Value.Uint)
 
 	open := enumConstantByProtoName(t, plan, "yirapb.v1.TICKET_STATUS_OPEN")
 	assert.Equal(t, "TicketStatusOpen", open.Name)
-	assert.Equal(t, "TicketStatusOpen means work can begin.", open.Comment)
+	assert.Empty(t, open.Comment)
 	assert.Equal(t, uint(1), open.Value.Uint)
 
 	inProgress := enumConstantByProtoName(t, plan, "yirapb.v1.TICKET_STATUS_IN_PROGRESS")

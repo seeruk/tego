@@ -1,6 +1,7 @@
 edition = "2024";
 package yirapb.v1;
 
+import "google/protobuf/any.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "tego/options.proto";
@@ -8,21 +9,84 @@ import "tego/options.proto";
 option go_package = "github.com/seeruk/tego/lab/yirapbv1;yirapbv1";
 option (tego.file).go_package = "github.com/seeruk/tego/lab/yira;yira";
 
+service TicketService {
+  rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
+  rpc GetTicket(GetTicketRequest) returns (GetTicketResponse);
+  rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
+  rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
+  rpc CloseTicket(CloseTicketRequest) returns (google.protobuf.Empty);
+  rpc WatchTicketEvents(WatchTicketEventsRequest) returns (stream TicketEvent);
+}
+
+message ListTicketsRequest {
+  string project_id = 1;
+  TicketFilter filter = 2;
+  CursorRequest cursor = 3;
+}
+
+message ListTicketsResponse {
+  repeated Ticket tickets = 1;
+  TicketsByStatus tickets_by_status = 2;
+  CursorResponse cursor = 3;
+}
+
+message GetTicketRequest {
+  string ticket_id = 1;
+}
+
+message GetTicketResponse {
+  Ticket ticket = 1;
+}
+
+message CreateTicketRequest {
+  TicketDraft ticket = 1;
+}
+
+message CreateTicketResponse {
+  Ticket ticket = 1;
+}
+
+message UpdateTicketRequest {
+  string ticket_id = 1;
+  TicketPatch patch = 2;
+}
+
+message UpdateTicketResponse {
+  Ticket ticket = 1;
+}
+
+message CloseTicketRequest {
+  string ticket_id = 1;
+  string resolution = 2;
+}
+
+message WatchTicketEventsRequest {
+  string project_id = 1;
+  string ticket_id = 2;
+}
+
 enum TicketStatus {
   option (tego.enum) = {
     name: "TicketStatus"
-    comment: "TicketStatus is the current lifecycle state of a ticket."
     underlying_type: ENUM_UNDERLYING_TYPE_UINT
   };
 
-  TICKET_STATUS_UNSPECIFIED = 0;
-  TICKET_STATUS_OPEN = 1 [(tego.enum_value) = {
-    name: "TicketStatusOpen"
-    comment: "TicketStatusOpen means work can begin."
-    uint: 1
+  TICKET_STATUS_UNSPECIFIED = 0 [(tego.enum_value) = {
+    name: "TicketStatusUnknown"
+    comment: "TicketStatus is the current lifecycle state of a ticket."
+    uint: 0
   }];
+  TICKET_STATUS_OPEN = 1;
   TICKET_STATUS_IN_PROGRESS = 2;
-  TICKET_STATUS_CLOSED = 3;
+  TICKET_STATUS_BLOCKED = 3;
+  TICKET_STATUS_CLOSED = 4;
+}
+
+enum TicketPriority {
+  TICKET_PRIORITY_UNSPECIFIED = 0;
+  TICKET_PRIORITY_LOW = 1;
+  TICKET_PRIORITY_NORMAL = 2;
+  TICKET_PRIORITY_HIGH = 3;
 }
 
 message Ticket {
@@ -32,97 +96,92 @@ message Ticket {
     VISIBILITY_PRIVATE = 2;
   }
 
-  message AuditEvent {
-    string actor = 1;
-    TicketStatus status = 2;
-  }
-
-  message History {
-    message Entry {
-      string note = 1;
-      Visibility visibility = 2;
-    }
-
-    repeated Entry entries = 1;
-  }
-
-  string id = 1 [(tego.field) = {
-    tags: {
-      key: "json"
-      value: "id,omitempty"
-    }
-  }];
-
-  string title = 2 [(tego.field).json_tag = {
-    value: "title"
+  string id = 1 [(tego.field).json_tag = {
+    value: "id"
     omitempty: true
   }];
+  string project_id = 2;
+  string title = 3;
+  string description = 4;
+  TicketStatus status = 5;
+  TicketPriority priority = 6;
+  NullablePerson assignee = 7;
+  Person reporter = 8;
+  PersonList watchers = 9;
+  Labels labels = 10;
+  DueDate due_date = 11;
+  Visibility visibility = 12;
+  google.protobuf.Struct metadata = 13;
 
-  string description = 3 [(tego.field).go_type = {
-    ref: "github.com/seeruk/tego/internal/tego/testdata/plannertest.Description"
-    from_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.DescriptionFromProto"
-    to_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.DescriptionToProto"
-    comparable: true
-    as_pointer: true
-  }];
-  TicketStatus status = 4;
-  NullablePerson assignee = 5;
-  Person author = 6;
-  string version = 7;
-  map<string, string> metadata = 8;
-  map<string, Person> watchers_by_role = 9;
-  map<string, TicketStatus> workflow_statuses = 10;
-  repeated string watcher_ids = 11;
-  repeated string labels = 12 [(tego.field).go_type = {
-    ref: "github.com/seeruk/tego/internal/tego/testdata/plannertest.Set[T]"
-    type_args: {
-      key: "T"
-      value: {type: "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomString"}
-    }
-    from_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomStringSetFromProto"
-    to_proto: "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomStringSetToProto"
-  }];
-  Visibility visibility = 13;
-  repeated AuditEvent audit_events = 14;
-  History history = 15;
-  History.Entry latest_history_entry = 16;
-
-  oneof reviewer {
-    Person internal = 17;
-    string external_ref = 18 [(tego.field).omit = true];
+  oneof source {
+    string manual_source = 14;
+    google.protobuf.Any integration_source = 15;
   }
 
-  google.protobuf.Struct struct_data = 19;
-  google.protobuf.Empty marker = 20;
-  google.protobuf.Value dynamic_value = 21;
-  google.protobuf.ListValue dynamic_list = 22;
+  repeated TicketEvent events = 16;
 }
 
-message UpdateTicketRequest {
-  string id = 1;
-  TicketInput input = 2;
-}
-
-message TicketInput {
-  option (tego.message).fields.omittable = true;
-
+message TicketDraft {
+  string project_id = 1;
   string title = 2;
   string description = 3;
-  TicketStatus status = 4;
-  Person assignee = 5 [(tego.field).nullable = true];
+  TicketPriority priority = 4;
+  Person reporter = 5;
+  DueDate due_date = 6;
+  Labels labels = 7;
+  google.protobuf.Struct metadata = 8;
+}
 
-  // Required fields would not be generated as omittable.
-  string version = 6 [(tego.field).omittable = false];
-  google.protobuf.Value metadata_patch = 7;
+message TicketPatch {
+  option (tego.message).fields.omittable = true;
+
+  string title = 1;
+  string description = 2;
+  TicketStatus status = 3;
+  TicketPriority priority = 4;
+  NullablePerson assignee = 5;
+  DueDate due_date = 6;
+  Labels labels = 7;
+  google.protobuf.Struct metadata = 8;
+  string version = 9 [(tego.field).omittable = false];
+}
+
+message TicketFilter {
+  repeated TicketStatus statuses = 1;
+  NullablePerson assignee = 2;
+  Labels labels = 3;
+}
+
+message TicketEvent {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_CREATED = 1;
+    KIND_UPDATED = 2;
+    KIND_COMMENTED = 3;
+    KIND_CLOSED = 4;
+  }
+
+  string id = 1;
+  Kind kind = 2;
+  Person actor = 3;
+  string note = 4;
+  google.protobuf.Value payload = 5;
+  google.protobuf.ListValue attachments = 6;
 }
 
 message Person {
-  string first_name = 1;
-  string last_name = 2;
+  string id = 1;
+  string display_name = 2;
+  string email = 3;
 }
 
-message People {
-  repeated Person people = 1;
+message CursorRequest {
+  int32 limit = 1;
+  string after_cursor = 2;
+}
+
+message CursorResponse {
+  string next_cursor = 1;
 }
 
 message NullablePerson {
@@ -132,34 +191,40 @@ message NullablePerson {
   }
 }
 
-message NullablePersonValue {
-  Person value = 1;
-  bool valid = 2;
+message DueDate {
+  option (tego.message).flatten = true;
+
+  string value = 1 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/lab/yira/types.Date"
+    from_proto: "github.com/seeruk/tego/lab/yira/types.DateFromProto"
+    to_proto: "github.com/seeruk/tego/lab/yira/types.DateToProto"
+    comparable: true
+  }];
 }
 
-message NullablePeople {
-  repeated NullablePerson people = 1;
+message Labels {
+  option (tego.message).flatten = true;
+
+  repeated string values = 1 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/lab/yira/types.Set[T]"
+    from_proto: "github.com/seeruk/tego/lab/yira/types.LabelSetFromProto"
+    to_proto: "github.com/seeruk/tego/lab/yira/types.LabelSetToProto"
+    type_args: {
+      key: "T"
+      value: {type: "github.com/seeruk/tego/lab/yira/types.Label"}
+    }
+  }];
 }
 
-message NullableNullablePeople {
-  oneof value {
-    NullablePeople people = 1;
-    google.protobuf.NullValue null = 2;
-  }
+message PersonList {
+  repeated Person people = 1;
 }
 
-// People []*Person
-
-message TicketsByPeople {
+message TicketsByStatus {
   message Map {
-    Person key = 1;
-    repeated NullableNullablePeople value = 2;
+    TicketStatus key = 1;
+    repeated Ticket value = 2;
   }
 
   repeated Map entries = 1;
 }
-
-// Need to check if key type is comparable with recursive check, of what would be generated in the
-// final Go code:
-//
-// TicketsByPeopleMap map[Person][]*[]*Ticket

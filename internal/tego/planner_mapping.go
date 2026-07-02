@@ -162,6 +162,9 @@ func (p *Planner) planFieldMappingValue(
 	if wrapped, ok := p.planNullableMappingValue(field, source, target, si, direction); ok {
 		return wrapped
 	}
+	if wrapped, ok := p.planFlattenShapeMappingValue(field, source, target, si, direction); ok {
+		return wrapped
+	}
 	if wrapped, ok := p.planSliceShapeMappingValue(field, source, target, si, direction); ok {
 		return wrapped
 	}
@@ -295,6 +298,44 @@ func (p *Planner) planNullableMappingValue(
 		CanError: elem.CanError,
 		Access:   access,
 		Elem:     &elem,
+	}, true
+}
+
+func (p *Planner) planFlattenShapeMappingValue(
+	field *ProtoField,
+	source TypePlan,
+	target TypePlan,
+	si *ShapeIndex,
+	direction mappingDirection,
+) (MappingValuePlan, bool) {
+	if field.Kind != protoreflect.MessageKind || field.Message == nil || si == nil || si.Flattens[field.Message.FullName] == nil {
+		return MappingValuePlan{}, false
+	}
+	shapeField, ok := flattenShapeField(field.Message)
+	if !ok {
+		return MappingValuePlan{}, false
+	}
+
+	var elemSource, elemTarget TypePlan
+	if direction == mappingDirectionFromProto {
+		elemSource = p.planProtoFieldType(shapeField)
+		elemTarget = target
+	} else {
+		elemSource = source
+		elemTarget = p.planProtoFieldType(shapeField)
+	}
+
+	elem := p.planFieldMappingValue(shapeField, elemSource, elemTarget, si, direction)
+
+	return MappingValuePlan{
+		Kind:     MappingValueKindFlatten,
+		Source:   source,
+		Target:   target,
+		CanError: elem.CanError,
+		Access: MappingAccessPlan{
+			Field: mappingFieldAccess(shapeField),
+		},
+		Elem: &elem,
 	}, true
 }
 
@@ -935,11 +976,20 @@ func mappingFieldAccess(field *ProtoField) MappingFieldAccessPlan {
 		if setter, _ := field.Desc.MethodName("Set"); setter != "" {
 			access.Setter = setter
 		}
-		if has, _ := field.Desc.MethodName("Has"); has != "" {
-			access.Has = has
-		}
-		if clear, _ := field.Desc.MethodName("Clear"); clear != "" {
-			access.Clear = clear
+		if !field.HasPresence() {
+			access.Has = ""
+			access.Clear = ""
+		} else {
+			if has, _ := field.Desc.MethodName("Has"); has != "" {
+				access.Has = has
+			} else {
+				access.Has = ""
+			}
+			if clear, _ := field.Desc.MethodName("Clear"); clear != "" {
+				access.Clear = clear
+			} else {
+				access.Clear = ""
+			}
 		}
 	}
 	return access

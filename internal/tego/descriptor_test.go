@@ -39,7 +39,7 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		requireMessage(t, index, "yirapb.v1.NullablePerson")
 
 		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
-		assert.Len(t, status.Values, 4)
+		assert.Len(t, status.Values, 5)
 
 		requireEnumValue(t, index, "yirapb.v1.TICKET_STATUS_OPEN")
 	})
@@ -54,9 +54,9 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.Equal(t, protoreflect.MessageKind, assignee.Kind)
 		assert.Same(t, nullablePerson, assignee.Message)
 
-		author := fieldByName(t, ticket, "author")
-		assert.Equal(t, protoreflect.MessageKind, author.Kind)
-		assert.Same(t, person, author.Message)
+		reporter := fieldByName(t, ticket, "reporter")
+		assert.Equal(t, protoreflect.MessageKind, reporter.Kind)
+		assert.Same(t, person, reporter.Message)
 
 		statusField := fieldByName(t, ticket, "status")
 		assert.Equal(t, protoreflect.EnumKind, statusField.Kind)
@@ -75,34 +75,26 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 	})
 
 	t.Run("preserves nested message parentage", func(t *testing.T) {
-		ticketsByPeople := requireMessage(t, index, "yirapb.v1.TicketsByPeople")
-		ticketsByPeopleMap := requireMessage(t, index, "yirapb.v1.TicketsByPeople.Map")
+		ticketsByStatus := requireMessage(t, index, "yirapb.v1.TicketsByStatus")
+		ticketsByStatusMap := requireMessage(t, index, "yirapb.v1.TicketsByStatus.Map")
 
-		assert.Same(t, ticketsByPeople, ticketsByPeopleMap.Parent)
-		assert.Contains(t, ticketsByPeople.Messages, ticketsByPeopleMap)
+		assert.Same(t, ticketsByStatus, ticketsByStatusMap.Parent)
+		assert.Contains(t, ticketsByStatus.Messages, ticketsByStatusMap)
 	})
 
-	t.Run("exposes protobuf map key and value fields", func(t *testing.T) {
+	t.Run("resolves map shape key and value fields", func(t *testing.T) {
 		ticket := requireMessage(t, index, "yirapb.v1.Ticket")
-		person := requireMessage(t, index, "yirapb.v1.Person")
 		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
+		ticketsByStatusMap := requireMessage(t, index, "yirapb.v1.TicketsByStatus.Map")
 
-		metadata := fieldByName(t, ticket, "metadata")
-		assert.True(t, metadata.IsMap())
-		assert.Equal(t, protoreflect.StringKind, metadata.MapKey.Kind)
-		assert.Equal(t, protoreflect.StringKind, metadata.MapValue.Kind)
+		key := fieldByName(t, ticketsByStatusMap, "key")
+		assert.Equal(t, protoreflect.EnumKind, key.Kind)
+		assert.Same(t, status, key.Enum)
 
-		watchersByRole := fieldByName(t, ticket, "watchers_by_role")
-		assert.True(t, watchersByRole.IsMap())
-		assert.Equal(t, protoreflect.StringKind, watchersByRole.MapKey.Kind)
-		assert.Equal(t, protoreflect.MessageKind, watchersByRole.MapValue.Kind)
-		assert.Same(t, person, watchersByRole.MapValue.Message)
-
-		workflowStatuses := fieldByName(t, ticket, "workflow_statuses")
-		assert.True(t, workflowStatuses.IsMap())
-		assert.Equal(t, protoreflect.StringKind, workflowStatuses.MapKey.Kind)
-		assert.Equal(t, protoreflect.EnumKind, workflowStatuses.MapValue.Kind)
-		assert.Same(t, status, workflowStatuses.MapValue.Enum)
+		value := fieldByName(t, ticketsByStatusMap, "value")
+		assert.Equal(t, protoreflect.MessageKind, value.Kind)
+		assert.True(t, value.IsList())
+		assert.Same(t, ticket, value.Message)
 	})
 
 	t.Run("reports editions presence through field helpers", func(t *testing.T) {
@@ -115,23 +107,23 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.False(t, title.IsMap())
 		assert.False(t, title.IsRequired())
 
-		watcherIDs := fieldByName(t, ticket, "watcher_ids")
-		assert.False(t, watcherIDs.HasPresence())
-		assert.True(t, watcherIDs.IsList())
-		assert.False(t, watcherIDs.IsMap())
-		assert.False(t, watcherIDs.IsRequired())
+		labels := fieldByName(t, ticket, "labels")
+		assert.True(t, labels.HasPresence())
+		assert.False(t, labels.IsList())
+		assert.False(t, labels.IsMap())
+		assert.False(t, labels.IsRequired())
 
 		metadata := fieldByName(t, ticket, "metadata")
-		assert.False(t, metadata.HasPresence())
+		assert.True(t, metadata.HasPresence())
 		assert.False(t, metadata.IsList())
-		assert.True(t, metadata.IsMap())
+		assert.False(t, metadata.IsMap())
 		assert.False(t, metadata.IsRequired())
 
-		id := fieldByName(t, updateRequest, "id")
-		assert.True(t, id.HasPresence())
-		assert.False(t, id.IsList())
-		assert.False(t, id.IsMap())
-		assert.False(t, id.IsRequired())
+		ticketID := fieldByName(t, updateRequest, "ticket_id")
+		assert.True(t, ticketID.HasPresence())
+		assert.False(t, ticketID.IsList())
+		assert.False(t, ticketID.IsMap())
+		assert.False(t, ticketID.IsRequired())
 	})
 
 	t.Run("resolves file options", func(t *testing.T) {
@@ -152,58 +144,64 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.False(t, ticket.HasOptions())
 		assert.Nil(t, ticket.Options)
 
-		input := requireMessage(t, index, "yirapb.v1.TicketInput")
-		require.True(t, input.HasOptions())
-		require.NotNil(t, input.Options)
-		require.True(t, input.Options.HasFields())
-		assert.True(t, input.Options.GetFields().GetOmittable())
+		patch := requireMessage(t, index, "yirapb.v1.TicketPatch")
+		require.True(t, patch.HasOptions())
+		require.NotNil(t, patch.Options)
+		require.True(t, patch.Options.HasFields())
+		assert.True(t, patch.Options.GetFields().GetOmittable())
+
+		for _, name := range []protoreflect.FullName{
+			"yirapb.v1.DueDate",
+			"yirapb.v1.Labels",
+		} {
+			message := requireMessage(t, index, name)
+			require.True(t, message.HasOptions())
+			require.NotNil(t, message.Options)
+			assert.True(t, message.Options.HasFlatten())
+			assert.True(t, message.Options.GetFlatten())
+		}
 	})
 
 	t.Run("resolves field options", func(t *testing.T) {
 		ticket := requireMessage(t, index, "yirapb.v1.Ticket")
-		input := requireMessage(t, index, "yirapb.v1.TicketInput")
+		patch := requireMessage(t, index, "yirapb.v1.TicketPatch")
 
 		id := fieldByName(t, ticket, "id")
 		require.True(t, id.HasOptions())
-		require.Len(t, id.Options.GetTags(), 1)
-		assert.Equal(t, "json", id.Options.GetTags()[0].GetKey())
-		assert.Equal(t, "id,omitempty", id.Options.GetTags()[0].GetValue())
+		require.NotNil(t, id.Options.GetJsonTag())
+		assert.Equal(t, "id", id.Options.GetJsonTag().GetValue())
+		assert.True(t, id.Options.GetJsonTag().HasOmitempty())
+		assert.True(t, id.Options.GetJsonTag().GetOmitempty())
 
-		title := fieldByName(t, ticket, "title")
-		require.True(t, title.HasOptions())
-		require.NotNil(t, title.Options.GetJsonTag())
-		assert.Equal(t, "title", title.Options.GetJsonTag().GetValue())
-		assert.True(t, title.Options.GetJsonTag().HasOmitempty())
-		assert.True(t, title.Options.GetJsonTag().GetOmitempty())
-
-		description := fieldByName(t, ticket, "description")
-		require.True(t, description.HasOptions())
-		require.NotNil(t, description.Options.GetGoType())
-		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.Description", description.Options.GetGoType().GetRef())
-		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.DescriptionFromProto", description.Options.GetGoType().GetFromProto())
-		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.DescriptionToProto", description.Options.GetGoType().GetToProto())
-		assert.True(t, description.Options.GetGoType().HasComparable())
-		assert.True(t, description.Options.GetGoType().GetComparable())
-		assert.True(t, description.Options.GetGoType().HasAsPointer())
-		assert.True(t, description.Options.GetGoType().GetAsPointer())
+		dueDate := requireMessage(t, index, "yirapb.v1.DueDate")
+		value := fieldByName(t, dueDate, "value")
+		require.True(t, value.HasOptions())
+		require.NotNil(t, value.Options.GetGoType())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.Date", value.Options.GetGoType().GetRef())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.DateFromProto", value.Options.GetGoType().GetFromProto())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.DateToProto", value.Options.GetGoType().GetToProto())
+		assert.True(t, value.Options.GetGoType().HasComparable())
+		assert.True(t, value.Options.GetGoType().GetComparable())
 
 		goType := &tegopb.GoType{}
 		assert.False(t, goType.HasAsPointer())
 		assert.False(t, goType.GetAsPointer())
 
-		labels := fieldByName(t, ticket, "labels")
-		require.True(t, labels.HasOptions())
-		require.NotNil(t, labels.Options.GetGoType())
-		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.Set[T]", labels.Options.GetGoType().GetRef())
-		require.Contains(t, labels.Options.GetGoType().GetTypeArgs(), "T")
-		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/plannertest.CustomString", labels.Options.GetGoType().GetTypeArgs()["T"].GetType())
+		labels := requireMessage(t, index, "yirapb.v1.Labels")
+		values := fieldByName(t, labels, "values")
+		require.True(t, values.HasOptions())
+		require.NotNil(t, values.Options.GetGoType())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.Set[T]", values.Options.GetGoType().GetRef())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.LabelSetFromProto", values.Options.GetGoType().GetFromProto())
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.LabelSetToProto", values.Options.GetGoType().GetToProto())
+		require.Contains(t, values.Options.GetGoType().GetTypeArgs(), "T")
+		assert.Equal(
+			t,
+			"github.com/seeruk/tego/internal/tego/testdata/yira/v1/types.Label",
+			values.Options.GetGoType().GetTypeArgs()["T"].GetType(),
+		)
 
-		assignee := fieldByName(t, input, "assignee")
-		require.True(t, assignee.HasOptions())
-		assert.True(t, assignee.Options.HasNullable())
-		assert.True(t, assignee.Options.GetNullable())
-
-		version := fieldByName(t, input, "version")
+		version := fieldByName(t, patch, "version")
 		require.True(t, version.HasOptions())
 		assert.True(t, version.Options.HasOmittable())
 		assert.False(t, version.Options.GetOmittable())
@@ -215,23 +213,23 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		require.True(t, status.HasOptions())
 		require.NotNil(t, status.Options)
 		assert.Equal(t, "TicketStatus", status.Options.GetName())
-		assert.Equal(t, "TicketStatus is the current lifecycle state of a ticket.", status.Options.GetComment())
+		assert.Empty(t, status.Options.GetComment())
 		assert.True(t, status.Options.HasUnderlyingType())
 		assert.Equal(t, tegopb.EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UINT, status.Options.GetUnderlyingType())
 	})
 
 	t.Run("resolves enum value options", func(t *testing.T) {
 		unspecified := requireEnumValue(t, index, "yirapb.v1.TICKET_STATUS_UNSPECIFIED")
-		assert.False(t, unspecified.HasOptions())
-		assert.Nil(t, unspecified.Options)
+		require.True(t, unspecified.HasOptions())
+		require.NotNil(t, unspecified.Options)
+		assert.Equal(t, "TicketStatusUnknown", unspecified.Options.GetName())
+		assert.Equal(t, "TicketStatus is the current lifecycle state of a ticket.", unspecified.Options.GetComment())
+		assert.True(t, unspecified.Options.HasUint())
+		assert.Equal(t, uint64(0), unspecified.Options.GetUint())
 
 		open := requireEnumValue(t, index, "yirapb.v1.TICKET_STATUS_OPEN")
-		require.True(t, open.HasOptions())
-		require.NotNil(t, open.Options)
-		assert.Equal(t, "TicketStatusOpen", open.Options.GetName())
-		assert.Equal(t, "TicketStatusOpen means work can begin.", open.Options.GetComment())
-		assert.True(t, open.Options.HasUint())
-		assert.Equal(t, uint64(1), open.Options.GetUint())
+		assert.False(t, open.HasOptions())
+		assert.Nil(t, open.Options)
 	})
 }
 

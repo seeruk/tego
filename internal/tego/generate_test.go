@@ -34,6 +34,28 @@ func TestGenerate(t *testing.T) {
 			Assert(t, "generate_rendered_tego_go", []byte(content))
 	})
 
+	t.Run("renders nullable scalar and enum fields through proto presence", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{nullablePresenceTestFilePlan()}}
+
+		require.NoError(t, Generate(plugin, plan))
+		content := generatedResponseContent(t, plugin)
+
+		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
+		require.NoError(t, err)
+
+		assert.Contains(t, content, "if source.HasName() {")
+		assert.Contains(t, content, "name = new(source.GetName())")
+		assert.Contains(t, content, "target.Name = name")
+		assert.Contains(t, content, "if source.HasStatus() {")
+		assert.Contains(t, content, "status = new(UintStatus(source.GetStatus()))")
+		assert.Contains(t, content, "target.Status = status")
+		assert.Contains(t, content, "if source.Name != nil {")
+		assert.Contains(t, content, "target.SetName(*source.Name)")
+		assert.Contains(t, content, "if source.Status != nil {")
+		assert.Contains(t, content, "target.SetStatus(generatedpb.UintStatus(*source.Status))")
+	})
+
 	t.Run("blocks fatal diagnostics", func(t *testing.T) {
 		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{{
@@ -99,6 +121,86 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, err.Error(), "shape slice source element")
 		assert.NotContains(t, err.Error(), "any")
 	})
+}
+
+func nullablePresenceTestFilePlan() FilePlan {
+	stringType := TypePlan{Kind: TypeKindScalar, Scalar: ScalarKindString}
+	statusType := TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "UintStatus"}}
+	protoStatusType := TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "UintStatus"}}
+	personType := TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "Person"}}
+	protoPersonType := TypePlan{
+		Kind: TypeKindPointer,
+		Elem: &TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "Person"}},
+	}
+
+	return FilePlan{
+		ProtoPath: "generated.proto",
+		Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/generated.tego.go"},
+		Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+		Enums: []EnumPlan{{
+			Name:       "UintStatus",
+			Underlying: EnumUnderlyingTypeUint,
+			Constants:  []EnumConstantPlan{{Name: "UintStatusUnspecified", Value: EnumConstantValue{Uint: 0}}},
+		}},
+		Structs: []StructPlan{{
+			Name: "Person",
+			Fields: []FieldPlan{
+				{Name: "Name", Type: TypePlan{Kind: TypeKindPointer, Elem: &stringType}},
+				{Name: "Status", Type: TypePlan{Kind: TypeKindPointer, Elem: &statusType}},
+			},
+		}},
+		Mappings: []MappingPlan{{
+			ProtoName: "generated.v1.Person",
+			Name:      "Person",
+			FromProto: MappingFunctionPlan{
+				Name:   "PersonFromProto",
+				Source: protoPersonType,
+				Target: personType,
+			},
+			ToProto: MappingFunctionPlan{
+				Name:         "PersonToProto",
+				ReceiverName: "p",
+				Source:       personType,
+				Target:       protoPersonType,
+			},
+			Fields: []FieldMappingPlan{
+				{
+					Name:  "Name",
+					Proto: MappingFieldAccessPlan{Name: "Name", Getter: "GetName", Setter: "SetName", Has: "HasName"},
+					FromProto: MappingValuePlan{
+						Kind:   MappingValueKindNullable,
+						Source: stringType,
+						Target: TypePlan{Kind: TypeKindPointer, Elem: &stringType},
+						Access: MappingAccessPlan{Field: MappingFieldAccessPlan{Name: "Name", Getter: "GetName", Has: "HasName"}},
+						Elem:   &MappingValuePlan{Kind: MappingValueKindDirect, Source: stringType, Target: stringType},
+					},
+					ToProto: MappingValuePlan{
+						Kind:   MappingValueKindNullable,
+						Source: TypePlan{Kind: TypeKindPointer, Elem: &stringType},
+						Target: stringType,
+						Elem:   &MappingValuePlan{Kind: MappingValueKindDirect, Source: stringType, Target: stringType},
+					},
+				},
+				{
+					Name:  "Status",
+					Proto: MappingFieldAccessPlan{Name: "Status", Getter: "GetStatus", Setter: "SetStatus", Has: "HasStatus"},
+					FromProto: MappingValuePlan{
+						Kind:   MappingValueKindNullable,
+						Source: protoStatusType,
+						Target: TypePlan{Kind: TypeKindPointer, Elem: &statusType},
+						Access: MappingAccessPlan{Field: MappingFieldAccessPlan{Name: "Status", Getter: "GetStatus", Has: "HasStatus"}},
+						Elem:   &MappingValuePlan{Kind: MappingValueKindEnum, Source: protoStatusType, Target: statusType},
+					},
+					ToProto: MappingValuePlan{
+						Kind:   MappingValueKindNullable,
+						Source: TypePlan{Kind: TypeKindPointer, Elem: &statusType},
+						Target: protoStatusType,
+						Elem:   &MappingValuePlan{Kind: MappingValueKindEnum, Source: statusType, Target: protoStatusType},
+					},
+				},
+			},
+		}},
+	}
 }
 
 func generatorTestFilePlan() FilePlan {

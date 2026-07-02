@@ -19,7 +19,6 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 	t.Run("indexes nullable oneof shapes", func(t *testing.T) {
 		for _, name := range []protoreflect.FullName{
 			"yirapb.v1.NullablePerson",
-			"yirapb.v1.NullableNullablePeople",
 		} {
 			message := requireMessage(t, descriptorIndex, name)
 
@@ -28,21 +27,12 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 		}
 	})
 
-	t.Run("indexes nullable value shapes", func(t *testing.T) {
-		name := protoreflect.FullName("yirapb.v1.NullablePersonValue")
-		message := requireMessage(t, descriptorIndex, name)
-
-		require.Contains(t, index.Nullables, name)
-		assert.Same(t, message, index.Nullables[name])
-	})
-
 	t.Run("does not index ordinary messages as nullable", func(t *testing.T) {
 		for _, name := range []protoreflect.FullName{
 			"yirapb.v1.Ticket",
 			"yirapb.v1.Person",
-			"yirapb.v1.People",
-			"yirapb.v1.NullablePeople",
-			"yirapb.v1.TicketsByPeople",
+			"yirapb.v1.PersonList",
+			"yirapb.v1.TicketsByStatus",
 		} {
 			requireMessage(t, descriptorIndex, name)
 			assert.NotContains(t, index.Nullables, name)
@@ -51,8 +41,7 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 
 	t.Run("indexes slice shapes", func(t *testing.T) {
 		for _, name := range []protoreflect.FullName{
-			"yirapb.v1.People",
-			"yirapb.v1.NullablePeople",
+			"yirapb.v1.PersonList",
 		} {
 			message := requireMessage(t, descriptorIndex, name)
 
@@ -65,18 +54,29 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 		for _, name := range []protoreflect.FullName{
 			"yirapb.v1.Ticket",
 			"yirapb.v1.Person",
+			"yirapb.v1.Labels",
 			"yirapb.v1.NullablePerson",
-			"yirapb.v1.NullablePersonValue",
-			"yirapb.v1.NullableNullablePeople",
-			"yirapb.v1.TicketsByPeople",
+			"yirapb.v1.TicketsByStatus",
 		} {
 			requireMessage(t, descriptorIndex, name)
 			assert.NotContains(t, index.Slices, name)
 		}
 	})
 
+	t.Run("indexes explicit flatten shapes", func(t *testing.T) {
+		for _, name := range []protoreflect.FullName{
+			"yirapb.v1.DueDate",
+			"yirapb.v1.Labels",
+		} {
+			message := requireMessage(t, descriptorIndex, name)
+
+			require.Contains(t, index.Flattens, name)
+			assert.Same(t, message, index.Flattens[name])
+		}
+	})
+
 	t.Run("indexes map shapes", func(t *testing.T) {
-		name := protoreflect.FullName("yirapb.v1.TicketsByPeople")
+		name := protoreflect.FullName("yirapb.v1.TicketsByStatus")
 		message := requireMessage(t, descriptorIndex, name)
 
 		require.Contains(t, index.Maps, name)
@@ -87,11 +87,8 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 		for _, name := range []protoreflect.FullName{
 			"yirapb.v1.Ticket",
 			"yirapb.v1.Person",
-			"yirapb.v1.People",
+			"yirapb.v1.PersonList",
 			"yirapb.v1.NullablePerson",
-			"yirapb.v1.NullablePersonValue",
-			"yirapb.v1.NullablePeople",
-			"yirapb.v1.NullableNullablePeople",
 		} {
 			requireMessage(t, descriptorIndex, name)
 			assert.NotContains(t, index.Maps, name)
@@ -140,6 +137,11 @@ func TestMapShapeHelpers(t *testing.T) {
 		assert.True(t, builder.isMapShape(mapShapeWithKey(fieldWithGoTypeAsPointer("key", protoreflect.MessageKind, "Key"))))
 		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoType("Key", true)))))
 		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoTypeAsPointer("Key")))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.StringKind))))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.EnumKind))))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(fieldWithGoType("value", protoreflect.StringKind, "Key", true))))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(fieldWithGoTypeAsPointer("value", protoreflect.StringKind, "Key"))))))
+		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedFieldWithGoType("value", protoreflect.StringKind, "Key", true))))))
 
 		assert.False(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.BytesKind))))
 		assert.False(t, builder.isMapShape(mapShapeWithKey(repeatedField("key", protoreflect.StringKind))))
@@ -150,6 +152,10 @@ func TestMapShapeHelpers(t *testing.T) {
 		assert.False(t, builder.isMapShape(mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", false))))
 		assert.False(t, builder.isMapShape(mapShapeWithKey(fieldWithGoTypeRef("key", protoreflect.MessageKind, "Key"))))
 		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoTypeRef("Key")))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.BytesKind))))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedField("value", protoreflect.StringKind))))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(protoMapField("value"))))))
+		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedFieldWithGoType("value", protoreflect.StringKind, "Key", false))))))
 	})
 
 	t.Run("map rejects malformed wrappers", func(t *testing.T) {
@@ -219,6 +225,19 @@ func TestShapeIndexPrecedence(t *testing.T) {
 		builder := newShapeIndexBuilder()
 		require.NoError(t, builder.indexMessage(message))
 
+		assert.NotContains(t, builder.index.Slices, message.FullName)
+	})
+
+	t.Run("explicit flatten prevents inferred shape indexing", func(t *testing.T) {
+		message := messageWithFields(repeatedField("values", protoreflect.StringKind))
+		message.FullName = "example.v1.Values"
+		message.Options = &tegopb.MessageOptions{}
+		message.Options.SetFlatten(true)
+
+		builder := newShapeIndexBuilder()
+		require.NoError(t, builder.indexMessage(message))
+
+		assert.Contains(t, builder.index.Flattens, message.FullName)
 		assert.NotContains(t, builder.index.Slices, message.FullName)
 	})
 }
@@ -309,6 +328,15 @@ func sliceShapeMessage() *ProtoMessage {
 	return messageWithFields(repeatedField("values", protoreflect.StringKind))
 }
 
+func flattenShapeMessage(field *ProtoField) *ProtoMessage {
+	options := &tegopb.MessageOptions{}
+	options.SetFlatten(true)
+	return &ProtoMessage{
+		Fields:  []*ProtoField{field},
+		Options: options,
+	}
+}
+
 func messageWithGoType(ref string, comparable bool) *ProtoMessage {
 	options := &tegopb.MessageOptions{}
 	options.SetGoType(goType(ref, comparable))
@@ -356,6 +384,12 @@ func nullableMessageField(name protoreflect.Name, message *ProtoMessage) *ProtoF
 
 func repeatedField(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	field := field(name, kind)
+	field.Cardinality = protoreflect.Repeated
+	return field
+}
+
+func repeatedFieldWithGoType(name protoreflect.Name, kind protoreflect.Kind, ref string, comparable bool) *ProtoField {
+	field := fieldWithGoType(name, kind, ref, comparable)
 	field.Cardinality = protoreflect.Repeated
 	return field
 }
