@@ -6,8 +6,8 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "tego/options.proto";
 
-option go_package = "github.com/seeruk/tego/lab/yirapbv1;yirapbv1";
-option (tego.file).go_package = "github.com/seeruk/tego/lab/yira;yira";
+option go_package = "github.com/seeruk/tego/example/yirapbv1;yirapbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/example/yira;yira";
 
 service TicketService {
   rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
@@ -16,6 +16,8 @@ service TicketService {
   rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
   rpc CloseTicket(CloseTicketRequest) returns (google.protobuf.Empty);
   rpc WatchTicketEvents(WatchTicketEventsRequest) returns (stream TicketEvent);
+  rpc ImportTicketEvents(stream TicketEvent) returns (ImportTicketEventsResponse);
+  rpc SyncTicketEvents(stream TicketEvent) returns (stream TicketEvent);
 }
 
 message ListTicketsRequest {
@@ -63,6 +65,10 @@ message CloseTicketRequest {
 message WatchTicketEventsRequest {
   string project_id = 1;
   string ticket_id = 2;
+}
+
+message ImportTicketEventsResponse {
+  int32 imported_count = 1;
 }
 
 enum TicketStatus {
@@ -195,9 +201,9 @@ message DueDate {
   option (tego.message).flatten = true;
 
   string value = 1 [(tego.field).go_type = {
-    ref: "github.com/seeruk/tego/lab/yira/types.Date"
-    from_proto: "github.com/seeruk/tego/lab/yira/types.DateFromProto"
-    to_proto: "github.com/seeruk/tego/lab/yira/types.DateToProto"
+    ref: "github.com/seeruk/tego/example/yira/types.Date"
+    from_proto: "github.com/seeruk/tego/example/yira/types.DateFromProto"
+    to_proto: "github.com/seeruk/tego/example/yira/types.DateToProto"
     comparable: true
   }];
 }
@@ -206,12 +212,12 @@ message Labels {
   option (tego.message).flatten = true;
 
   repeated string values = 1 [(tego.field).go_type = {
-    ref: "github.com/seeruk/tego/lab/yira/types.Set[T]"
-    from_proto: "github.com/seeruk/tego/lab/yira/types.LabelSetFromProto"
-    to_proto: "github.com/seeruk/tego/lab/yira/types.LabelSetToProto"
+    ref: "github.com/seeruk/tego/example/yira/types.Set[T]"
+    from_proto: "github.com/seeruk/tego/example/yira/types.LabelSetFromProto"
+    to_proto: "github.com/seeruk/tego/example/yira/types.LabelSetToProto"
     type_args: {
       key: "T"
-      value: {type: "github.com/seeruk/tego/lab/yira/types.Label"}
+      value: {type: "github.com/seeruk/tego/example/yira/types.Label"}
     }
   }];
 }

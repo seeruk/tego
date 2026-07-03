@@ -13,25 +13,39 @@ import (
 type Planner struct {
 	typeLoader *types.Loader
 	modulePath string
+	rpc        RPCOptions
 }
 
+// PlannerOption represents a function that configures a Planner instance.
 type PlannerOption func(*Planner)
 
+// WithTypeLoader configures the loader used to resolve custom Go type options.
 func WithTypeLoader(loader *types.Loader) PlannerOption {
 	return func(planner *Planner) {
 		planner.typeLoader = loader
 	}
 }
 
+// WithModulePath configures the module path used when deriving generated output paths.
 func WithModulePath(modulePath string) PlannerOption {
 	return func(planner *Planner) {
 		planner.modulePath = modulePath
 	}
 }
 
+// WithRPCPlanning controls whether protobuf services are represented in the plan.
+func WithRPCPlanning(options RPCOptions) PlannerOption {
+	return func(planner *Planner) {
+		planner.rpc = options
+	}
+}
+
 // NewPlanner returns a new Planner instance.
 func NewPlanner(opts ...PlannerOption) *Planner {
-	planner := &Planner{typeLoader: types.NewLoader()}
+	planner := &Planner{
+		typeLoader: types.NewLoader(),
+		rpc:        defaultRPCOptions(),
+	}
 	for _, opt := range opts {
 		opt(planner)
 	}
@@ -80,7 +94,13 @@ func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
 		p.planFileMessage(&plan, message, si)
 	}
 
-	plan.Diagnostics = append(plan.Diagnostics, plannedNameCollisionDiagnostics(plan)...)
+	if p.rpc.Enabled() {
+		for _, service := range file.Services {
+			p.planFileService(&plan, service, si)
+		}
+	}
+
+	plan.Diagnostics = append(plan.Diagnostics, plannedNameCollisionDiagnostics(plan, p.rpc)...)
 	return plan
 }
 
@@ -162,8 +182,14 @@ func (p *Planner) planFileOneof(plan *FilePlan, oneof *ProtoOneof, si *ShapeInde
 	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 }
 
-func plannedNameCollisionDiagnostics(plan FilePlan) []Diagnostic {
-	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs))
+func (p *Planner) planFileService(plan *FilePlan, service *ProtoService, si *ShapeIndex) {
+	servicePlan, diagnostics := p.planService(service, si)
+	plan.Services = append(plan.Services, servicePlan)
+	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+}
+
+func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic {
+	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Services)*4)
 	var diagnostics []Diagnostic
 
 	for _, enum := range plan.Enums {
@@ -177,6 +203,43 @@ func plannedNameCollisionDiagnostics(plan FilePlan) []Diagnostic {
 	}
 	for _, structure := range plan.Structs {
 		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, structure.Name, string(structure.ProtoName))...)
+	}
+	for _, service := range plan.Services {
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, service.Name, string(service.ProtoName))...)
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+			plan,
+			seen,
+			service.ClientName,
+			string(service.ProtoName)+" client interface",
+		)...)
+		if rpc.GRPC {
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
+				service.GRPCRegisterName,
+				string(service.ProtoName)+" gRPC server registration helper",
+			)...)
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
+				service.GRPCNewClientName,
+				string(service.ProtoName)+" gRPC client constructor",
+			)...)
+		}
+		if rpc.Connect {
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
+				service.ConnectNewHandlerName,
+				string(service.ProtoName)+" Connect handler constructor",
+			)...)
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
+				service.ConnectNewClientName,
+				string(service.ProtoName)+" Connect client constructor",
+			)...)
+		}
 	}
 
 	return diagnostics

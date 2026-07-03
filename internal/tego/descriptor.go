@@ -17,6 +17,7 @@ type DescriptorIndex struct {
 	MessagesByName   map[protoreflect.FullName]*ProtoMessage
 	EnumsByName      map[protoreflect.FullName]*ProtoEnum
 	EnumValuesByName map[protoreflect.FullName]*ProtoEnumValue
+	ServicesByName   map[protoreflect.FullName]*ProtoService
 }
 
 // ProtoFile describes one .proto file and the top-level declarations it owns.
@@ -27,6 +28,7 @@ type ProtoFile struct {
 
 	Messages []*ProtoMessage
 	Enums    []*ProtoEnum
+	Services []*ProtoService
 
 	Desc    *protogen.File
 	Options *tegopb.FileOptions
@@ -35,6 +37,11 @@ type ProtoFile struct {
 // HasOptions reports whether this file has Tego-specific options.
 func (f *ProtoFile) HasOptions() bool {
 	return f.Options != nil
+}
+
+// IsCoveredByTego reports whether Tego should apply Tego-specific model semantics to this file.
+func (f *ProtoFile) IsCoveredByTego() bool {
+	return f != nil && (f.Generate || (f.Options != nil && f.Options.HasGoPackage()))
 }
 
 // ProtoMessage describes a protobuf message and its nested declarations.
@@ -168,6 +175,37 @@ func (v *ProtoEnumValue) HasOptions() bool {
 	return v.Options != nil
 }
 
+// ProtoService describes a protobuf service and the methods it owns.
+type ProtoService struct {
+	FullName protoreflect.FullName
+	Name     protoreflect.Name
+	GoName   string
+
+	File *ProtoFile
+
+	Methods []*ProtoMethod
+
+	Desc *protogen.Service
+}
+
+// ProtoMethod describes a protobuf service method with links to its input and output messages.
+type ProtoMethod struct {
+	FullName protoreflect.FullName
+	Name     protoreflect.Name
+	GoName   string
+
+	File   *ProtoFile
+	Parent *ProtoService
+
+	Input  *ProtoMessage
+	Output *ProtoMessage
+
+	ClientStreaming bool
+	ServerStreaming bool
+
+	Desc *protogen.Method
+}
+
 // BuildDescriptorIndex builds an indexed descriptor graph from a protogen plugin request.
 func BuildDescriptorIndex(plugin *protogen.Plugin) (*DescriptorIndex, error) {
 	builder := &descriptorIndexBuilder{
@@ -176,6 +214,7 @@ func BuildDescriptorIndex(plugin *protogen.Plugin) (*DescriptorIndex, error) {
 			MessagesByName:   make(map[protoreflect.FullName]*ProtoMessage),
 			EnumsByName:      make(map[protoreflect.FullName]*ProtoEnum),
 			EnumValuesByName: make(map[protoreflect.FullName]*ProtoEnumValue),
+			ServicesByName:   make(map[protoreflect.FullName]*ProtoService),
 		},
 		oneofsByName: make(map[protoreflect.FullName]*ProtoOneof),
 	}
@@ -197,6 +236,7 @@ type descriptorIndexBuilder struct {
 	index        *DescriptorIndex
 	oneofsByName map[protoreflect.FullName]*ProtoOneof
 	fields       []*ProtoField
+	methods      []*ProtoMethod
 }
 
 func (b *descriptorIndexBuilder) indexFile(desc *protogen.File) error {
@@ -230,6 +270,14 @@ func (b *descriptorIndexBuilder) indexFile(desc *protogen.File) error {
 			return err
 		}
 		file.Messages = append(file.Messages, registered)
+	}
+
+	for _, service := range desc.Services {
+		registered, err := b.indexService(file, service)
+		if err != nil {
+			return err
+		}
+		file.Services = append(file.Services, registered)
 	}
 
 	return nil
@@ -355,15 +403,64 @@ func (b *descriptorIndexBuilder) indexOneof(file *ProtoFile, parent *ProtoMessag
 	return oneof, nil
 }
 
+func (b *descriptorIndexBuilder) indexService(file *ProtoFile, desc *protogen.Service) (*ProtoService, error) {
+	fullName := desc.Desc.FullName()
+	if _, exists := b.index.ServicesByName[fullName]; exists {
+		return nil, fmt.Errorf("duplicate proto service %q", fullName)
+	}
+
+	service := &ProtoService{
+		FullName: fullName,
+		Name:     desc.Desc.Name(),
+		GoName:   desc.GoName,
+		File:     file,
+		Desc:     desc,
+	}
+	b.index.ServicesByName[fullName] = service
+
+	for _, method := range desc.Methods {
+		registered := b.indexMethod(file, service, method)
+		service.Methods = append(service.Methods, registered)
+	}
+
+	return service, nil
+}
+
+func (b *descriptorIndexBuilder) indexMethod(file *ProtoFile, parent *ProtoService, desc *protogen.Method) *ProtoMethod {
+	method := &ProtoMethod{
+		FullName:        desc.Desc.FullName(),
+		Name:            desc.Desc.Name(),
+		GoName:          desc.GoName,
+		File:            file,
+		Parent:          parent,
+		ClientStreaming: desc.Desc.IsStreamingClient(),
+		ServerStreaming: desc.Desc.IsStreamingServer(),
+		Desc:            desc,
+	}
+
+	b.methods = append(b.methods, method)
+	return method
+}
+
 func (b *descriptorIndexBuilder) finalizeFields() error {
+	// Field and method references can point to declarations that appear later in this file or in
+	// another file, so links are resolved after every declaration has been registered.
 	for _, field := range b.fields {
 		if err := b.finalizeField(field); err != nil {
+			return err
+		}
+	}
+	for _, method := range b.methods {
+		if err := b.finalizeMethod(method); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+// finalizeField replaces descriptor-only type references with the indexed Tego nodes used by the
+// planner, including synthetic map key/value links that protogen exposes through a map-entry
+// message.
 func (b *descriptorIndexBuilder) finalizeField(field *ProtoField) error {
 	desc := field.Desc.Desc
 
@@ -406,6 +503,24 @@ func (b *descriptorIndexBuilder) finalizeField(field *ProtoField) error {
 			return fmt.Errorf("field %q: map entry message %q has no value field", field.FullName, field.Message.FullName)
 		}
 	}
+
+	return nil
+}
+
+// finalizeMethod resolves RPC input/output descriptors to the same ProtoMessage graph used for
+// field planning, so service planning can reuse model, shape, and mapping behavior consistently.
+func (b *descriptorIndexBuilder) finalizeMethod(method *ProtoMethod) error {
+	input, ok := b.index.MessagesByName[method.Desc.Input.Desc.FullName()]
+	if !ok {
+		return fmt.Errorf("method %q: no descriptor for input message %q", method.FullName, method.Desc.Input.Desc.FullName())
+	}
+	method.Input = input
+
+	output, ok := b.index.MessagesByName[method.Desc.Output.Desc.FullName()]
+	if !ok {
+		return fmt.Errorf("method %q: no descriptor for output message %q", method.FullName, method.Desc.Output.Desc.FullName())
+	}
+	method.Output = output
 
 	return nil
 }

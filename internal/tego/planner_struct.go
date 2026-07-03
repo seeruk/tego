@@ -208,7 +208,7 @@ func (p *Planner) planEnumType(field *ProtoField) TypePlan {
 		return TypePlan{}
 	}
 
-	if field.Enum.File == nil || field.Enum.File.Generate {
+	if field.Enum.File == nil || field.Enum.File.IsCoveredByTego() {
 		return TypePlan{
 			Kind: TypeKindEnum,
 			Ref:  plannedEnumRef(field.Enum),
@@ -217,7 +217,7 @@ func (p *Planner) planEnumType(field *ProtoField) TypePlan {
 
 	return TypePlan{
 		Kind: TypeKindExternal,
-		Ref:  protoEnumRef(field.Enum),
+		Ref:  protoEnumPlanRef(field.Enum),
 	}
 }
 
@@ -227,12 +227,20 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(string(field.FullName), "missing message descriptor")}
 	}
 
-	if _, ok := si.Flattens[message.FullName]; ok {
-		return p.planFlattenShape(message, si)
+	return p.planMessageValueType(message, si, string(field.FullName))
+}
+
+func (p *Planner) planMessageValueType(message *ProtoMessage, si *ShapeIndex, diagnosticPath string) (TypePlan, []Diagnostic) {
+	covered := message.File == nil || message.File.IsCoveredByTego()
+
+	if covered {
+		if _, ok := si.Flattens[message.FullName]; ok {
+			return p.planFlattenShape(message, si)
+		}
 	}
 
-	if message.Options.HasGoType() {
-		return p.planCustomGoType(message.Options.GetGoType(), sourcePatternForMessage(message), string(field.FullName))
+	if covered && message.Options.HasGoType() {
+		return p.planCustomGoType(message.Options.GetGoType(), sourcePatternForMessage(message), diagnosticPath)
 	}
 
 	if scalar, ok := wrapperScalarTypes[message.FullName]; ok {
@@ -255,6 +263,18 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 		return dynamicValueType(), nil
 	}
 
+	if covered {
+		return p.planCoveredMessageType(message, si, diagnosticPath)
+	}
+
+	// Unknown imported messages stay as proto-native pointers unless their file opts into Tego.
+	return pointerType(TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  protoMessagePlanRef(message),
+	}), nil
+}
+
+func (p *Planner) planCoveredMessageType(message *ProtoMessage, si *ShapeIndex, diagnosticPath string) (TypePlan, []Diagnostic) {
 	if _, ok := si.Nullables[message.FullName]; ok {
 		inner, diagnostics := p.planNullableShape(message, si)
 		return pointerType(inner), diagnostics
@@ -272,23 +292,15 @@ func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, 
 
 	if isMapEntryMessage(message) {
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(
-			string(field.FullName),
+			diagnosticPath,
 			"nested Map message planning is only supported inside a valid map shape",
 		)}
 	}
 
-	if message.File == nil || message.File.Generate {
-		return TypePlan{
-			Kind: TypeKindStruct,
-			Ref:  plannedStructRef(message),
-		}, nil
-	}
-
-	// Unknown imported messages stay as proto-native pointers until Tego defines a richer strategy.
-	return pointerType(TypePlan{
-		Kind: TypeKindExternal,
-		Ref:  protoMessageRef(message),
-	}), nil
+	return TypePlan{
+		Kind: TypeKindStruct,
+		Ref:  plannedStructRef(message),
+	}, nil
 }
 
 func (p *Planner) planNullableShape(message *ProtoMessage, si *ShapeIndex) (TypePlan, []Diagnostic) {

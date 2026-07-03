@@ -74,6 +74,41 @@ func TestRunPluginModuleRoot(t *testing.T) {
 	})
 }
 
+func TestRunPluginRPCParameter(t *testing.T) {
+	t.Run("skips rpc output when disabled", func(t *testing.T) {
+		req := loadYiraCodeGeneratorRequest(t)
+		appendPluginParameter(req, "rpc=none")
+
+		plugin, err := protogen.Options{}.New(req)
+		require.NoError(t, err)
+
+		var diagnostics strings.Builder
+		require.NoError(t, runPlugin(plugin, &diagnostics))
+		assert.Empty(t, diagnostics.String())
+
+		content := generatedPluginResponseContent(t, plugin)
+		assert.NotContains(t, content, "type TicketService interface")
+		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
+		assert.NotContains(t, content, "NewTicketServiceConnectHandler")
+	})
+
+	t.Run("emits connect output", func(t *testing.T) {
+		req := loadYiraCodeGeneratorRequest(t)
+		appendPluginParameter(req, "rpc=connect")
+
+		plugin, err := protogen.Options{}.New(req)
+		require.NoError(t, err)
+
+		var diagnostics strings.Builder
+		require.NoError(t, runPlugin(plugin, &diagnostics))
+		assert.Empty(t, diagnostics.String())
+
+		content := generatedPluginResponseContent(t, plugin)
+		assert.Contains(t, content, "NewTicketServiceConnectHandler")
+		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
+	})
+}
+
 func TestWriteDiagnostics(t *testing.T) {
 	plan := Plan{Files: []FilePlan{{
 		Diagnostics: []Diagnostic{
@@ -110,6 +145,26 @@ func TestModuleRoot(t *testing.T) {
 	t.Run("returns empty when absent", func(t *testing.T) {
 		assert.Empty(t, moduleRoot("module=github.com/seeruk/tego"))
 	})
+}
+
+func appendPluginParameter(req *pluginpb.CodeGeneratorRequest, param string) {
+	params := req.GetParameter()
+	if params == "" {
+		req.Parameter = &param
+		return
+	}
+
+	params += "," + param
+	req.Parameter = &params
+}
+
+func generatedPluginResponseContent(t *testing.T, plugin *protogen.Plugin) string {
+	t.Helper()
+
+	response := plugin.Response()
+	require.Empty(t, response.GetError())
+	require.Len(t, response.GetFile(), 1)
+	return response.GetFile()[0].GetContent()
 }
 
 func loadYiraCodeGeneratorRequest(t *testing.T) *pluginpb.CodeGeneratorRequest {

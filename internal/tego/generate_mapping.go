@@ -303,12 +303,18 @@ type mappingRenderContext struct {
 	tempHint    string
 }
 
-func newMappingRenderContext(g *protogen.GeneratedFile, canError bool, errorReturn string) *mappingRenderContext {
+func newMappingRenderContext(
+	g *protogen.GeneratedFile,
+	canError bool,
+	errorReturn string,
+	reserved ...string,
+) *mappingRenderContext {
+	reservedNames := append([]string{"source", "target", "err"}, reserved...)
 	return &mappingRenderContext{
 		g:           g,
 		canError:    canError,
 		errorReturn: errorReturn,
-		tempNames:   newTempNameAllocator("source", "target", "err"),
+		tempNames:   newTempNameAllocator(reservedNames...),
 	}
 }
 
@@ -373,6 +379,14 @@ func (ctx *mappingRenderContext) renderValueWithTempNameHintSuffix(
 	return ctx.renderValueWithTempNameHint(hint, plan, source)
 }
 
+func (ctx *mappingRenderContext) collectionItemName(source string) string {
+	sourceBase, ok := tempIdentifierBaseFromIdentifier(source)
+	if ok && (ctx.tempHint == sourceBase+"Tego" || ctx.tempHint == sourceBase+"Proto") {
+		return ctx.tempNames.name(sourceBase + "Item")
+	}
+	return ctx.tempPartName("item")
+}
+
 func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source string) (string, error) {
 	switch plan.Kind {
 	case MappingValueKindDirect:
@@ -387,7 +401,11 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 		if plan.Struct == nil {
 			return "", fmt.Errorf("struct mapping is missing a ref")
 		}
-		return ctx.renderCall(plan.Struct.Name, source, plan.CanError)
+		name := plan.Struct.Name
+		if plan.Struct.Ref.Name != "" {
+			name = generateSymbol(ctx.g, plan.Struct.Ref)
+		}
+		return ctx.renderCall(name, source, plan.CanError)
 	case MappingValueKindCustom:
 		if plan.Custom == nil {
 			return "", fmt.Errorf("custom mapping is missing conversion refs")
@@ -598,10 +616,10 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 		return "", err
 	}
 	tmp := ctx.tempName("items")
-	item := ctx.tempPartName("item")
+	item := ctx.collectionItemName(source)
 	ctx.line(tmp + " := make(" + targetType + ", 0, len(" + source + "))")
 	ctx.line("for _, " + item + " := range " + source + " {")
-	mapped, err := ctx.renderValue(elem, item)
+	mapped, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(item, elem), elem, item)
 	if err != nil {
 		return "", err
 	}
@@ -733,11 +751,12 @@ func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source s
 		tmp := ctx.tempName("struct")
 		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
-		ctx.line("var err error")
-		ctx.line(tmp + ", err = " + structpbNewStruct(ctx.g) + "(" + source + ")")
+		mapped := ctx.tempName("mapped")
+		ctx.line(mapped + ", err := " + structpbNewStruct(ctx.g) + "(" + source + ")")
 		ctx.line("if err != nil {")
 		ctx.line("return " + ctx.errorReturn)
 		ctx.line("}")
+		ctx.line(tmp + " = " + mapped)
 		ctx.line("}")
 		return tmp, nil
 	}
@@ -799,11 +818,12 @@ func (ctx *mappingRenderContext) renderDynamicList(plan MappingValuePlan, source
 		tmp := ctx.tempName("list")
 		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
-		ctx.line("var err error")
-		ctx.line(tmp + ", err = " + structpbNewList(ctx.g) + "(" + source + ")")
+		mapped := ctx.tempName("mapped")
+		ctx.line(mapped + ", err := " + structpbNewList(ctx.g) + "(" + source + ")")
 		ctx.line("if err != nil {")
 		ctx.line("return " + ctx.errorReturn)
 		ctx.line("}")
+		ctx.line(tmp + " = " + mapped)
 		ctx.line("}")
 		return tmp, nil
 	}
@@ -825,6 +845,38 @@ func (ctx *mappingRenderContext) renderEmptyStruct(plan MappingValuePlan) (strin
 	return "", fmt.Errorf("unsupported empty struct mapping")
 }
 
+func mappedCollectionPartName(source string, plan MappingValuePlan) string {
+	suffix := "Tego"
+	if mappingTargetsProto(plan) {
+		suffix = "Proto"
+	}
+	return source + suffix
+}
+
+func mappingTargetsProto(plan MappingValuePlan) bool {
+	if plan.Kind == MappingValueKindCustom {
+		if top, ok := topCustomType(plan.Source); ok && top.ToProto.Name != "" {
+			return true
+		}
+		return false
+	}
+	return typeTargetsProto(plan.Target)
+}
+
+func typeTargetsProto(plan TypePlan) bool {
+	if isProtoPointer(plan) {
+		return true
+	}
+	switch plan.Kind {
+	case TypeKindSlice:
+		return plan.Elem != nil && typeTargetsProto(*plan.Elem)
+	case TypeKindMap:
+		return plan.Value != nil && typeTargetsProto(*plan.Value)
+	default:
+		return false
+	}
+}
+
 func (ctx *mappingRenderContext) renderNativeMap(
 	plan MappingValuePlan,
 	source string,
@@ -841,11 +893,11 @@ func (ctx *mappingRenderContext) renderNativeMap(
 	value := ctx.tempPartName("value")
 	ctx.line(tmp + " := make(" + targetType + ", len(" + source + "))")
 	ctx.line("for " + key + ", " + value + " := range " + source + " {")
-	mappedKey, err := ctx.renderValue(keyPlan, key)
+	mappedKey, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(key, keyPlan), keyPlan, key)
 	if err != nil {
 		return "", err
 	}
-	mappedValue, err := ctx.renderValue(valuePlan, value)
+	mappedValue, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(value, valuePlan), valuePlan, value)
 	if err != nil {
 		return "", err
 	}
@@ -865,11 +917,11 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 		ctx.line(tmp + " := make(" + targetType + ")")
 		ctx.line("if " + source + " != nil {")
 		ctx.line("for _, " + entry + " := range " + source + "." + plan.Access.Field.Getter + "() {")
-		mappedKey, err := ctx.renderValue(*plan.Key, entry+"."+plan.Access.Key.Getter+"()")
+		mappedKey, err := ctx.renderValueWithTempNameHintSuffix("Key", *plan.Key, entry+"."+plan.Access.Key.Getter+"()")
 		if err != nil {
 			return "", err
 		}
-		mappedValue, err := ctx.renderValue(*plan.Value, entry+"."+plan.Access.Value.Getter+"()")
+		mappedValue, err := ctx.renderValueWithTempNameHintSuffix("Value", *plan.Value, entry+"."+plan.Access.Value.Getter+"()")
 		if err != nil {
 			return "", err
 		}
@@ -894,11 +946,11 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 		return "", err
 	}
 	ctx.line(entry + " := " + empty)
-	mappedKey, err := ctx.renderValue(*plan.Key, key)
+	mappedKey, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(key, *plan.Key), *plan.Key, key)
 	if err != nil {
 		return "", err
 	}
-	mappedValue, err := ctx.renderValue(*plan.Value, value)
+	mappedValue, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(value, *plan.Value), *plan.Value, value)
 	if err != nil {
 		return "", err
 	}
@@ -1066,6 +1118,30 @@ func tempIdentifierBase(name string) string {
 		return result + "Value"
 	}
 	return result
+}
+
+func tempIdentifierBaseFromIdentifier(name string) (string, bool) {
+	if !isASCIIIdentifier(name) {
+		return "", false
+	}
+	return tempIdentifierBase(name), true
+}
+
+func isASCIIIdentifier(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i, r := range name {
+		switch {
+		case r == '_':
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case i > 0 && r >= '0' && r <= '9':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 var goKeyword = map[string]bool{

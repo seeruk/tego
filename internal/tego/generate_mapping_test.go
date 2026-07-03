@@ -71,4 +71,66 @@ func TestMappingRenderContextTempName(t *testing.T) {
 		assert.Equal(t, "reviewer", ctx.tempName("value"))
 		return nil
 	}))
+
+	assert.NoError(t, ctx.withTempNameHint("TicketsByStatusValueProto", func() error {
+		assert.Equal(t, "ticketsByStatusValueItem", ctx.collectionItemName("ticketsByStatusValue"))
+		assert.Equal(t, "ticketsByStatusValueProtoItem", ctx.collectionItemName("source.GetValue()"))
+		return nil
+	}))
+}
+
+func TestMappedCollectionPartName(t *testing.T) {
+	t.Parallel()
+
+	tegoStruct := TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{Name: "Ticket"}}
+	protoStruct := pointerType(TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{Name: "Ticket"}})
+
+	tests := []struct {
+		name   string
+		source string
+		plan   MappingValuePlan
+		want   string
+	}{
+		{
+			name:   "tego value",
+			source: "ticketsItem",
+			plan: MappingValuePlan{
+				Target: tegoStruct,
+			},
+			want: "ticketsItemTego",
+		},
+		{
+			name:   "proto value",
+			source: "ticketsItem",
+			plan: MappingValuePlan{
+				Target: protoStruct,
+			},
+			want: "ticketsItemProto",
+		},
+		{
+			name:   "proto slice",
+			source: "ticketsValue",
+			plan: MappingValuePlan{
+				Target: TypePlan{Kind: TypeKindSlice, Elem: &protoStruct},
+			},
+			want: "ticketsValueProto",
+		},
+		{
+			name:   "custom to proto",
+			source: "labelsItem",
+			plan: MappingValuePlan{
+				Kind:   MappingValueKindCustom,
+				Source: TypePlan{Kind: TypeKindCustom, Custom: CustomGoTypePlan{ToProto: GoSymbolRef{Name: "LabelSetToProto"}}},
+			},
+			want: "labelsItemProto",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, mappedCollectionPartName(tt.source, tt.plan))
+		})
+	}
 }

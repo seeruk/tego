@@ -52,6 +52,8 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		require.NotNil(t, toProto.Struct)
 		assert.Equal(t, "PersonFromProto", fromProto.Struct.Name)
 		assert.Equal(t, "PersonToProto", toProto.Struct.Name)
+		assert.Equal(t, GoSymbolRef{ImportPath: "example.com/tego", Name: "PersonFromProto"}, fromProto.Struct.Ref)
+		assert.Equal(t, GoSymbolRef{ImportPath: "example.com/tego", Name: "PersonToProto"}, toProto.Struct.Ref)
 	})
 
 	t.Run("plans identical foreign proto pointers as direct mappings", func(t *testing.T) {

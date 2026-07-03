@@ -16,19 +16,47 @@ const (
 	tegoImportPath        = "github.com/seeruk/tego"
 )
 
-func Generate(plugin *protogen.Plugin, plan Plan) error {
+// GenerateOption configures a Generate call without changing the planned model.
+type GenerateOption func(*generateOptions)
+
+type generateOptions struct {
+	rpc RPCOptions
+}
+
+// WithRPCGeneration controls which planned RPC surfaces are rendered.
+func WithRPCGeneration(options RPCOptions) GenerateOption {
+	return func(generator *generateOptions) {
+		generator.rpc = options
+	}
+}
+
+// Generate emits Go files from a complete Tego plan via the protogen.Plugin (i.e. not directly to
+// the filesystem).
+func Generate(plugin *protogen.Plugin, plan Plan, opts ...GenerateOption) error {
 	if diagnostics := fatalDiagnostics(plan); len(diagnostics) > 0 {
 		return errors.New("plan contains fatal diagnostics")
+	}
+	options := newGenerateOptions(opts...)
+	if err := validateRPCOptions(options.rpc); err != nil {
+		return err
 	}
 
 	for _, file := range plan.Files {
 		g := plugin.NewGeneratedFile(file.Output.GeneratorPath, protogen.GoImportPath(file.Package.ImportPath))
-		if err := generateFile(g, file); err != nil {
+		if err := generateFile(g, file, options); err != nil {
 			return fmt.Errorf("generate %s: %w", file.ProtoPath, err)
 		}
 	}
 
 	return nil
+}
+
+func newGenerateOptions(opts ...GenerateOption) generateOptions {
+	options := generateOptions{rpc: defaultRPCOptions()}
+	for _, opt := range opts {
+		opt(&options)
+	}
+	return options
 }
 
 func fatalDiagnostics(plan Plan) []Diagnostic {
@@ -55,7 +83,7 @@ func formatDiagnostics(diagnostics []Diagnostic) string {
 	return out.String()
 }
 
-func generateFile(g *protogen.GeneratedFile, file FilePlan) error {
+func generateFile(g *protogen.GeneratedFile, file FilePlan, options generateOptions) error {
 	g.P(generatedHeader)
 	g.P("package ", file.Package.Name)
 	g.P()
@@ -73,6 +101,14 @@ func generateFile(g *protogen.GeneratedFile, file FilePlan) error {
 	for _, structure := range file.Structs {
 		if err := generateStruct(g, structure); err != nil {
 			return err
+		}
+	}
+
+	if options.rpc.Enabled() {
+		for _, service := range file.Services {
+			if err := generateService(g, service, options.rpc); err != nil {
+				return err
+			}
 		}
 	}
 

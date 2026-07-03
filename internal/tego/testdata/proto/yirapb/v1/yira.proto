@@ -16,6 +16,8 @@ service TicketService {
   rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
   rpc CloseTicket(CloseTicketRequest) returns (google.protobuf.Empty);
   rpc WatchTicketEvents(WatchTicketEventsRequest) returns (stream TicketEvent);
+  rpc ImportTicketEvents(stream TicketEvent) returns (ImportTicketEventsResponse);
+  rpc SyncTicketEvents(stream TicketEvent) returns (stream TicketEvent);
 }
 
 message ListTicketsRequest {
@@ -63,6 +65,10 @@ message CloseTicketRequest {
 message WatchTicketEventsRequest {
   string project_id = 1;
   string ticket_id = 2;
+}
+
+message ImportTicketEventsResponse {
+  int32 imported_count = 1;
 }
 
 enum TicketStatus {

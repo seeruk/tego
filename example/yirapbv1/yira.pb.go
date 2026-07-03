@@ -1127,6 +1127,81 @@ func (b0 WatchTicketEventsRequest_builder) Build() *WatchTicketEventsRequest {
 	return m0
 }
 
+type ImportTicketEventsResponse struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ImportedCount int32                  `protobuf:"varint,1,opt,name=imported_count,json=importedCount"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *ImportTicketEventsResponse) Reset() {
+	*x = ImportTicketEventsResponse{}
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportTicketEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportTicketEventsResponse) ProtoMessage() {}
+
+func (x *ImportTicketEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ImportTicketEventsResponse) GetImportedCount() int32 {
+	if x != nil {
+		return x.xxx_hidden_ImportedCount
+	}
+	return 0
+}
+
+func (x *ImportTicketEventsResponse) SetImportedCount(v int32) {
+	x.xxx_hidden_ImportedCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ImportTicketEventsResponse) HasImportedCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ImportTicketEventsResponse) ClearImportedCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ImportedCount = 0
+}
+
+type ImportTicketEventsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ImportedCount *int32
+}
+
+func (b0 ImportTicketEventsResponse_builder) Build() *ImportTicketEventsResponse {
+	m0 := &ImportTicketEventsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ImportedCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ImportedCount = *b.ImportedCount
+	}
+	return m0
+}
+
 type Ticket struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
@@ -1152,7 +1227,7 @@ type Ticket struct {
 
 func (x *Ticket) Reset() {
 	*x = Ticket{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[10]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1164,7 +1239,7 @@ func (x *Ticket) String() string {
 func (*Ticket) ProtoMessage() {}
 
 func (x *Ticket) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[10]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1667,7 +1742,7 @@ func (b0 Ticket_builder) Build() *Ticket {
 type case_Ticket_Source protoreflect.FieldNumber
 
 func (x case_Ticket_Source) String() string {
-	md := file_proto_yirapb_v1_yira_proto_msgTypes[10].Descriptor()
+	md := file_proto_yirapb_v1_yira_proto_msgTypes[11].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -1708,7 +1783,7 @@ type TicketDraft struct {
 
 func (x *TicketDraft) Reset() {
 	*x = TicketDraft{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[11]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1720,7 +1795,7 @@ func (x *TicketDraft) String() string {
 func (*TicketDraft) ProtoMessage() {}
 
 func (x *TicketDraft) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[11]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1985,7 +2060,7 @@ type TicketPatch struct {
 
 func (x *TicketPatch) Reset() {
 	*x = TicketPatch{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[12]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1997,7 +2072,7 @@ func (x *TicketPatch) String() string {
 func (*TicketPatch) ProtoMessage() {}
 
 func (x *TicketPatch) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[12]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2285,7 +2360,7 @@ type TicketFilter struct {
 
 func (x *TicketFilter) Reset() {
 	*x = TicketFilter{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[13]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2297,7 +2372,7 @@ func (x *TicketFilter) String() string {
 func (*TicketFilter) ProtoMessage() {}
 
 func (x *TicketFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[13]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2397,7 +2472,7 @@ type TicketEvent struct {
 
 func (x *TicketEvent) Reset() {
 	*x = TicketEvent{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[14]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2409,7 +2484,7 @@ func (x *TicketEvent) String() string {
 func (*TicketEvent) ProtoMessage() {}
 
 func (x *TicketEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[14]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2612,7 +2687,7 @@ type Person struct {
 
 func (x *Person) Reset() {
 	*x = Person{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[15]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2624,7 +2699,7 @@ func (x *Person) String() string {
 func (*Person) ProtoMessage() {}
 
 func (x *Person) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[15]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2755,7 +2830,7 @@ type CursorRequest struct {
 
 func (x *CursorRequest) Reset() {
 	*x = CursorRequest{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[16]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2767,7 +2842,7 @@ func (x *CursorRequest) String() string {
 func (*CursorRequest) ProtoMessage() {}
 
 func (x *CursorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[16]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2862,7 +2937,7 @@ type CursorResponse struct {
 
 func (x *CursorResponse) Reset() {
 	*x = CursorResponse{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[17]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2874,7 +2949,7 @@ func (x *CursorResponse) String() string {
 func (*CursorResponse) ProtoMessage() {}
 
 func (x *CursorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[17]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2938,7 +3013,7 @@ type NullablePerson struct {
 
 func (x *NullablePerson) Reset() {
 	*x = NullablePerson{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[18]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2950,7 +3025,7 @@ func (x *NullablePerson) String() string {
 func (*NullablePerson) ProtoMessage() {}
 
 func (x *NullablePerson) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[18]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3073,7 +3148,7 @@ func (b0 NullablePerson_builder) Build() *NullablePerson {
 type case_NullablePerson_Value protoreflect.FieldNumber
 
 func (x case_NullablePerson_Value) String() string {
-	md := file_proto_yirapb_v1_yira_proto_msgTypes[18].Descriptor()
+	md := file_proto_yirapb_v1_yira_proto_msgTypes[19].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -3107,7 +3182,7 @@ type DueDate struct {
 
 func (x *DueDate) Reset() {
 	*x = DueDate{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[19]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3119,7 +3194,7 @@ func (x *DueDate) String() string {
 func (*DueDate) ProtoMessage() {}
 
 func (x *DueDate) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[19]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3183,7 +3258,7 @@ type Labels struct {
 
 func (x *Labels) Reset() {
 	*x = Labels{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[20]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3195,7 +3270,7 @@ func (x *Labels) String() string {
 func (*Labels) ProtoMessage() {}
 
 func (x *Labels) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[20]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3240,7 +3315,7 @@ type PersonList struct {
 
 func (x *PersonList) Reset() {
 	*x = PersonList{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[21]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3252,7 +3327,7 @@ func (x *PersonList) String() string {
 func (*PersonList) ProtoMessage() {}
 
 func (x *PersonList) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[21]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3299,7 +3374,7 @@ type TicketsByStatus struct {
 
 func (x *TicketsByStatus) Reset() {
 	*x = TicketsByStatus{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[22]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3311,7 +3386,7 @@ func (x *TicketsByStatus) String() string {
 func (*TicketsByStatus) ProtoMessage() {}
 
 func (x *TicketsByStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[22]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3361,7 +3436,7 @@ type TicketsByStatus_Map struct {
 
 func (x *TicketsByStatus_Map) Reset() {
 	*x = TicketsByStatus_Map{}
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[23]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3373,7 +3448,7 @@ func (x *TicketsByStatus_Map) String() string {
 func (*TicketsByStatus_Map) ProtoMessage() {}
 
 func (x *TicketsByStatus_Map) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[23]
+	mi := &file_proto_yirapb_v1_yira_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3477,7 +3552,9 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\x18WatchTicketEventsRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x1b\n" +
-	"\tticket_id\x18\x02 \x01(\tR\bticketId\"\xcc\x06\n" +
+	"\tticket_id\x18\x02 \x01(\tR\bticketId\"C\n" +
+	"\x1aImportTicketEventsResponse\x12%\n" +
+	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount\"\xcc\x06\n" +
 	"\x06Ticket\x12\x1c\n" +
 	"\x02id\x18\x01 \x01(\tB\f҅\n" +
 	"\b2\x06\n" +
@@ -3559,18 +3636,18 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\x0eNullablePerson\x12+\n" +
 	"\x06person\x18\x01 \x01(\v2\x11.yirapb.v1.PersonH\x00R\x06person\x120\n" +
 	"\x04null\x18\x02 \x01(\x0e2\x1a.google.protobuf.NullValueH\x00R\x04nullB\a\n" +
-	"\x05value\"\xc9\x01\n" +
-	"\aDueDate\x12\xb5\x01\n" +
-	"\x05value\x18\x01 \x01(\tB\x9e\x01҅\n" +
-	"\x99\x01\x1a\x96\x01\n" +
-	"*github.com/seeruk/tego/lab/yira/types.Date\x123github.com/seeruk/tego/lab/yira/types.DateFromProto\x1a1github.com/seeruk/tego/lab/yira/types.DateToProto \x01R\x05value:\x06҅\n" +
-	"\x028\x01\"\x86\x02\n" +
-	"\x06Labels\x12\xf3\x01\n" +
-	"\x06values\x18\x01 \x03(\tB\xda\x01҅\n" +
-	"\xd5\x01\x1a\xd2\x01\n" +
-	",github.com/seeruk/tego/lab/yira/types.Set[T]\x127github.com/seeruk/tego/lab/yira/types.LabelSetFromProto\x1a5github.com/seeruk/tego/lab/yira/types.LabelSetToProto22\n" +
-	"\x01T\x12-\n" +
-	"+github.com/seeruk/tego/lab/yira/types.LabelR\x06values:\x06҅\n" +
+	"\x05value\"\xd5\x01\n" +
+	"\aDueDate\x12\xc1\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\xaa\x01҅\n" +
+	"\xa5\x01\x1a\xa2\x01\n" +
+	".github.com/seeruk/tego/example/yira/types.Date\x127github.com/seeruk/tego/example/yira/types.DateFromProto\x1a5github.com/seeruk/tego/example/yira/types.DateToProto \x01R\x05value:\x06҅\n" +
+	"\x028\x01\"\x96\x02\n" +
+	"\x06Labels\x12\x83\x02\n" +
+	"\x06values\x18\x01 \x03(\tB\xea\x01҅\n" +
+	"\xe5\x01\x1a\xe2\x01\n" +
+	"0github.com/seeruk/tego/example/yira/types.Set[T]\x12;github.com/seeruk/tego/example/yira/types.LabelSetFromProto\x1a9github.com/seeruk/tego/example/yira/types.LabelSetToProto26\n" +
+	"\x01T\x121\n" +
+	"/github.com/seeruk/tego/example/yira/types.LabelR\x06values:\x06҅\n" +
 	"\x028\x01\"7\n" +
 	"\n" +
 	"PersonList\x12)\n" +
@@ -3594,115 +3671,122 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\x1bTICKET_PRIORITY_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TICKET_PRIORITY_LOW\x10\x01\x12\x1a\n" +
 	"\x16TICKET_PRIORITY_NORMAL\x10\x02\x12\x18\n" +
-	"\x14TICKET_PRIORITY_HIGH\x10\x032\xe1\x03\n" +
+	"\x14TICKET_PRIORITY_HIGH\x10\x032\x80\x05\n" +
 	"\rTicketService\x12L\n" +
 	"\vListTickets\x12\x1d.yirapb.v1.ListTicketsRequest\x1a\x1e.yirapb.v1.ListTicketsResponse\x12F\n" +
 	"\tGetTicket\x12\x1b.yirapb.v1.GetTicketRequest\x1a\x1c.yirapb.v1.GetTicketResponse\x12O\n" +
 	"\fCreateTicket\x12\x1e.yirapb.v1.CreateTicketRequest\x1a\x1f.yirapb.v1.CreateTicketResponse\x12O\n" +
 	"\fUpdateTicket\x12\x1e.yirapb.v1.UpdateTicketRequest\x1a\x1f.yirapb.v1.UpdateTicketResponse\x12D\n" +
 	"\vCloseTicket\x12\x1d.yirapb.v1.CloseTicketRequest\x1a\x16.google.protobuf.Empty\x12R\n" +
-	"\x11WatchTicketEvents\x12#.yirapb.v1.WatchTicketEventsRequest\x1a\x16.yirapb.v1.TicketEvent0\x01BX҅\n" +
-	"&\n" +
-	"$github.com/seeruk/tego/lab/yira;yiraZ,github.com/seeruk/tego/lab/yirapbv1;yirapbv1b\beditionsp\xe9\a"
+	"\x11WatchTicketEvents\x12#.yirapb.v1.WatchTicketEventsRequest\x1a\x16.yirapb.v1.TicketEvent0\x01\x12U\n" +
+	"\x12ImportTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a%.yirapb.v1.ImportTicketEventsResponse(\x01\x12F\n" +
+	"\x10SyncTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a\x16.yirapb.v1.TicketEvent(\x010\x01B`҅\n" +
+	"*\n" +
+	"(github.com/seeruk/tego/example/yira;yiraZ0github.com/seeruk/tego/example/yirapbv1;yirapbv1b\beditionsp\xe9\a"
 
 var file_proto_yirapb_v1_yira_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_proto_yirapb_v1_yira_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_proto_yirapb_v1_yira_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_proto_yirapb_v1_yira_proto_goTypes = []any{
-	(TicketStatus)(0),                // 0: yirapb.v1.TicketStatus
-	(TicketPriority)(0),              // 1: yirapb.v1.TicketPriority
-	(Ticket_Visibility)(0),           // 2: yirapb.v1.Ticket.Visibility
-	(TicketEvent_Kind)(0),            // 3: yirapb.v1.TicketEvent.Kind
-	(*ListTicketsRequest)(nil),       // 4: yirapb.v1.ListTicketsRequest
-	(*ListTicketsResponse)(nil),      // 5: yirapb.v1.ListTicketsResponse
-	(*GetTicketRequest)(nil),         // 6: yirapb.v1.GetTicketRequest
-	(*GetTicketResponse)(nil),        // 7: yirapb.v1.GetTicketResponse
-	(*CreateTicketRequest)(nil),      // 8: yirapb.v1.CreateTicketRequest
-	(*CreateTicketResponse)(nil),     // 9: yirapb.v1.CreateTicketResponse
-	(*UpdateTicketRequest)(nil),      // 10: yirapb.v1.UpdateTicketRequest
-	(*UpdateTicketResponse)(nil),     // 11: yirapb.v1.UpdateTicketResponse
-	(*CloseTicketRequest)(nil),       // 12: yirapb.v1.CloseTicketRequest
-	(*WatchTicketEventsRequest)(nil), // 13: yirapb.v1.WatchTicketEventsRequest
-	(*Ticket)(nil),                   // 14: yirapb.v1.Ticket
-	(*TicketDraft)(nil),              // 15: yirapb.v1.TicketDraft
-	(*TicketPatch)(nil),              // 16: yirapb.v1.TicketPatch
-	(*TicketFilter)(nil),             // 17: yirapb.v1.TicketFilter
-	(*TicketEvent)(nil),              // 18: yirapb.v1.TicketEvent
-	(*Person)(nil),                   // 19: yirapb.v1.Person
-	(*CursorRequest)(nil),            // 20: yirapb.v1.CursorRequest
-	(*CursorResponse)(nil),           // 21: yirapb.v1.CursorResponse
-	(*NullablePerson)(nil),           // 22: yirapb.v1.NullablePerson
-	(*DueDate)(nil),                  // 23: yirapb.v1.DueDate
-	(*Labels)(nil),                   // 24: yirapb.v1.Labels
-	(*PersonList)(nil),               // 25: yirapb.v1.PersonList
-	(*TicketsByStatus)(nil),          // 26: yirapb.v1.TicketsByStatus
-	(*TicketsByStatus_Map)(nil),      // 27: yirapb.v1.TicketsByStatus.Map
-	(*structpb.Struct)(nil),          // 28: google.protobuf.Struct
-	(*anypb.Any)(nil),                // 29: google.protobuf.Any
-	(*structpb.Value)(nil),           // 30: google.protobuf.Value
-	(*structpb.ListValue)(nil),       // 31: google.protobuf.ListValue
-	(structpb.NullValue)(0),          // 32: google.protobuf.NullValue
-	(*emptypb.Empty)(nil),            // 33: google.protobuf.Empty
+	(TicketStatus)(0),                  // 0: yirapb.v1.TicketStatus
+	(TicketPriority)(0),                // 1: yirapb.v1.TicketPriority
+	(Ticket_Visibility)(0),             // 2: yirapb.v1.Ticket.Visibility
+	(TicketEvent_Kind)(0),              // 3: yirapb.v1.TicketEvent.Kind
+	(*ListTicketsRequest)(nil),         // 4: yirapb.v1.ListTicketsRequest
+	(*ListTicketsResponse)(nil),        // 5: yirapb.v1.ListTicketsResponse
+	(*GetTicketRequest)(nil),           // 6: yirapb.v1.GetTicketRequest
+	(*GetTicketResponse)(nil),          // 7: yirapb.v1.GetTicketResponse
+	(*CreateTicketRequest)(nil),        // 8: yirapb.v1.CreateTicketRequest
+	(*CreateTicketResponse)(nil),       // 9: yirapb.v1.CreateTicketResponse
+	(*UpdateTicketRequest)(nil),        // 10: yirapb.v1.UpdateTicketRequest
+	(*UpdateTicketResponse)(nil),       // 11: yirapb.v1.UpdateTicketResponse
+	(*CloseTicketRequest)(nil),         // 12: yirapb.v1.CloseTicketRequest
+	(*WatchTicketEventsRequest)(nil),   // 13: yirapb.v1.WatchTicketEventsRequest
+	(*ImportTicketEventsResponse)(nil), // 14: yirapb.v1.ImportTicketEventsResponse
+	(*Ticket)(nil),                     // 15: yirapb.v1.Ticket
+	(*TicketDraft)(nil),                // 16: yirapb.v1.TicketDraft
+	(*TicketPatch)(nil),                // 17: yirapb.v1.TicketPatch
+	(*TicketFilter)(nil),               // 18: yirapb.v1.TicketFilter
+	(*TicketEvent)(nil),                // 19: yirapb.v1.TicketEvent
+	(*Person)(nil),                     // 20: yirapb.v1.Person
+	(*CursorRequest)(nil),              // 21: yirapb.v1.CursorRequest
+	(*CursorResponse)(nil),             // 22: yirapb.v1.CursorResponse
+	(*NullablePerson)(nil),             // 23: yirapb.v1.NullablePerson
+	(*DueDate)(nil),                    // 24: yirapb.v1.DueDate
+	(*Labels)(nil),                     // 25: yirapb.v1.Labels
+	(*PersonList)(nil),                 // 26: yirapb.v1.PersonList
+	(*TicketsByStatus)(nil),            // 27: yirapb.v1.TicketsByStatus
+	(*TicketsByStatus_Map)(nil),        // 28: yirapb.v1.TicketsByStatus.Map
+	(*structpb.Struct)(nil),            // 29: google.protobuf.Struct
+	(*anypb.Any)(nil),                  // 30: google.protobuf.Any
+	(*structpb.Value)(nil),             // 31: google.protobuf.Value
+	(*structpb.ListValue)(nil),         // 32: google.protobuf.ListValue
+	(structpb.NullValue)(0),            // 33: google.protobuf.NullValue
+	(*emptypb.Empty)(nil),              // 34: google.protobuf.Empty
 }
 var file_proto_yirapb_v1_yira_proto_depIdxs = []int32{
-	17, // 0: yirapb.v1.ListTicketsRequest.filter:type_name -> yirapb.v1.TicketFilter
-	20, // 1: yirapb.v1.ListTicketsRequest.cursor:type_name -> yirapb.v1.CursorRequest
-	14, // 2: yirapb.v1.ListTicketsResponse.tickets:type_name -> yirapb.v1.Ticket
-	26, // 3: yirapb.v1.ListTicketsResponse.tickets_by_status:type_name -> yirapb.v1.TicketsByStatus
-	21, // 4: yirapb.v1.ListTicketsResponse.cursor:type_name -> yirapb.v1.CursorResponse
-	14, // 5: yirapb.v1.GetTicketResponse.ticket:type_name -> yirapb.v1.Ticket
-	15, // 6: yirapb.v1.CreateTicketRequest.ticket:type_name -> yirapb.v1.TicketDraft
-	14, // 7: yirapb.v1.CreateTicketResponse.ticket:type_name -> yirapb.v1.Ticket
-	16, // 8: yirapb.v1.UpdateTicketRequest.patch:type_name -> yirapb.v1.TicketPatch
-	14, // 9: yirapb.v1.UpdateTicketResponse.ticket:type_name -> yirapb.v1.Ticket
+	18, // 0: yirapb.v1.ListTicketsRequest.filter:type_name -> yirapb.v1.TicketFilter
+	21, // 1: yirapb.v1.ListTicketsRequest.cursor:type_name -> yirapb.v1.CursorRequest
+	15, // 2: yirapb.v1.ListTicketsResponse.tickets:type_name -> yirapb.v1.Ticket
+	27, // 3: yirapb.v1.ListTicketsResponse.tickets_by_status:type_name -> yirapb.v1.TicketsByStatus
+	22, // 4: yirapb.v1.ListTicketsResponse.cursor:type_name -> yirapb.v1.CursorResponse
+	15, // 5: yirapb.v1.GetTicketResponse.ticket:type_name -> yirapb.v1.Ticket
+	16, // 6: yirapb.v1.CreateTicketRequest.ticket:type_name -> yirapb.v1.TicketDraft
+	15, // 7: yirapb.v1.CreateTicketResponse.ticket:type_name -> yirapb.v1.Ticket
+	17, // 8: yirapb.v1.UpdateTicketRequest.patch:type_name -> yirapb.v1.TicketPatch
+	15, // 9: yirapb.v1.UpdateTicketResponse.ticket:type_name -> yirapb.v1.Ticket
 	0,  // 10: yirapb.v1.Ticket.status:type_name -> yirapb.v1.TicketStatus
 	1,  // 11: yirapb.v1.Ticket.priority:type_name -> yirapb.v1.TicketPriority
-	22, // 12: yirapb.v1.Ticket.assignee:type_name -> yirapb.v1.NullablePerson
-	19, // 13: yirapb.v1.Ticket.reporter:type_name -> yirapb.v1.Person
-	25, // 14: yirapb.v1.Ticket.watchers:type_name -> yirapb.v1.PersonList
-	24, // 15: yirapb.v1.Ticket.labels:type_name -> yirapb.v1.Labels
-	23, // 16: yirapb.v1.Ticket.due_date:type_name -> yirapb.v1.DueDate
+	23, // 12: yirapb.v1.Ticket.assignee:type_name -> yirapb.v1.NullablePerson
+	20, // 13: yirapb.v1.Ticket.reporter:type_name -> yirapb.v1.Person
+	26, // 14: yirapb.v1.Ticket.watchers:type_name -> yirapb.v1.PersonList
+	25, // 15: yirapb.v1.Ticket.labels:type_name -> yirapb.v1.Labels
+	24, // 16: yirapb.v1.Ticket.due_date:type_name -> yirapb.v1.DueDate
 	2,  // 17: yirapb.v1.Ticket.visibility:type_name -> yirapb.v1.Ticket.Visibility
-	28, // 18: yirapb.v1.Ticket.metadata:type_name -> google.protobuf.Struct
-	29, // 19: yirapb.v1.Ticket.integration_source:type_name -> google.protobuf.Any
-	18, // 20: yirapb.v1.Ticket.events:type_name -> yirapb.v1.TicketEvent
+	29, // 18: yirapb.v1.Ticket.metadata:type_name -> google.protobuf.Struct
+	30, // 19: yirapb.v1.Ticket.integration_source:type_name -> google.protobuf.Any
+	19, // 20: yirapb.v1.Ticket.events:type_name -> yirapb.v1.TicketEvent
 	1,  // 21: yirapb.v1.TicketDraft.priority:type_name -> yirapb.v1.TicketPriority
-	19, // 22: yirapb.v1.TicketDraft.reporter:type_name -> yirapb.v1.Person
-	23, // 23: yirapb.v1.TicketDraft.due_date:type_name -> yirapb.v1.DueDate
-	24, // 24: yirapb.v1.TicketDraft.labels:type_name -> yirapb.v1.Labels
-	28, // 25: yirapb.v1.TicketDraft.metadata:type_name -> google.protobuf.Struct
+	20, // 22: yirapb.v1.TicketDraft.reporter:type_name -> yirapb.v1.Person
+	24, // 23: yirapb.v1.TicketDraft.due_date:type_name -> yirapb.v1.DueDate
+	25, // 24: yirapb.v1.TicketDraft.labels:type_name -> yirapb.v1.Labels
+	29, // 25: yirapb.v1.TicketDraft.metadata:type_name -> google.protobuf.Struct
 	0,  // 26: yirapb.v1.TicketPatch.status:type_name -> yirapb.v1.TicketStatus
 	1,  // 27: yirapb.v1.TicketPatch.priority:type_name -> yirapb.v1.TicketPriority
-	22, // 28: yirapb.v1.TicketPatch.assignee:type_name -> yirapb.v1.NullablePerson
-	23, // 29: yirapb.v1.TicketPatch.due_date:type_name -> yirapb.v1.DueDate
-	24, // 30: yirapb.v1.TicketPatch.labels:type_name -> yirapb.v1.Labels
-	28, // 31: yirapb.v1.TicketPatch.metadata:type_name -> google.protobuf.Struct
+	23, // 28: yirapb.v1.TicketPatch.assignee:type_name -> yirapb.v1.NullablePerson
+	24, // 29: yirapb.v1.TicketPatch.due_date:type_name -> yirapb.v1.DueDate
+	25, // 30: yirapb.v1.TicketPatch.labels:type_name -> yirapb.v1.Labels
+	29, // 31: yirapb.v1.TicketPatch.metadata:type_name -> google.protobuf.Struct
 	0,  // 32: yirapb.v1.TicketFilter.statuses:type_name -> yirapb.v1.TicketStatus
-	22, // 33: yirapb.v1.TicketFilter.assignee:type_name -> yirapb.v1.NullablePerson
-	24, // 34: yirapb.v1.TicketFilter.labels:type_name -> yirapb.v1.Labels
+	23, // 33: yirapb.v1.TicketFilter.assignee:type_name -> yirapb.v1.NullablePerson
+	25, // 34: yirapb.v1.TicketFilter.labels:type_name -> yirapb.v1.Labels
 	3,  // 35: yirapb.v1.TicketEvent.kind:type_name -> yirapb.v1.TicketEvent.Kind
-	19, // 36: yirapb.v1.TicketEvent.actor:type_name -> yirapb.v1.Person
-	30, // 37: yirapb.v1.TicketEvent.payload:type_name -> google.protobuf.Value
-	31, // 38: yirapb.v1.TicketEvent.attachments:type_name -> google.protobuf.ListValue
-	19, // 39: yirapb.v1.NullablePerson.person:type_name -> yirapb.v1.Person
-	32, // 40: yirapb.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
-	19, // 41: yirapb.v1.PersonList.people:type_name -> yirapb.v1.Person
-	27, // 42: yirapb.v1.TicketsByStatus.entries:type_name -> yirapb.v1.TicketsByStatus.Map
+	20, // 36: yirapb.v1.TicketEvent.actor:type_name -> yirapb.v1.Person
+	31, // 37: yirapb.v1.TicketEvent.payload:type_name -> google.protobuf.Value
+	32, // 38: yirapb.v1.TicketEvent.attachments:type_name -> google.protobuf.ListValue
+	20, // 39: yirapb.v1.NullablePerson.person:type_name -> yirapb.v1.Person
+	33, // 40: yirapb.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
+	20, // 41: yirapb.v1.PersonList.people:type_name -> yirapb.v1.Person
+	28, // 42: yirapb.v1.TicketsByStatus.entries:type_name -> yirapb.v1.TicketsByStatus.Map
 	0,  // 43: yirapb.v1.TicketsByStatus.Map.key:type_name -> yirapb.v1.TicketStatus
-	14, // 44: yirapb.v1.TicketsByStatus.Map.value:type_name -> yirapb.v1.Ticket
+	15, // 44: yirapb.v1.TicketsByStatus.Map.value:type_name -> yirapb.v1.Ticket
 	4,  // 45: yirapb.v1.TicketService.ListTickets:input_type -> yirapb.v1.ListTicketsRequest
 	6,  // 46: yirapb.v1.TicketService.GetTicket:input_type -> yirapb.v1.GetTicketRequest
 	8,  // 47: yirapb.v1.TicketService.CreateTicket:input_type -> yirapb.v1.CreateTicketRequest
 	10, // 48: yirapb.v1.TicketService.UpdateTicket:input_type -> yirapb.v1.UpdateTicketRequest
 	12, // 49: yirapb.v1.TicketService.CloseTicket:input_type -> yirapb.v1.CloseTicketRequest
 	13, // 50: yirapb.v1.TicketService.WatchTicketEvents:input_type -> yirapb.v1.WatchTicketEventsRequest
-	5,  // 51: yirapb.v1.TicketService.ListTickets:output_type -> yirapb.v1.ListTicketsResponse
-	7,  // 52: yirapb.v1.TicketService.GetTicket:output_type -> yirapb.v1.GetTicketResponse
-	9,  // 53: yirapb.v1.TicketService.CreateTicket:output_type -> yirapb.v1.CreateTicketResponse
-	11, // 54: yirapb.v1.TicketService.UpdateTicket:output_type -> yirapb.v1.UpdateTicketResponse
-	33, // 55: yirapb.v1.TicketService.CloseTicket:output_type -> google.protobuf.Empty
-	18, // 56: yirapb.v1.TicketService.WatchTicketEvents:output_type -> yirapb.v1.TicketEvent
-	51, // [51:57] is the sub-list for method output_type
-	45, // [45:51] is the sub-list for method input_type
+	19, // 51: yirapb.v1.TicketService.ImportTicketEvents:input_type -> yirapb.v1.TicketEvent
+	19, // 52: yirapb.v1.TicketService.SyncTicketEvents:input_type -> yirapb.v1.TicketEvent
+	5,  // 53: yirapb.v1.TicketService.ListTickets:output_type -> yirapb.v1.ListTicketsResponse
+	7,  // 54: yirapb.v1.TicketService.GetTicket:output_type -> yirapb.v1.GetTicketResponse
+	9,  // 55: yirapb.v1.TicketService.CreateTicket:output_type -> yirapb.v1.CreateTicketResponse
+	11, // 56: yirapb.v1.TicketService.UpdateTicket:output_type -> yirapb.v1.UpdateTicketResponse
+	34, // 57: yirapb.v1.TicketService.CloseTicket:output_type -> google.protobuf.Empty
+	19, // 58: yirapb.v1.TicketService.WatchTicketEvents:output_type -> yirapb.v1.TicketEvent
+	14, // 59: yirapb.v1.TicketService.ImportTicketEvents:output_type -> yirapb.v1.ImportTicketEventsResponse
+	19, // 60: yirapb.v1.TicketService.SyncTicketEvents:output_type -> yirapb.v1.TicketEvent
+	53, // [53:61] is the sub-list for method output_type
+	45, // [45:53] is the sub-list for method input_type
 	45, // [45:45] is the sub-list for extension type_name
 	45, // [45:45] is the sub-list for extension extendee
 	0,  // [0:45] is the sub-list for field type_name
@@ -3713,11 +3797,11 @@ func file_proto_yirapb_v1_yira_proto_init() {
 	if File_proto_yirapb_v1_yira_proto != nil {
 		return
 	}
-	file_proto_yirapb_v1_yira_proto_msgTypes[10].OneofWrappers = []any{
+	file_proto_yirapb_v1_yira_proto_msgTypes[11].OneofWrappers = []any{
 		(*ticket_ManualSource)(nil),
 		(*ticket_IntegrationSource)(nil),
 	}
-	file_proto_yirapb_v1_yira_proto_msgTypes[18].OneofWrappers = []any{
+	file_proto_yirapb_v1_yira_proto_msgTypes[19].OneofWrappers = []any{
 		(*nullablePerson_Person)(nil),
 		(*nullablePerson_Null)(nil),
 	}
@@ -3727,7 +3811,7 @@ func file_proto_yirapb_v1_yira_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_yirapb_v1_yira_proto_rawDesc), len(file_proto_yirapb_v1_yira_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   24,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

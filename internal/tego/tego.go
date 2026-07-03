@@ -6,10 +6,12 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// Plan is the complete generation plan produced by the planner.
 type Plan struct {
 	Files []FilePlan
 }
 
+// FilePlan describes everything Tego will emit for one generated protobuf file.
 type FilePlan struct {
 	ProtoPath   string
 	Output      FileOutputPlan
@@ -18,9 +20,11 @@ type FilePlan struct {
 	Oneofs      []OneofPlan
 	Structs     []StructPlan
 	Mappings    []MappingPlan
+	Services    []ServicePlan
 	Diagnostics []Diagnostic
 }
 
+// FileOutputPlan describes the generated Go file path before and after module stripping.
 type FileOutputPlan struct {
 	// Directory is the generated file directory relative to the plugin output root.
 	Directory string
@@ -35,11 +39,13 @@ type FileOutputPlan struct {
 	GeneratorPath string
 }
 
+// PackageRef identifies a Go package by import path and package name.
 type PackageRef struct {
 	ImportPath string
 	Name       string
 }
 
+// EnumPlan describes a generated Go enum and its constants.
 type EnumPlan struct {
 	ProtoName  protoreflect.FullName
 	Name       string
@@ -48,14 +54,20 @@ type EnumPlan struct {
 	Constants  []EnumConstantPlan
 }
 
+// EnumUnderlyingType enumerates the possible Go numeric/string representations used for a generated
+// enum.
 type EnumUnderlyingType uint
 
 const (
+	// EnumUnderlyingTypeUint renders the enum as a Go uint.
 	EnumUnderlyingTypeUint EnumUnderlyingType = iota
+	// EnumUnderlyingTypeInt renders the enum as a Go int.
 	EnumUnderlyingTypeInt
+	// EnumUnderlyingTypeString renders the enum as a Go string.
 	EnumUnderlyingTypeString
 )
 
+// EnumConstantPlan describes one generated Go enum constant.
 type EnumConstantPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -63,12 +75,14 @@ type EnumConstantPlan struct {
 	Value     EnumConstantValue
 }
 
+// EnumConstantValue stores the planned literal for an enum constant.
 type EnumConstantValue struct {
 	Uint   uint
 	Int    int
 	String string
 }
 
+// OneofPlan describes the generated Go interface and variants for a protobuf oneof.
 type OneofPlan struct {
 	ProtoName    protoreflect.FullName
 	Name         string
@@ -77,6 +91,7 @@ type OneofPlan struct {
 	Variants     []OneofVariantPlan
 }
 
+// OneofVariantPlan describes one concrete Go variant for a protobuf oneof field.
 type OneofVariantPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -85,6 +100,7 @@ type OneofVariantPlan struct {
 	Type      TypePlan
 }
 
+// StructPlan describes a generated Go struct for a protobuf message.
 type StructPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -92,6 +108,7 @@ type StructPlan struct {
 	Fields    []FieldPlan
 }
 
+// FieldPlan describes one generated Go struct field.
 type FieldPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -100,6 +117,7 @@ type FieldPlan struct {
 	Tags      []StructTagPlan
 }
 
+// TypePlan is Tego's language for a Go type before it is rendered.
 type TypePlan struct {
 	Kind   TypeKind
 	Scalar ScalarKind
@@ -110,22 +128,35 @@ type TypePlan struct {
 	Value  *TypePlan
 }
 
+// TypeKind classifies the shape of a TypePlan.
 type TypeKind uint
 
 const (
+	// TypeKindScalar is a built-in Go scalar.
 	TypeKindScalar TypeKind = iota
+	// TypeKindEnum is a Tego-generated enum.
 	TypeKindEnum
+	// TypeKindStruct is a Tego-generated struct.
 	TypeKindStruct
+	// TypeKindExternal is a Go type generated or owned outside the current Tego package.
 	TypeKindExternal
+	// TypeKindCustom is a user-specified Go type with custom mapping functions.
 	TypeKindCustom
+	// TypeKindOneof is a Tego-generated oneof interface.
 	TypeKindOneof
+	// TypeKindPointer is a pointer to another planned type.
 	TypeKindPointer
+	// TypeKindSlice is a slice of another planned type.
 	TypeKindSlice
+	// TypeKindMap is a Go map with planned key and value types.
 	TypeKindMap
+	// TypeKindOmittable is an omittable wrapper around another planned type.
 	TypeKindOmittable
+	// TypeKindEmptyStruct is the Go struct{} representation used for google.protobuf.Empty.
 	TypeKindEmptyStruct
 )
 
+// ScalarKind classifies scalar Go types used in TypePlan.
 type ScalarKind uint
 
 const (
@@ -141,6 +172,7 @@ const (
 	ScalarKindAny                // from well-known dynamic values
 )
 
+// GoTypeRef identifies a Go type, including simple generic, pointer, and slice forms.
 type GoTypeRef struct {
 	ImportPath string
 	Name       string
@@ -149,6 +181,7 @@ type GoTypeRef struct {
 	Slice      *GoTypeRef
 }
 
+// CustomGoTypePlan records a user-provided Go type and its conversion functions.
 type CustomGoTypePlan struct {
 	Ref               GoTypeRef
 	FromProto         GoSymbolRef
@@ -157,17 +190,20 @@ type CustomGoTypePlan struct {
 	ToProtoCanError   bool
 }
 
+// GoSymbolRef identifies a Go function or method that may need an import qualifier.
 type GoSymbolRef struct {
 	ImportPath string
 	Name       string
 	Receiver   string
 }
 
+// StructTagPlan describes one generated struct tag key/value pair.
 type StructTagPlan struct {
 	Key   string
 	Value string
 }
 
+// MappingPlan describes the generated conversion functions for one message.
 type MappingPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -178,6 +214,7 @@ type MappingPlan struct {
 	Fields    []FieldMappingPlan
 }
 
+// MappingFunctionPlan describes a generated top-level conversion function.
 type MappingFunctionPlan struct {
 	Name         string
 	ReceiverName string
@@ -186,6 +223,7 @@ type MappingFunctionPlan struct {
 	CanError     bool
 }
 
+// FieldMappingPlan describes how one field maps between protobuf and Tego forms.
 type FieldMappingPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -194,6 +232,7 @@ type FieldMappingPlan struct {
 	ToProto   MappingValuePlan
 }
 
+// MappingValuePlan describes one value-level conversion expression or block.
 type MappingValuePlan struct {
 	Kind     MappingValueKind
 	Source   TypePlan
@@ -211,6 +250,7 @@ type MappingValuePlan struct {
 	Value    *MappingValuePlan
 }
 
+// MappingAccessPlan records generated accessor names needed by mapping renderers.
 type MappingAccessPlan struct {
 	Field         MappingFieldAccessPlan
 	Key           MappingFieldAccessPlan
@@ -222,6 +262,7 @@ type MappingAccessPlan struct {
 	ProtoElemType TypePlan
 }
 
+// MappingFieldAccessPlan records protobuf-style getter, setter, presence, and clear names.
 type MappingFieldAccessPlan struct {
 	Name   string
 	Getter string
@@ -230,6 +271,7 @@ type MappingFieldAccessPlan struct {
 	Clear  string
 }
 
+// MappingOneofAccessPlan records the generated API surface for a nullable oneof shape.
 type MappingOneofAccessPlan struct {
 	Name     string
 	Which    string
@@ -239,11 +281,13 @@ type MappingOneofAccessPlan struct {
 	NullRef  GoTypeRef
 }
 
+// MappingOneofPlan describes conversion for a regular protobuf oneof.
 type MappingOneofPlan struct {
 	Which    string
 	Variants []MappingOneofVariantPlan
 }
 
+// MappingOneofVariantPlan describes conversion for one protobuf oneof case.
 type MappingOneofVariantPlan struct {
 	ProtoName protoreflect.FullName
 	Name      string
@@ -253,61 +297,144 @@ type MappingOneofVariantPlan struct {
 	Value     MappingValuePlan
 }
 
+// MappingNullableForm describes how nullability is represented at the protobuf boundary.
 type MappingNullableForm uint
 
 const (
+	// MappingNullableFormNone means the value is not nullable at this mapping point.
 	MappingNullableFormNone MappingNullableForm = iota
+	// MappingNullableFormPointer means nil is represented by a Go pointer.
 	MappingNullableFormPointer
+	// MappingNullableFormOneof means nil is represented by a protobuf nullable oneof shape.
 	MappingNullableFormOneof
+	// MappingNullableFormValue means nil is represented by a protobuf nullable value/valid shape.
 	MappingNullableFormValue
 )
 
+// MappingValueKind selects the renderer used for a MappingValuePlan.
 type MappingValueKind uint
 
 const (
+	// MappingValueKindUnsupported records a mapping the renderer cannot emit.
 	MappingValueKindUnsupported MappingValueKind = iota
+	// MappingValueKindDirect maps a value without conversion.
 	MappingValueKindDirect
+	// MappingValueKindScalarCast maps by rendering a Go scalar cast.
 	MappingValueKindScalarCast
+	// MappingValueKindEnum maps between enum representations.
 	MappingValueKindEnum
+	// MappingValueKindStruct maps by calling another struct mapping function.
 	MappingValueKindStruct
+	// MappingValueKindCustom maps by calling a user-provided conversion function.
 	MappingValueKindCustom
+	// MappingValueKindNullable maps nullable pointer or shape values.
 	MappingValueKindNullable
+	// MappingValueKindSlice maps each element of a slice.
 	MappingValueKindSlice
+	// MappingValueKindMap maps each key and value in a map.
 	MappingValueKindMap
+	// MappingValueKindOmittable maps an omittable wrapper while preserving presence.
 	MappingValueKindOmittable
+	// MappingValueKindOneof maps a protobuf oneof to a Tego oneof interface.
 	MappingValueKindOneof
+	// MappingValueKindEmptyStruct maps google.protobuf.Empty to struct{}.
 	MappingValueKindEmptyStruct
+	// MappingValueKindDynamic maps Struct, Value, or ListValue well-known dynamic data.
 	MappingValueKindDynamic
+	// MappingValueKindFlatten maps an explicit one-field flatten shape.
 	MappingValueKindFlatten
 )
 
+// MappingDynamicKind identifies which dynamic protobuf well-known type is being mapped.
 type MappingDynamicKind uint
 
 const (
+	// MappingDynamicKindStruct maps google.protobuf.Struct.
 	MappingDynamicKindStruct MappingDynamicKind = iota
+	// MappingDynamicKindValue maps google.protobuf.Value.
 	MappingDynamicKindValue
+	// MappingDynamicKindListValue maps google.protobuf.ListValue.
 	MappingDynamicKindListValue
 )
 
+// MappingDynamicPlan carries dynamic well-known type mapping details.
 type MappingDynamicPlan struct {
 	Kind MappingDynamicKind
 }
 
+// MappingRefPlan refers to another mapping function, local or imported.
 type MappingRefPlan struct {
 	Name   string
+	Ref    GoSymbolRef
 	Source TypePlan
 	Target TypePlan
 }
 
+// MappingEnumPlan describes enum conversion between protobuf and Tego enum types.
 type MappingEnumPlan struct {
 	Source TypePlan
 	Target TypePlan
 }
 
+// MappingCastPlan describes scalar conversion that is rendered as a Go cast.
 type MappingCastPlan struct {
 	Source TypePlan
 	Target TypePlan
 }
+
+// ServicePlan describes generated service/client interfaces and transport adapters.
+type ServicePlan struct {
+	ProtoName             protoreflect.FullName
+	ProtoRef              GoTypeRef
+	ConnectRef            GoTypeRef
+	Name                  string
+	ClientName            string
+	GRPCServerName        string
+	GRPCClientName        string
+	GRPCRegisterName      string
+	GRPCNewClientName     string
+	ConnectHandlerName    string
+	ConnectClientName     string
+	ConnectNewHandlerName string
+	ConnectNewClientName  string
+	Comment               string
+	Methods               []ServiceMethodPlan
+}
+
+// ServiceMethodPlan describes one RPC method in generated Tego terms.
+type ServiceMethodPlan struct {
+	ProtoName   protoreflect.FullName
+	ProtoGoName string
+	Name        string
+	Comment     string
+	Procedure   string
+	StreamType  ServiceStreamType
+	Request     ServiceMessagePlan
+	Response    ServiceMessagePlan
+}
+
+// ServiceMessagePlan describes an RPC request or response type and its conversions.
+type ServiceMessagePlan struct {
+	ProtoName protoreflect.FullName
+	ProtoType TypePlan
+	Type      TypePlan
+	FromProto MappingValuePlan
+	ToProto   MappingValuePlan
+}
+
+// ServiceStreamType classifies the streaming shape of an RPC method.
+type ServiceStreamType uint
+
+const (
+	// ServiceStreamTypeUnary is a method with one request and one response.
+	ServiceStreamTypeUnary ServiceStreamType = iota
+	// ServiceStreamTypeClientStreaming is a method with a request stream and one response.
+	ServiceStreamTypeClientStreaming
+	// ServiceStreamTypeServerStreaming is a method with one request and a response stream.
+	ServiceStreamTypeServerStreaming
+	// ServiceStreamTypeBidiStreaming is a method with both request and response streams.
+	ServiceStreamTypeBidiStreaming
+)
 
 // Diagnostic is a generalized type used for presenting helpful messages to users to help them find
 // and fix issues found during planning.
@@ -341,7 +468,9 @@ func (d Diagnostic) String() string {
 type DiagnosticLevel uint
 
 const (
+	// DiagnosticLevelFatal blocks code generation.
 	DiagnosticLevelFatal DiagnosticLevel = iota
+	// DiagnosticLevelWarning is reported to the user but does not block code generation.
 	DiagnosticLevelWarning
 	diagnosticLevelMax
 )

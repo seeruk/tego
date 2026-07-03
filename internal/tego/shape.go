@@ -16,6 +16,7 @@ type ShapeIndex struct {
 	Flattens  map[protoreflect.FullName]*ProtoMessage
 }
 
+// BuildShapeIndex indexes all covered protobuf messages that Tego can flatten into Go shapes.
 func BuildShapeIndex(di *DescriptorIndex) (*ShapeIndex, error) {
 	builder := newShapeIndexBuilder()
 
@@ -58,6 +59,10 @@ func newShapeIndexBuilder() *shapeIndexBuilder {
 }
 
 func (b *shapeIndexBuilder) indexFile(file *ProtoFile) error {
+	if !file.IsCoveredByTego() {
+		return nil
+	}
+
 	for _, message := range file.Messages {
 		if err := b.indexMessage(message); err != nil {
 			return fmt.Errorf("indexing message %s: %w", message.FullName, err)

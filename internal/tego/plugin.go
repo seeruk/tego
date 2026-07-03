@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
+// RunPlugin is the protoc-gen-tego entrypoint.
 func RunPlugin(plugin *protogen.Plugin) error {
 	return runPlugin(plugin, os.Stderr)
 }
@@ -29,6 +30,10 @@ func runPlugin(plugin *protogen.Plugin, diagnostics io.Writer) error {
 		// TODO: Could be allowed if types were generated with a prefix or suffix in this case?
 		return errors.New("tego does not support 'paths=source_relative'")
 	}
+	rpcOptions, err := rpcOptionsFromParams(rawParams)
+	if err != nil {
+		return fmt.Errorf("parse rpc parameter: %w", err)
+	}
 
 	di, err := BuildDescriptorIndex(plugin)
 	if err != nil {
@@ -42,6 +47,7 @@ func runPlugin(plugin *protogen.Plugin, diagnostics io.Writer) error {
 
 	opts := []PlannerOption{
 		WithModulePath(modulePath(rawParams)),
+		WithRPCPlanning(rpcOptions),
 		WithTypeLoader(newTypeLoader(rawParams)),
 	}
 
@@ -54,7 +60,7 @@ func runPlugin(plugin *protogen.Plugin, diagnostics io.Writer) error {
 		return fmt.Errorf("write diagnostics: %w", err)
 	}
 
-	if err := Generate(plugin, plan); err != nil {
+	if err := Generate(plugin, plan, WithRPCGeneration(rpcOptions)); err != nil {
 		return fmt.Errorf("generate: %w", err)
 	}
 

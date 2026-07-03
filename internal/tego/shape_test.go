@@ -96,6 +96,51 @@ func TestBuildShapeIndexYiraFixture(t *testing.T) {
 	})
 }
 
+func TestBuildShapeIndexTegoCoverage(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		file      *ProtoFile
+		indexed   bool
+		indexName protoreflect.FullName
+	}{
+		{
+			name:      "current generated file",
+			file:      shapeIndexTestFile("generated.proto", true, "", "example.v1.GeneratedList"),
+			indexed:   true,
+			indexName: "example.v1.GeneratedList",
+		},
+		{
+			name:      "external tego file",
+			file:      shapeIndexTestFile("external.proto", false, "example.com/external;externalv1", "example.v1.ExternalList"),
+			indexed:   true,
+			indexName: "example.v1.ExternalList",
+		},
+		{
+			name:      "plain imported file",
+			file:      shapeIndexTestFile("foreign.proto", false, "", "example.v1.ForeignList"),
+			indexed:   false,
+			indexName: "example.v1.ForeignList",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			index, err := BuildShapeIndex(&DescriptorIndex{Files: []*ProtoFile{tt.file}})
+
+			require.NoError(t, err)
+			if tt.indexed {
+				assert.Contains(t, index.Slices, tt.indexName)
+			} else {
+				assert.NotContains(t, index.Slices, tt.indexName)
+			}
+		})
+	}
+}
+
 func TestNullableShapeHelpers(t *testing.T) {
 	t.Run("nullable oneof requires exactly one oneof with two fields", func(t *testing.T) {
 		person := field("person", protoreflect.MessageKind)
@@ -307,6 +352,16 @@ func messageWithMapEntry(mapMessage *ProtoMessage, entry *ProtoField) *ProtoMess
 		Fields:   []*ProtoField{entry},
 		Messages: []*ProtoMessage{mapMessage},
 	}
+}
+
+func shapeIndexTestFile(path string, generate bool, goPackage string, fullName protoreflect.FullName) *ProtoFile {
+	file := testProtoFile(path, generate, goPackage)
+	message := plannerMessage(fullName, protoreflect.Name(fullName.Name()))
+	message.File = file
+	message.Fields = []*ProtoField{repeatedField("values", protoreflect.StringKind)}
+	message.Fields[0].Parent = message
+	file.Messages = []*ProtoMessage{message}
+	return file
 }
 
 func comparableStructMessage() *ProtoMessage {

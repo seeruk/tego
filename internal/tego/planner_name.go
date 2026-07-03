@@ -16,6 +16,50 @@ func plannedMessageName(message *ProtoMessage) string {
 	return goName(string(message.Name))
 }
 
+func plannedServiceName(service *ProtoService) string {
+	return goName(string(service.Name))
+}
+
+func plannedServiceClientName(serviceName string) string {
+	return serviceName + "Client"
+}
+
+func plannedServiceGRPCServerName(serviceName string) string {
+	return tempIdentifierBase(serviceName) + "GRPCServer"
+}
+
+func plannedServiceGRPCClientName(serviceName string) string {
+	return tempIdentifierBase(serviceName) + "GRPCClient"
+}
+
+func plannedServiceGRPCRegisterName(serviceName string) string {
+	return "Register" + serviceName + "GRPCServer"
+}
+
+func plannedServiceGRPCNewClientName(serviceName string) string {
+	return "New" + serviceName + "GRPCClient"
+}
+
+func plannedServiceConnectHandlerName(serviceName string) string {
+	return tempIdentifierBase(serviceName) + "ConnectHandler"
+}
+
+func plannedServiceConnectClientName(serviceName string) string {
+	return tempIdentifierBase(serviceName) + "ConnectClient"
+}
+
+func plannedServiceConnectNewHandlerName(serviceName string) string {
+	return "New" + serviceName + "ConnectHandler"
+}
+
+func plannedServiceConnectNewClientName(serviceName string) string {
+	return "New" + serviceName + "ConnectClient"
+}
+
+func plannedMethodName(method *ProtoMethod) string {
+	return goName(string(method.Name))
+}
+
 func plannedFieldName(field *ProtoField) string {
 	if field.Options.HasName() {
 		return field.Options.GetName()

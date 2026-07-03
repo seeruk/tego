@@ -49,3 +49,39 @@ func TestParameterValue(t *testing.T) {
 		assert.False(t, ok)
 	})
 }
+
+func TestParameterValues(t *testing.T) {
+	t.Run("returns comma-separated continuation values", func(t *testing.T) {
+		values, ok := ParameterValues("module=example.com/project,rpc=grpc,connect,module_root=.", "rpc")
+
+		require.True(t, ok)
+		assert.Equal(t, []string{"grpc", "connect"}, values)
+	})
+
+	t.Run("keeps empty continuation values", func(t *testing.T) {
+		values, ok := ParameterValues("rpc=grpc,", "rpc")
+
+		require.True(t, ok)
+		assert.Equal(t, []string{"grpc", ""}, values)
+	})
+
+	t.Run("returns repeated named parameter values", func(t *testing.T) {
+		values, ok := ParameterValues("rpc=grpc,rpc=connect", "rpc")
+
+		require.True(t, ok)
+		assert.Equal(t, []string{"grpc", "connect"}, values)
+	})
+
+	t.Run("keeps quoted comma values together", func(t *testing.T) {
+		values, ok := ParameterValues(`rpc="grpc,connect",module=example.com/project`, "rpc")
+
+		require.True(t, ok)
+		assert.Equal(t, []string{"grpc,connect"}, values)
+	})
+
+	t.Run("reports missing named parameter", func(t *testing.T) {
+		_, ok := ParameterValues("module=example.com/project", "rpc")
+
+		assert.False(t, ok)
+	})
+}

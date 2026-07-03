@@ -79,6 +79,82 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		assert.False(t, hasMappingPlan(file, "yirapb.v1.TicketsByStatus"))
 	})
 
+	t.Run("includes service plans", func(t *testing.T) {
+		require.Len(t, file.Services, 1)
+		service := serviceByProtoName(t, file, "yirapb.v1.TicketService")
+
+		assert.Equal(t, "TicketService", service.Name)
+		assert.Equal(t, "TicketServiceClient", service.ClientName)
+		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect", service.ConnectRef.ImportPath)
+		assert.Equal(t, "ticketServiceGRPCServer", service.GRPCServerName)
+		assert.Equal(t, "ticketServiceGRPCClient", service.GRPCClientName)
+		assert.Equal(t, "RegisterTicketServiceGRPCServer", service.GRPCRegisterName)
+		assert.Equal(t, "NewTicketServiceGRPCClient", service.GRPCNewClientName)
+		assert.Equal(t, "ticketServiceConnectHandler", service.ConnectHandlerName)
+		assert.Equal(t, "ticketServiceConnectClient", service.ConnectClientName)
+		assert.Equal(t, "NewTicketServiceConnectHandler", service.ConnectNewHandlerName)
+		assert.Equal(t, "NewTicketServiceConnectClient", service.ConnectNewClientName)
+		require.Len(t, service.Methods, 8)
+
+		listTickets := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ListTickets")
+		assert.Equal(t, "ListTickets", listTickets.Name)
+		assert.Equal(t, "/yirapb.v1.TicketService/ListTickets", listTickets.Procedure)
+		assert.Equal(t, ServiceStreamTypeUnary, listTickets.StreamType)
+		assert.Equal(t, TypeKindStruct, listTickets.Request.Type.Kind)
+		assert.Equal(t, "ListTicketsRequest", listTickets.Request.Type.Ref.Name)
+		assert.Equal(t, TypeKindStruct, listTickets.Response.Type.Kind)
+		assert.Equal(t, "ListTicketsResponse", listTickets.Response.Type.Ref.Name)
+		assert.Equal(t, MappingValueKindStruct, listTickets.Request.FromProto.Kind)
+		assert.Equal(t, MappingValueKindStruct, listTickets.Response.ToProto.Kind)
+
+		closeTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.CloseTicket")
+		assert.Equal(t, TypeKindEmptyStruct, closeTicket.Response.Type.Kind)
+		assert.Equal(t, MappingValueKindEmptyStruct, closeTicket.Response.FromProto.Kind)
+		assert.False(t, closeTicket.Response.ToProto.CanError)
+
+		watchEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.WatchTicketEvents")
+		assert.Equal(t, ServiceStreamTypeServerStreaming, watchEvents.StreamType)
+		assert.Equal(t, TypeKindStruct, watchEvents.Response.Type.Kind)
+		assert.Equal(t, "TicketEvent", watchEvents.Response.Type.Ref.Name)
+		assert.True(t, watchEvents.Response.ToProto.CanError)
+
+		importEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ImportTicketEvents")
+		assert.Equal(t, ServiceStreamTypeClientStreaming, importEvents.StreamType)
+		assert.Equal(t, "TicketEvent", importEvents.Request.Type.Ref.Name)
+		assert.Equal(t, "ImportTicketEventsResponse", importEvents.Response.Type.Ref.Name)
+
+		syncEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.SyncTicketEvents")
+		assert.Equal(t, ServiceStreamTypeBidiStreaming, syncEvents.StreamType)
+		assert.Equal(t, "TicketEvent", syncEvents.Request.Type.Ref.Name)
+		assert.Equal(t, "TicketEvent", syncEvents.Response.Type.Ref.Name)
+	})
+
+	t.Run("derives connect package refs from suffix", func(t *testing.T) {
+		tests := map[string]struct {
+			suffix string
+			want   string
+		}{
+			"custom suffix": {
+				suffix: "connectgo",
+				want:   "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connectgo",
+			},
+			"same package": {
+				want: "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1",
+			},
+		}
+
+		for name, tt := range tests {
+			t.Run(name, func(t *testing.T) {
+				options := RPCOptions{Connect: true, ConnectPackageSuffix: tt.suffix}
+				plan, err := NewPlanner(WithRPCPlanning(options)).Plan(descriptorIndex, shapeIndex)
+
+				require.NoError(t, err)
+				service := serviceByProtoName(t, plan.Files[0], "yirapb.v1.TicketService")
+				assert.Equal(t, tt.want, service.ConnectRef.ImportPath)
+			})
+		}
+	})
+
 	t.Run("plans mapping function names and errability", func(t *testing.T) {
 		ticket := mappingByProtoName(t, file, "yirapb.v1.Ticket")
 		assert.Equal(t, "TicketFromProto", ticket.FromProto.Name)
@@ -275,6 +351,32 @@ func enumByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) En
 	return EnumPlan{}
 }
 
+func serviceByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) ServicePlan {
+	t.Helper()
+
+	for _, service := range file.Services {
+		if service.ProtoName == name {
+			return service
+		}
+	}
+
+	t.Fatalf("service %q not found", name)
+	return ServicePlan{}
+}
+
+func serviceMethodByProtoName(t *testing.T, service ServicePlan, name protoreflect.FullName) ServiceMethodPlan {
+	t.Helper()
+
+	for _, method := range service.Methods {
+		if method.ProtoName == name {
+			return method
+		}
+	}
+
+	t.Fatalf("method %q not found", name)
+	return ServiceMethodPlan{}
+}
+
 func TestPlannerPlanNestedDeclarations(t *testing.T) {
 	t.Run("uses explicit nested declaration names", func(t *testing.T) {
 		file := protoFileWithOutput("nested.proto", "github.com/example/nested;nested", "")
@@ -354,6 +456,142 @@ func TestPlannerPlanOneofDeclarations(t *testing.T) {
 		require.NotEmpty(t, plan.Diagnostics)
 		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
 		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketEventStatus"`)
+	})
+}
+
+func TestPlannerPlanServices(t *testing.T) {
+	t.Run("maps stream types", func(t *testing.T) {
+		tests := map[string]struct {
+			client bool
+			server bool
+			want   ServiceStreamType
+		}{
+			"unary":  {want: ServiceStreamTypeUnary},
+			"client": {client: true, want: ServiceStreamTypeClientStreaming},
+			"server": {server: true, want: ServiceStreamTypeServerStreaming},
+			"bidi":   {client: true, server: true, want: ServiceStreamTypeBidiStreaming},
+		}
+
+		for name, tt := range tests {
+			t.Run(name, func(t *testing.T) {
+				method := &ProtoMethod{ClientStreaming: tt.client, ServerStreaming: tt.server}
+
+				assert.Equal(t, tt.want, serviceMethodStreamType(method))
+			})
+		}
+	})
+
+	t.Run("plans covered flatten shape method messages", func(t *testing.T) {
+		file := protoFileWithOutput("shapes.proto", "github.com/example/shapes;shapes", "")
+		labels := plannerMessage("example.v1.Labels", "Labels")
+		labels.GoName = "Labels"
+		labels.Options.SetFlatten(true)
+		value := field("value", protoreflect.StringKind)
+		value.FullName = "example.v1.Labels.value"
+		value.GoName = "Value"
+		value.Parent = labels
+		labels.Fields = []*ProtoField{value}
+		attachMessagesToFile(file, labels)
+		method := plannerMethod("example.v1.LabelService.SetLabels", "SetLabels", labels, labels)
+
+		plan, diagnostics := NewPlanner().planServiceMethod(method, &ShapeIndex{
+			Flattens: map[protoreflect.FullName]*ProtoMessage{labels.FullName: labels},
+		})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypePlan{Kind: TypeKindScalar, Scalar: ScalarKindString}, plan.Request.Type)
+		assert.Equal(t, MappingValueKindFlatten, plan.Request.FromProto.Kind)
+		assert.Equal(t, MappingValueKindFlatten, plan.Response.ToProto.Kind)
+	})
+
+	t.Run("passes through non covered foreign method messages", func(t *testing.T) {
+		foreignFile := testProtoFile("foreign.proto", false, "")
+		foreign := plannerMessage("foreign.v1.Foreign", "Foreign")
+		foreign.GoName = "Foreign"
+		attachMessagesToFile(foreignFile, foreign)
+		method := plannerMethod("example.v1.ForeignService.UseForeign", "UseForeign", foreign, foreign)
+
+		plan, diagnostics := NewPlanner().planServiceMethod(method, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindPointer, plan.Request.Type.Kind)
+		assert.Equal(t, TypeKindExternal, plan.Request.Type.Elem.Kind)
+		assert.Equal(t, "Foreign", plan.Request.Type.Elem.Ref.Name)
+		assert.Equal(t, MappingValueKindDirect, plan.Request.FromProto.Kind)
+		assert.Equal(t, MappingValueKindDirect, plan.Response.ToProto.Kind)
+	})
+
+	t.Run("reports service name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+		message := plannerMessage("example.v1.TicketService", "TicketService")
+		service := plannerService("example.v1.TicketService", "TicketService")
+		attachMessagesToFile(file, message)
+		attachServicesToFile(file, service)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketService"`)
+	})
+
+	t.Run("reports service client name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+		message := plannerMessage("example.v1.TicketServiceClient", "TicketServiceClient")
+		service := plannerService("example.v1.TicketService", "TicketService")
+		attachMessagesToFile(file, message)
+		attachServicesToFile(file, service)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketServiceClient"`)
+	})
+
+	t.Run("reports service grpc helper name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+		message := plannerMessage("example.v1.Custom", "Custom")
+		message.Options.SetName("NewTicketServiceGRPCClient")
+		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+		service := plannerService("example.v1.TicketService", "TicketService")
+		attachMessagesToFile(file, message)
+		attachServicesToFile(file, service)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "NewTicketServiceGRPCClient"`)
+	})
+
+	t.Run("reports service connect helper name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+		message := plannerMessage("example.v1.Custom", "Custom")
+		message.Options.SetName("NewTicketServiceConnectClient")
+		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+		service := plannerService("example.v1.TicketService", "TicketService")
+		attachMessagesToFile(file, message)
+		attachServicesToFile(file, service)
+
+		plan := NewPlanner(WithRPCPlanning(RPCOptions{Connect: true})).planFile(file, &ShapeIndex{})
+
+		require.NotEmpty(t, plan.Diagnostics)
+		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "NewTicketServiceConnectClient"`)
+	})
+
+	t.Run("skips service planning when rpc is disabled", func(t *testing.T) {
+		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+		message := plannerMessage("example.v1.TicketService", "TicketService")
+		service := plannerService("example.v1.TicketService", "TicketService")
+		attachMessagesToFile(file, message)
+		attachServicesToFile(file, service)
+
+		plan := NewPlanner(WithRPCPlanning(RPCOptions{})).planFile(file, &ShapeIndex{})
+
+		require.Empty(t, plan.Diagnostics)
+		assert.Empty(t, plan.Services)
 	})
 }
 
@@ -457,6 +695,34 @@ func protoFileWithOutput(protoPath, goPackage, outputPath string) *ProtoFile {
 	}
 }
 
+func plannerService(fullName protoreflect.FullName, name protoreflect.Name, methods ...*ProtoMethod) *ProtoService {
+	service := &ProtoService{
+		FullName: fullName,
+		Name:     name,
+		GoName:   string(name),
+		Methods:  methods,
+	}
+	for _, method := range methods {
+		method.Parent = service
+	}
+	return service
+}
+
+func plannerMethod(
+	fullName protoreflect.FullName,
+	name protoreflect.Name,
+	input *ProtoMessage,
+	output *ProtoMessage,
+) *ProtoMethod {
+	return &ProtoMethod{
+		FullName: fullName,
+		Name:     name,
+		GoName:   string(name),
+		Input:    input,
+		Output:   output,
+	}
+}
+
 func attachMessagesToFile(file *ProtoFile, messages ...*ProtoMessage) {
 	file.Messages = messages
 	for _, message := range messages {
@@ -480,6 +746,16 @@ func attachMessageToFile(file *ProtoFile, message *ProtoMessage) {
 	}
 	for _, nested := range message.Messages {
 		attachMessageToFile(file, nested)
+	}
+}
+
+func attachServicesToFile(file *ProtoFile, services ...*ProtoService) {
+	file.Services = services
+	for _, service := range services {
+		service.File = file
+		for _, method := range service.Methods {
+			method.File = file
+		}
 	}
 }
 

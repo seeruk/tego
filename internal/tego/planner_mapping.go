@@ -677,20 +677,21 @@ func topCustomType(plan TypePlan) (CustomGoTypePlan, bool) {
 }
 
 func mappingStructRef(source TypePlan, target TypePlan, direction mappingDirection) (MappingRefPlan, bool) {
-	var name string
+	var ref GoSymbolRef
 	switch {
 	case direction == mappingDirectionFromProto && source.Kind == TypeKindPointer &&
 		target.Kind == TypeKindStruct && source.Elem != nil && source.Elem.Kind == TypeKindExternal:
-		name = target.Ref.Name + "FromProto"
+		ref = GoSymbolRef{ImportPath: target.Ref.ImportPath, Name: target.Ref.Name + "FromProto"}
 	case direction == mappingDirectionToProto && source.Kind == TypeKindStruct &&
 		target.Kind == TypeKindPointer && target.Elem != nil && target.Elem.Kind == TypeKindExternal:
-		name = source.Ref.Name + "ToProto"
+		ref = GoSymbolRef{ImportPath: source.Ref.ImportPath, Name: source.Ref.Name + "ToProto"}
 	default:
 		return MappingRefPlan{}, false
 	}
 
 	return MappingRefPlan{
-		Name:   name,
+		Name:   ref.Name,
+		Ref:    ref,
 		Source: source,
 		Target: target,
 	}, true
@@ -705,6 +706,9 @@ func propagateMappingErrors(plan *Plan) {
 				mapping := &plan.Files[fileIndex].Mappings[mappingIndex]
 				changed = propagateMappingFunctionErrors(&mapping.FromProto, mapping.Fields, true, refs) || changed
 				changed = propagateMappingFunctionErrors(&mapping.ToProto, mapping.Fields, false, refs) || changed
+			}
+			for serviceIndex := range plan.Files[fileIndex].Services {
+				changed = propagateServiceErrors(&plan.Files[fileIndex].Services[serviceIndex], refs) || changed
 			}
 		}
 		if !changed {
@@ -722,6 +726,22 @@ func mappingErrorRefs(plan *Plan) map[string]bool {
 		}
 	}
 	return refs
+}
+
+func propagateServiceErrors(service *ServicePlan, refs map[string]bool) bool {
+	var changed bool
+	for methodIndex := range service.Methods {
+		method := &service.Methods[methodIndex]
+		changed = propagateServiceMessageErrors(&method.Request, refs) || changed
+		changed = propagateServiceMessageErrors(&method.Response, refs) || changed
+	}
+	return changed
+}
+
+func propagateServiceMessageErrors(message *ServiceMessagePlan, refs map[string]bool) bool {
+	changed := propagateMappingValueErrors(&message.FromProto, refs)
+	changed = propagateMappingValueErrors(&message.ToProto, refs) || changed
+	return changed
 }
 
 func propagateMappingFunctionErrors(function *MappingFunctionPlan, fields []FieldMappingPlan, fromProto bool, refs map[string]bool) bool {

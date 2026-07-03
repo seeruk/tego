@@ -56,6 +56,70 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, content, "target.SetStatus(generatedpb.UintStatus(*source.Status))")
 	})
 
+	t.Run("renders external tego struct mapping calls with package qualifiers", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{externalTegoMappingTestFilePlan()}}
+
+		require.NoError(t, Generate(plugin, plan))
+		content := generatedResponseContent(t, plugin)
+
+		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
+		require.NoError(t, err)
+
+		assert.Contains(t, content, "target.Owner = external.OwnerFromProto(source.GetOwner())")
+		assert.Contains(t, content, "target.SetOwner(external.OwnerToProto(source.Owner))")
+	})
+
+	t.Run("renders service interfaces and rpc adapters", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
+
+		require.NoError(t, Generate(plugin, plan))
+		content := generatedResponseContent(t, plugin)
+
+		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
+		require.NoError(t, err)
+
+		assertCommentLinesFit(t, content)
+		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
+			Assert(t, "generate_service_rpc_tego_go", []byte(content))
+	})
+
+	t.Run("skips rpc code when rpc generation is disabled", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
+
+		require.NoError(t, Generate(plugin, plan, WithRPCGeneration(RPCOptions{})))
+		content := generatedResponseContent(t, plugin)
+
+		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
+		require.NoError(t, err)
+		assert.NotContains(t, content, "type TicketService interface")
+		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
+	})
+
+	t.Run("renders grpc-only rpc output", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
+
+		require.NoError(t, Generate(plugin, plan, WithRPCGeneration(RPCOptions{GRPC: true})))
+		content := generatedResponseContent(t, plugin)
+
+		assert.Contains(t, content, "RegisterTicketServiceGRPCServer")
+		assert.NotContains(t, content, "NewTicketServiceConnectHandler")
+	})
+
+	t.Run("renders connect-only rpc output", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
+
+		require.NoError(t, Generate(plugin, plan, WithRPCGeneration(RPCOptions{Connect: true})))
+		content := generatedResponseContent(t, plugin)
+
+		assert.Contains(t, content, "NewTicketServiceConnectHandler")
+		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
+	})
+
 	t.Run("blocks fatal diagnostics", func(t *testing.T) {
 		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{{
@@ -121,6 +185,145 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, err.Error(), "shape slice source element")
 		assert.NotContains(t, err.Error(), "any")
 	})
+}
+
+func externalTegoMappingTestFilePlan() FilePlan {
+	protoOwnerType := pointerType(TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "Owner"},
+	})
+	ownerType := TypePlan{
+		Kind: TypeKindStruct,
+		Ref:  GoTypeRef{ImportPath: generatedTestPkg + "/external", Name: "Owner"},
+	}
+	personType := TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "Person"}}
+	protoPersonType := pointerType(TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "Person"},
+	})
+
+	return FilePlan{
+		ProtoPath: "generated.proto",
+		Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/generated.tego.go"},
+		Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+		Structs: []StructPlan{{
+			Name:   "Person",
+			Fields: []FieldPlan{{Name: "Owner", Type: ownerType}},
+		}},
+		Mappings: []MappingPlan{{
+			ProtoName: "generated.v1.Person",
+			Name:      "Person",
+			FromProto: MappingFunctionPlan{
+				Name:   "PersonFromProto",
+				Source: protoPersonType,
+				Target: personType,
+			},
+			ToProto: MappingFunctionPlan{
+				Name:         "PersonToProto",
+				ReceiverName: "p",
+				Source:       personType,
+				Target:       protoPersonType,
+			},
+			Fields: []FieldMappingPlan{{
+				Name:  "Owner",
+				Proto: MappingFieldAccessPlan{Name: "Owner", Getter: "GetOwner", Setter: "SetOwner"},
+				FromProto: MappingValuePlan{
+					Kind:   MappingValueKindStruct,
+					Source: protoOwnerType,
+					Target: ownerType,
+					Struct: &MappingRefPlan{
+						Name:   "OwnerFromProto",
+						Ref:    GoSymbolRef{ImportPath: generatedTestPkg + "/external", Name: "OwnerFromProto"},
+						Source: protoOwnerType,
+						Target: ownerType,
+					},
+				},
+				ToProto: MappingValuePlan{
+					Kind:   MappingValueKindStruct,
+					Source: ownerType,
+					Target: protoOwnerType,
+					Struct: &MappingRefPlan{
+						Name:   "OwnerToProto",
+						Ref:    GoSymbolRef{ImportPath: generatedTestPkg + "/external", Name: "OwnerToProto"},
+						Source: ownerType,
+						Target: protoOwnerType,
+					},
+				},
+			}},
+		}},
+	}
+}
+
+func serviceInterfaceTestFilePlan() FilePlan {
+	typeRef := func(name string) TypePlan {
+		return TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: name}}
+	}
+	protoRef := func(name string) TypePlan {
+		return pointerType(TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: name}})
+	}
+	message := func(name string) ServiceMessagePlan {
+		typ := typeRef(name)
+		proto := protoRef(name)
+		return ServiceMessagePlan{
+			Type:      typ,
+			ProtoType: proto,
+			FromProto: MappingValuePlan{
+				Kind:     MappingValueKindStruct,
+				Source:   proto,
+				Target:   typ,
+				CanError: true,
+				Struct:   &MappingRefPlan{Name: name + "FromProto", Source: proto, Target: typ},
+			},
+			ToProto: MappingValuePlan{
+				Kind:     MappingValueKindStruct,
+				Source:   typ,
+				Target:   proto,
+				CanError: true,
+				Struct:   &MappingRefPlan{Name: name + "ToProto", Source: typ, Target: proto},
+			},
+		}
+	}
+	method := func(name string, streamType ServiceStreamType, request, response ServiceMessagePlan) ServiceMethodPlan {
+		return ServiceMethodPlan{
+			ProtoGoName: name,
+			Name:        name,
+			StreamType:  streamType,
+			Request:     request,
+			Response:    response,
+		}
+	}
+
+	getTicketRequest := message("GetTicketRequest")
+	getTicketResponse := message("GetTicketResponse")
+	watchTicketEventsRequest := message("WatchTicketEventsRequest")
+	ticketEvent := message("TicketEvent")
+	importTicketEventsResponse := message("ImportTicketEventsResponse")
+
+	return FilePlan{
+		ProtoPath: "generated.proto",
+		Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/generated.tego.go"},
+		Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+		Services: []ServicePlan{{
+			ProtoRef:              GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "TicketService"},
+			ConnectRef:            GoTypeRef{ImportPath: generatedTestPkg + "pb/generatedpbconnect", Name: "TicketService"},
+			Name:                  "TicketService",
+			ClientName:            "TicketServiceClient",
+			GRPCServerName:        "ticketServiceGRPCServer",
+			GRPCClientName:        "ticketServiceGRPCClient",
+			GRPCRegisterName:      "RegisterTicketServiceGRPCServer",
+			GRPCNewClientName:     "NewTicketServiceGRPCClient",
+			ConnectHandlerName:    "ticketServiceConnectHandler",
+			ConnectClientName:     "ticketServiceConnectClient",
+			ConnectNewHandlerName: "NewTicketServiceConnectHandler",
+			ConnectNewClientName:  "NewTicketServiceConnectClient",
+			Methods: []ServiceMethodPlan{
+				method("GetTicket", ServiceStreamTypeUnary, getTicketRequest, getTicketResponse),
+				method("WatchTicketEvents", ServiceStreamTypeServerStreaming, watchTicketEventsRequest, ticketEvent),
+				method("ImportTicketEvents", ServiceStreamTypeClientStreaming, ticketEvent, importTicketEventsResponse),
+				method("SyncTicketEvents", ServiceStreamTypeBidiStreaming, ticketEvent, ticketEvent),
+			},
+		}},
+	}
 }
 
 func nullablePresenceTestFilePlan() FilePlan {

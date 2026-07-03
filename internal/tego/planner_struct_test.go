@@ -104,6 +104,87 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 			Name:       "NullValue",
 		}, nullPlan.Ref)
 	})
+
+	t.Run("plans imported types by tego coverage", func(t *testing.T) {
+		externalFile := testProtoFile("external.proto", false, "example.com/external/tego;externalv1")
+		foreignFile := testProtoFile("foreign.proto", false, "")
+
+		externalMessage := plannerMessage("external.v1.Owner", "Owner")
+		externalMessage.File = externalFile
+		foreignMessage := plannerMessage("foreign.v1.Owner", "Owner")
+		foreignMessage.File = foreignFile
+		foreignMessage.Desc = &protogen.Message{GoIdent: protogen.GoIdent{
+			GoImportPath: "example.com/foreign/pb",
+			GoName:       "Owner",
+		}}
+
+		externalEnum := plannerEnum("external.v1.Status", "Status", externalFile)
+		foreignEnum := plannerEnum("foreign.v1.Status", "Status", foreignFile)
+		foreignEnum.Desc = &protogen.Enum{GoIdent: protogen.GoIdent{
+			GoImportPath: "example.com/foreign/pb",
+			GoName:       "Status",
+		}}
+
+		externalShape := plannerMessage("external.v1.StringList", "StringList")
+		externalShape.File = externalFile
+		externalShape.Fields = []*ProtoField{repeatedField("values", protoreflect.StringKind)}
+		shapeIndex := &ShapeIndex{
+			Nullables: map[protoreflect.FullName]*ProtoMessage{},
+			Maps:      map[protoreflect.FullName]*ProtoMessage{},
+			Slices:    map[protoreflect.FullName]*ProtoMessage{externalShape.FullName: externalShape},
+			Flattens:  map[protoreflect.FullName]*ProtoMessage{},
+		}
+
+		tests := []struct {
+			name string
+			plan TypePlan
+			want TypePlan
+		}{
+			{
+				name: "external tego message",
+				plan: mustPlanFieldType(t, messageField("owner", externalMessage), shapeIndex),
+				want: TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{
+					ImportPath: "example.com/external/tego",
+					Name:       "Owner",
+				}},
+			},
+			{
+				name: "foreign message",
+				plan: mustPlanFieldType(t, messageField("owner", foreignMessage), shapeIndex),
+				want: pointerType(TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{
+					ImportPath: "example.com/foreign/pb",
+					Name:       "Owner",
+				}}),
+			},
+			{
+				name: "external tego enum",
+				plan: NewPlanner().planEnumType(enumField("status", externalEnum)),
+				want: TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{
+					ImportPath: "example.com/external/tego",
+					Name:       "Status",
+				}},
+			},
+			{
+				name: "foreign enum",
+				plan: NewPlanner().planEnumType(enumField("status", foreignEnum)),
+				want: TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{
+					ImportPath: "example.com/foreign/pb",
+					Name:       "Status",
+				}},
+			},
+			{
+				name: "external tego shape",
+				plan: mustPlanFieldType(t, messageField("values", externalShape), shapeIndex),
+				want: TypePlan{Kind: TypeKindSlice, Elem: &TypePlan{Kind: TypeKindScalar, Scalar: ScalarKindString}},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				assert.Equal(t, tt.want, tt.plan)
+			})
+		}
+	})
 }
 
 func TestPlannerPlanStructComments(t *testing.T) {
@@ -757,6 +838,36 @@ func plannerMessage(fullName protoreflect.FullName, name protoreflect.Name) *Pro
 		Name:     name,
 		Options:  &tegopb.MessageOptions{},
 	}
+}
+
+func plannerEnum(fullName protoreflect.FullName, name protoreflect.Name, file *ProtoFile) *ProtoEnum {
+	return &ProtoEnum{
+		FullName: fullName,
+		Name:     name,
+		File:     file,
+		Options:  &tegopb.EnumOptions{},
+	}
+}
+
+func testProtoFile(path string, generate bool, goPackage string) *ProtoFile {
+	options := &tegopb.FileOptions{}
+	if goPackage != "" {
+		options.SetGoPackage(goPackage)
+	}
+	return &ProtoFile{
+		Path:     path,
+		Generate: generate,
+		Options:  options,
+	}
+}
+
+func mustPlanFieldType(t *testing.T, field *ProtoField, shapeIndex *ShapeIndex) TypePlan {
+	t.Helper()
+
+	plan, diagnostics := NewPlanner().planSingularFieldType(field, shapeIndex)
+
+	require.Empty(t, diagnostics)
+	return plan
 }
 
 func plannerOneof(parent *ProtoMessage, name protoreflect.Name, fields ...*ProtoField) *ProtoOneof {

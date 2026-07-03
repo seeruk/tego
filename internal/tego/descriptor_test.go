@@ -44,6 +44,38 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		requireEnumValue(t, index, "yirapb.v1.TICKET_STATUS_OPEN")
 	})
 
+	t.Run("indexes services and methods", func(t *testing.T) {
+		yiraFile := requireFile(t, index, "yirapb/v1/yira.proto")
+		service := requireService(t, index, "yirapb.v1.TicketService")
+
+		assert.Same(t, yiraFile, service.File)
+		require.Len(t, service.Methods, 8)
+
+		listTickets := methodByName(t, service, "ListTickets")
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.ListTicketsRequest"), listTickets.Input)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.ListTicketsResponse"), listTickets.Output)
+		assert.False(t, listTickets.ClientStreaming)
+		assert.False(t, listTickets.ServerStreaming)
+
+		watchEvents := methodByName(t, service, "WatchTicketEvents")
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.WatchTicketEventsRequest"), watchEvents.Input)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), watchEvents.Output)
+		assert.False(t, watchEvents.ClientStreaming)
+		assert.True(t, watchEvents.ServerStreaming)
+
+		importEvents := methodByName(t, service, "ImportTicketEvents")
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), importEvents.Input)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.ImportTicketEventsResponse"), importEvents.Output)
+		assert.True(t, importEvents.ClientStreaming)
+		assert.False(t, importEvents.ServerStreaming)
+
+		syncEvents := methodByName(t, service, "SyncTicketEvents")
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), syncEvents.Input)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), syncEvents.Output)
+		assert.True(t, syncEvents.ClientStreaming)
+		assert.True(t, syncEvents.ServerStreaming)
+	})
+
 	t.Run("resolves message and enum fields", func(t *testing.T) {
 		ticket := requireMessage(t, index, "yirapb.v1.Ticket")
 		nullablePerson := requireMessage(t, index, "yirapb.v1.NullablePerson")
@@ -263,6 +295,19 @@ func fieldByName(t *testing.T, message *ProtoMessage, name protoreflect.Name) *P
 	return nil
 }
 
+func methodByName(t *testing.T, service *ProtoService, name protoreflect.Name) *ProtoMethod {
+	t.Helper()
+
+	for _, method := range service.Methods {
+		if method.Name == name {
+			return method
+		}
+	}
+
+	t.Fatalf("method %q not found on service %q", name, service.FullName)
+	return nil
+}
+
 func requireFile(t *testing.T, index *DescriptorIndex, path string) *ProtoFile {
 	t.Helper()
 
@@ -293,4 +338,12 @@ func requireEnumValue(t *testing.T, index *DescriptorIndex, name protoreflect.Fu
 	value := index.EnumValuesByName[name]
 	require.NotNil(t, value)
 	return value
+}
+
+func requireService(t *testing.T, index *DescriptorIndex, name protoreflect.FullName) *ProtoService {
+	t.Helper()
+
+	service := index.ServicesByName[name]
+	require.NotNil(t, service)
+	return service
 }
