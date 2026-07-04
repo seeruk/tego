@@ -388,6 +388,7 @@ type ServicePlan struct {
 	ProtoRef              GoTypeRef
 	ConnectRef            GoTypeRef
 	Name                  string
+	UnimplementedName     string
 	GRPCServerName        string
 	GRPCAdapterName       string
 	GRPCClientName        string

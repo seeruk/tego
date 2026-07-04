@@ -20,6 +20,10 @@ func plannedServiceName(service *ProtoService) string {
 	return goName(string(service.Name))
 }
 
+func plannedServiceUnimplementedName(serviceName string) string {
+	return "Unimplemented" + serviceName
+}
+
 func plannedServiceGRPCServerName(serviceName string) string {
 	return tempIdentifierBase(serviceName) + "GRPCServer"
 }

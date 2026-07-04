@@ -307,6 +307,7 @@ func serviceInterfaceTestFilePlan() FilePlan {
 			ProtoRef:              GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "TicketService"},
 			ConnectRef:            GoTypeRef{ImportPath: generatedTestPkg + "pb/generatedpbconnect", Name: "TicketService"},
 			Name:                  "TicketService",
+			UnimplementedName:     "UnimplementedTicketService",
 			GRPCAdapterName:       "TicketServiceGRPCAdapter",
 			GRPCServerName:        "ticketServiceGRPCServer",
 			GRPCClientName:        "ticketServiceGRPCClient",

@@ -14,6 +14,7 @@ func (p *Planner) planService(service *ProtoService, si *ShapeIndex) (ServicePla
 		ProtoRef:              protoServicePlanRef(service),
 		ConnectRef:            connectServicePlanRef(service, p.rpc.ConnectPackageSuffix),
 		Name:                  name,
+		UnimplementedName:     plannedServiceUnimplementedName(name),
 		GRPCServerName:        plannedServiceGRPCServerName(name),
 		GRPCAdapterName:       plannedServiceGRPCAdapterName(name),
 		GRPCClientName:        plannedServiceGRPCClientName(name),

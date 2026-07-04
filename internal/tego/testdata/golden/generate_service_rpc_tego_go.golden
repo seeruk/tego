@@ -5,6 +5,8 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
+	fmt "fmt"
+	tego "github.com/seeruk/tego"
 	generatedpb "github.com/seeruk/tego/internal/tego/testdata/generatedpb"
 	generatedpbconnect "github.com/seeruk/tego/internal/tego/testdata/generatedpb/generatedpbconnect"
 	grpc "google.golang.org/grpc"
@@ -18,6 +20,30 @@ type TicketService interface {
 	WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error)
 	ImportTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (ImportTicketEventsResponse, error)
 	SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error)
+}
+
+type UnimplementedTicketService struct{}
+
+func (UnimplementedTicketService) GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
+	var zero GetTicketResponse
+	return zero, unimplementedTicketServiceError("GetTicket")
+}
+
+func (UnimplementedTicketService) WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error) {
+	return nil, unimplementedTicketServiceError("WatchTicketEvents")
+}
+
+func (UnimplementedTicketService) ImportTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (ImportTicketEventsResponse, error) {
+	var zero ImportTicketEventsResponse
+	return zero, unimplementedTicketServiceError("ImportTicketEvents")
+}
+
+func (UnimplementedTicketService) SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error) {
+	return nil, unimplementedTicketServiceError("SyncTicketEvents")
+}
+
+func unimplementedTicketServiceError(method string) error {
+	return fmt.Errorf("TicketService.%s: %w", method, tego.ErrUnimplemented)
 }
 
 func RegisterTicketServiceGRPCServer(registrar grpc.ServiceRegistrar, service TicketService) {
@@ -52,7 +78,7 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestPr
 	}
 	response, err := a.service.GetTicket(ctx, request)
 	if err != nil {
-		return nil, err
+		return nil, tego.GRPCError(err)
 	}
 	responseProto, err := GetTicketResponseToProto(response)
 	if err != nil {
@@ -73,14 +99,14 @@ func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *generate
 	}
 	responses, err := a.service.WatchTicketEvents(ctx, request)
 	if err != nil {
-		return err
+		return tego.GRPCError(err)
 	}
 	if responses == nil {
 		return nil
 	}
 	for response, err := range responses {
 		if err != nil {
-			return err
+			return tego.GRPCError(err)
 		}
 		responseProto, err := TicketEventToProto(response)
 		if err != nil {
@@ -125,7 +151,7 @@ func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStr
 	}
 	response, err := a.service.ImportTicketEvents(stream.Context(), requests)
 	if err != nil {
-		return err
+		return tego.GRPCError(err)
 	}
 	if receiveErr != nil {
 		return receiveErr
@@ -169,12 +195,12 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 	}
 	responses, err := a.service.SyncTicketEvents(stream.Context(), requests)
 	if err != nil {
-		return err
+		return tego.GRPCError(err)
 	}
 	if responses != nil {
 		for response, err := range responses {
 			if err != nil {
-				return err
+				return tego.GRPCError(err)
 			}
 			responseProto, err := TicketEventToProto(response)
 			if err != nil {
@@ -357,7 +383,7 @@ func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, reques
 	}
 	response, err := a.service.GetTicket(ctx, request)
 	if err != nil {
-		return nil, err
+		return nil, tego.ConnectError(err)
 	}
 	responseProto, err := GetTicketResponseToProto(response)
 	if err != nil {
@@ -377,14 +403,14 @@ func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context
 	}
 	responses, err := a.service.WatchTicketEvents(ctx, request)
 	if err != nil {
-		return err
+		return tego.ConnectError(err)
 	}
 	if responses == nil {
 		return nil
 	}
 	for response, err := range responses {
 		if err != nil {
-			return err
+			return tego.ConnectError(err)
 		}
 		responseProto, err := TicketEventToProto(response)
 		if err != nil {
@@ -424,7 +450,7 @@ func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Contex
 	}
 	response, err := a.service.ImportTicketEvents(ctx, requests)
 	if err != nil {
-		return nil, err
+		return nil, tego.ConnectError(err)
 	}
 	if receiveErr != nil {
 		return nil, receiveErr
@@ -468,12 +494,12 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 	}
 	responses, err := a.service.SyncTicketEvents(ctx, requests)
 	if err != nil {
-		return err
+		return tego.ConnectError(err)
 	}
 	if responses != nil {
 		for response, err := range responses {
 			if err != nil {
-				return err
+				return tego.ConnectError(err)
 			}
 			responseProto, err := TicketEventToProto(response)
 			if err != nil {

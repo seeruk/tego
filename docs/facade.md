@@ -32,6 +32,25 @@ type TicketService interface {
 For responses which are "empty", as in `struct{}`, omit them from the facade method and return
 only `error`.
 
+Tego should also generate an embeddable unimplemented facade implementation:
+
+```go
+type UnimplementedTicketService struct{}
+
+func (UnimplementedTicketService) GetTicket(context.Context, GetTicketRequest) (GetTicketResponse, error) {
+	var zero GetTicketResponse
+	return zero, unimplementedTicketServiceError("GetTicket")
+}
+```
+
+The helper wraps `tego.ErrUnimplemented`, allowing users and transport adapters to use
+`errors.Is(err, tego.ErrUnimplemented)`.
+
+Transport-specific error conversion should live in Tego rather than being generated once per
+service. Generated adapters call `tego.GRPCError(err)` and `tego.ConnectError(err)` for facade
+call errors and iterator-yielded errors, mapping `tego.ErrUnimplemented` to the native
+unimplemented code while passing other errors through unchanged.
+
 Generated transport adapters should be fully implemented servers/handlers that call the facade:
 
 ```go
@@ -56,17 +75,58 @@ option (tego.method).facade.inline = true;          // Both request and response
 These options are only suitable for unary methods. It may be desirable to be quite opinionated about
 this, potentially even automatically having unary requests and responses inlined by default.
 
-When inlining is enabled, Tego should generate `Pack` and `Unpack` value-shape helpers:
+When inlining is enabled, Tego should generate `ToInline` and `FromInline` facade call-shape
+helpers. Request helpers should carry `context.Context` through so they can be passed directly to
+facade methods:
 
 ```go
-PackGetTicketRequest(ticketID string) GetTicketRequest
-UnpackGetTicketRequest(request GetTicketRequest) string
-PackGetTicketResponse(ticket Ticket) GetTicketResponse
-UnpackGetTicketResponse(response GetTicketResponse) Ticket
+GetTicketRequestToInline(ctx context.Context, request GetTicketRequest) (context.Context, string)
+GetTicketRequestFromInline(ctx context.Context, ticketID string) (context.Context, GetTicketRequest)
 ```
 
-`Pack` and `Unpack` are pure value helpers. They are useful inside generated adapters and also
-available to users who want to cross the facade/message boundary manually.
+For messages with multiple fields, request helpers should return `context.Context` followed by one
+result per inlined field:
+
+```go
+ListTicketsRequestToInline(
+	ctx context.Context,
+	request ListTicketsRequest,
+) (
+	context.Context,
+	string,
+	TicketFilter,
+	CursorRequest,
+)
+ListTicketsRequestFromInline(
+	ctx context.Context,
+	projectID string,
+	filter TicketFilter,
+	cursor CursorRequest,
+) (context.Context, ListTicketsRequest)
+```
+
+Response helpers should accept and return `error`, so the result of a facade call can be passed
+directly into the helper:
+
+```go
+GetTicketResponseToInline(response GetTicketResponse, err error) (Ticket, error)
+GetTicketResponseFromInline(ticket Ticket, err error) (GetTicketResponse, error)
+```
+
+If the incoming error is non-nil, response helpers should return the zero value for the response
+shape and pass the error through unchanged.
+
+With these helpers, generated adapters and user-owned transport overrides can forward through the
+facade concisely:
+
+```go
+response, err := GetTicketResponseFromInline(
+	a.service.GetTicket(GetTicketRequestToInline(ctx, request)),
+)
+```
+
+For multi-field request or response inlining, the same direct call shape should work because the
+helpers absorb the surrounding `context.Context` and `error` values.
 
 ## Transport Adapters
 

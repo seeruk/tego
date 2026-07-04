@@ -206,6 +206,12 @@ func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic
 	}
 	for _, service := range plan.Services {
 		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, service.Name, string(service.ProtoName))...)
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+			plan,
+			seen,
+			service.UnimplementedName,
+			string(service.ProtoName)+" unimplemented facade",
+		)...)
 		if rpc.GRPC {
 			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
 				plan,
