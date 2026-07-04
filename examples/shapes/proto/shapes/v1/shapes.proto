@@ -43,4 +43,8 @@ message Project {
   PeopleByTeam members = 2;
   NullablePerson owner = 3;
   PersonList reviewers = 4;
+  repeated ProjectSlug aliases = 5;
+  map<string, ProjectSlug> localized_slugs = 6;
+  repeated NullablePerson previous_owners = 7;
+  map<string, NullablePerson> contacts_by_role = 8;
 }

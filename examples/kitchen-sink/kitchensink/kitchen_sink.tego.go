@@ -39,34 +39,52 @@ type ChoiceNumber struct {
 func (ChoiceNumber) isChoiceValue() {}
 
 type KitchenSink struct {
-	BoolValue     bool
-	Int32Value    int32
-	Sint32Value   int32
-	Sfixed32Value int32
-	Uint32Value   uint32
-	Fixed32Value  uint32
-	Int64Value    int
-	Sint64Value   int
-	Sfixed64Value int
-	Uint64Value   uint
-	Fixed64Value  uint
-	FloatValue    float32
-	DoubleValue   float64
-	StringValue   string
-	BytesValue    []byte
-	Status        Status
-	Tags          []string
-	Counts        map[string]int32
-	WrappedBool   *bool
-	WrappedString *string
-	CreatedAt     time.Time
-	TTL           time.Duration
-	StructValue   tego.Struct
-	DynamicValue  tego.Value
-	ListValue     tego.ListValue
-	AnyValue      *anypb.Any
-	EmptyValue    struct{}
-	Choice        Choice
+	BoolValue          bool
+	Int32Value         int32
+	Sint32Value        int32
+	Sfixed32Value      int32
+	Uint32Value        uint32
+	Fixed32Value       uint32
+	Int64Value         int
+	Sint64Value        int
+	Sfixed64Value      int
+	Uint64Value        uint
+	Fixed64Value       uint
+	FloatValue         float32
+	DoubleValue        float64
+	StringValue        string
+	BytesValue         []byte
+	Status             Status
+	Tags               []string
+	Counts             map[string]int32
+	WrappedBool        *bool
+	WrappedString      *string
+	CreatedAt          time.Time
+	TTL                time.Duration
+	StructValue        tego.Struct
+	DynamicValue       tego.Value
+	ListValue          tego.ListValue
+	AnyValue           *anypb.Any
+	EmptyValue         struct{}
+	Choice             Choice
+	WrappedStrings     []*string
+	WrappedStringsByID map[string]*string
+	WrappedBools       []*bool
+	WrappedBoolsByID   map[string]*bool
+	CreatedAtHistory   []time.Time
+	CreatedAtByID      map[string]time.Time
+	TTLs               []time.Duration
+	TTLsByID           map[string]time.Duration
+	StructValues       []tego.Struct
+	StructValuesByID   map[string]tego.Struct
+	DynamicValues      []tego.Value
+	DynamicValuesByID  map[string]tego.Value
+	ListValues         []tego.ListValue
+	ListValuesByID     map[string]tego.ListValue
+	AnyValues          []*anypb.Any
+	AnyValuesByID      map[string]*anypb.Any
+	EmptyValues        []struct{}
+	EmptyValuesByID    map[string]struct{}
 }
 
 type Choice struct {
@@ -142,6 +160,152 @@ func KitchenSinkFromProto(source *kitchensinkpbv1.KitchenSink) KitchenSink {
 	target.AnyValue = source.GetAnyValue()
 	target.EmptyValue = struct{}{}
 	target.Choice = ChoiceFromProto(source.GetChoice())
+	wrappedStrings := make([]*string, 0, len(source.GetWrappedStrings()))
+	for _, wrappedStringsItem := range source.GetWrappedStrings() {
+		var wrappedStringsItemTego *string
+		if wrappedStringsItem != nil {
+			wrappedStringsItemTego = new(wrappedStringsItem.GetValue())
+		}
+		wrappedStrings = append(wrappedStrings, wrappedStringsItemTego)
+	}
+	target.WrappedStrings = wrappedStrings
+	wrappedStringsByID := make(map[string]*string, len(source.GetWrappedStringsById()))
+	for wrappedStringsByIDKey, wrappedStringsByIDValue := range source.GetWrappedStringsById() {
+		var wrappedStringsByIDValueTego *string
+		if wrappedStringsByIDValue != nil {
+			wrappedStringsByIDValueTego = new(wrappedStringsByIDValue.GetValue())
+		}
+		wrappedStringsByID[wrappedStringsByIDKey] = wrappedStringsByIDValueTego
+	}
+	target.WrappedStringsByID = wrappedStringsByID
+	wrappedBools := make([]*bool, 0, len(source.GetWrappedBools()))
+	for _, wrappedBoolsItem := range source.GetWrappedBools() {
+		var wrappedBoolsItemTego *bool
+		if wrappedBoolsItem != nil {
+			wrappedBoolsItemTego = new(wrappedBoolsItem.GetValue())
+		}
+		wrappedBools = append(wrappedBools, wrappedBoolsItemTego)
+	}
+	target.WrappedBools = wrappedBools
+	wrappedBoolsByID := make(map[string]*bool, len(source.GetWrappedBoolsById()))
+	for wrappedBoolsByIDKey, wrappedBoolsByIDValue := range source.GetWrappedBoolsById() {
+		var wrappedBoolsByIDValueTego *bool
+		if wrappedBoolsByIDValue != nil {
+			wrappedBoolsByIDValueTego = new(wrappedBoolsByIDValue.GetValue())
+		}
+		wrappedBoolsByID[wrappedBoolsByIDKey] = wrappedBoolsByIDValueTego
+	}
+	target.WrappedBoolsByID = wrappedBoolsByID
+	createdAtHistory := make([]time.Time, 0, len(source.GetCreatedAtHistory()))
+	for _, createdAtHistoryItem := range source.GetCreatedAtHistory() {
+		var createdAtHistoryItemTego time.Time
+		if createdAtHistoryItem != nil {
+			createdAtHistoryItemTego = createdAtHistoryItem.AsTime()
+		}
+		createdAtHistory = append(createdAtHistory, createdAtHistoryItemTego)
+	}
+	target.CreatedAtHistory = createdAtHistory
+	createdAtByID := make(map[string]time.Time, len(source.GetCreatedAtById()))
+	for createdAtByIDKey, createdAtByIDValue := range source.GetCreatedAtById() {
+		var createdAtByIDValueTego time.Time
+		if createdAtByIDValue != nil {
+			createdAtByIDValueTego = createdAtByIDValue.AsTime()
+		}
+		createdAtByID[createdAtByIDKey] = createdAtByIDValueTego
+	}
+	target.CreatedAtByID = createdAtByID
+	ttLs := make([]time.Duration, 0, len(source.GetTtls()))
+	for _, ttLsItem := range source.GetTtls() {
+		var ttLsItemTego time.Duration
+		if ttLsItem != nil {
+			ttLsItemTego = ttLsItem.AsDuration()
+		}
+		ttLs = append(ttLs, ttLsItemTego)
+	}
+	target.TTLs = ttLs
+	ttLsByID := make(map[string]time.Duration, len(source.GetTtlsById()))
+	for ttLsByIDKey, ttLsByIDValue := range source.GetTtlsById() {
+		var ttLsByIDValueTego time.Duration
+		if ttLsByIDValue != nil {
+			ttLsByIDValueTego = ttLsByIDValue.AsDuration()
+		}
+		ttLsByID[ttLsByIDKey] = ttLsByIDValueTego
+	}
+	target.TTLsByID = ttLsByID
+	structValues := make([]tego.Struct, 0, len(source.GetStructValues()))
+	for _, structValuesItem := range source.GetStructValues() {
+		var structValuesItemTego tego.Struct
+		if structValuesItem != nil {
+			structValuesItemTego = structValuesItem.AsMap()
+		}
+		structValues = append(structValues, structValuesItemTego)
+	}
+	target.StructValues = structValues
+	structValuesByID := make(map[string]tego.Struct, len(source.GetStructValuesById()))
+	for structValuesByIDKey, structValuesByIDValue := range source.GetStructValuesById() {
+		var structValuesByIDValueTego tego.Struct
+		if structValuesByIDValue != nil {
+			structValuesByIDValueTego = structValuesByIDValue.AsMap()
+		}
+		structValuesByID[structValuesByIDKey] = structValuesByIDValueTego
+	}
+	target.StructValuesByID = structValuesByID
+	dynamicValues := make([]tego.Value, 0, len(source.GetDynamicValues()))
+	for _, dynamicValuesItem := range source.GetDynamicValues() {
+		var dynamicValuesItemTego tego.Value
+		if dynamicValuesItem != nil {
+			dynamicValuesItemTego = dynamicValuesItem.AsInterface()
+		}
+		dynamicValues = append(dynamicValues, dynamicValuesItemTego)
+	}
+	target.DynamicValues = dynamicValues
+	dynamicValuesByID := make(map[string]tego.Value, len(source.GetDynamicValuesById()))
+	for dynamicValuesByIDKey, dynamicValuesByIDValue := range source.GetDynamicValuesById() {
+		var dynamicValuesByIDValueTego tego.Value
+		if dynamicValuesByIDValue != nil {
+			dynamicValuesByIDValueTego = dynamicValuesByIDValue.AsInterface()
+		}
+		dynamicValuesByID[dynamicValuesByIDKey] = dynamicValuesByIDValueTego
+	}
+	target.DynamicValuesByID = dynamicValuesByID
+	listValues := make([]tego.ListValue, 0, len(source.GetListValues()))
+	for _, listValuesItem := range source.GetListValues() {
+		var listValuesItemTego tego.ListValue
+		if listValuesItem != nil {
+			listValuesItemTego = listValuesItem.AsSlice()
+		}
+		listValues = append(listValues, listValuesItemTego)
+	}
+	target.ListValues = listValues
+	listValuesByID := make(map[string]tego.ListValue, len(source.GetListValuesById()))
+	for listValuesByIDKey, listValuesByIDValue := range source.GetListValuesById() {
+		var listValuesByIDValueTego tego.ListValue
+		if listValuesByIDValue != nil {
+			listValuesByIDValueTego = listValuesByIDValue.AsSlice()
+		}
+		listValuesByID[listValuesByIDKey] = listValuesByIDValueTego
+	}
+	target.ListValuesByID = listValuesByID
+	anyValues := make([]*anypb.Any, 0, len(source.GetAnyValues()))
+	for _, anyValuesItem := range source.GetAnyValues() {
+		anyValues = append(anyValues, anyValuesItem)
+	}
+	target.AnyValues = anyValues
+	anyValuesByID := make(map[string]*anypb.Any, len(source.GetAnyValuesById()))
+	for anyValuesByIDKey, anyValuesByIDValue := range source.GetAnyValuesById() {
+		anyValuesByID[anyValuesByIDKey] = anyValuesByIDValue
+	}
+	target.AnyValuesByID = anyValuesByID
+	emptyValues := make([]struct{}, 0, len(source.GetEmptyValues()))
+	for range source.GetEmptyValues() {
+		emptyValues = append(emptyValues, struct{}{})
+	}
+	target.EmptyValues = emptyValues
+	emptyValuesByID := make(map[string]struct{}, len(source.GetEmptyValuesById()))
+	for emptyValuesByIDKey := range source.GetEmptyValuesById() {
+		emptyValuesByID[emptyValuesByIDKey] = struct{}{}
+	}
+	target.EmptyValuesByID = emptyValuesByID
 	return target
 }
 
@@ -215,6 +379,152 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 		return nil, err
 	}
 	target.SetChoice(choice)
+	wrappedStrings := make([]*wrapperspb.StringValue, 0, len(source.WrappedStrings))
+	for _, wrappedStringsItem := range source.WrappedStrings {
+		var wrappedStringsItemProto *wrapperspb.StringValue
+		if wrappedStringsItem != nil {
+			wrappedStringsItemProto = wrapperspb.String(*wrappedStringsItem)
+		}
+		wrappedStrings = append(wrappedStrings, wrappedStringsItemProto)
+	}
+	target.SetWrappedStrings(wrappedStrings)
+	wrappedStringsByID := make(map[string]*wrapperspb.StringValue, len(source.WrappedStringsByID))
+	for wrappedStringsByIDKey, wrappedStringsByIDValue := range source.WrappedStringsByID {
+		var wrappedStringsByIDValueProto *wrapperspb.StringValue
+		if wrappedStringsByIDValue != nil {
+			wrappedStringsByIDValueProto = wrapperspb.String(*wrappedStringsByIDValue)
+		}
+		wrappedStringsByID[wrappedStringsByIDKey] = wrappedStringsByIDValueProto
+	}
+	target.SetWrappedStringsById(wrappedStringsByID)
+	wrappedBools := make([]*wrapperspb.BoolValue, 0, len(source.WrappedBools))
+	for _, wrappedBoolsItem := range source.WrappedBools {
+		var wrappedBoolsItemProto *wrapperspb.BoolValue
+		if wrappedBoolsItem != nil {
+			wrappedBoolsItemProto = wrapperspb.Bool(*wrappedBoolsItem)
+		}
+		wrappedBools = append(wrappedBools, wrappedBoolsItemProto)
+	}
+	target.SetWrappedBools(wrappedBools)
+	wrappedBoolsByID := make(map[string]*wrapperspb.BoolValue, len(source.WrappedBoolsByID))
+	for wrappedBoolsByIDKey, wrappedBoolsByIDValue := range source.WrappedBoolsByID {
+		var wrappedBoolsByIDValueProto *wrapperspb.BoolValue
+		if wrappedBoolsByIDValue != nil {
+			wrappedBoolsByIDValueProto = wrapperspb.Bool(*wrappedBoolsByIDValue)
+		}
+		wrappedBoolsByID[wrappedBoolsByIDKey] = wrappedBoolsByIDValueProto
+	}
+	target.SetWrappedBoolsById(wrappedBoolsByID)
+	createdAtHistory := make([]*timestamppb.Timestamp, 0, len(source.CreatedAtHistory))
+	for _, createdAtHistoryItem := range source.CreatedAtHistory {
+		createdAtHistory = append(createdAtHistory, timestamppb.New(createdAtHistoryItem))
+	}
+	target.SetCreatedAtHistory(createdAtHistory)
+	createdAtByID := make(map[string]*timestamppb.Timestamp, len(source.CreatedAtByID))
+	for createdAtByIDKey, createdAtByIDValue := range source.CreatedAtByID {
+		createdAtByID[createdAtByIDKey] = timestamppb.New(createdAtByIDValue)
+	}
+	target.SetCreatedAtById(createdAtByID)
+	ttLs := make([]*durationpb.Duration, 0, len(source.TTLs))
+	for _, ttLsItem := range source.TTLs {
+		ttLs = append(ttLs, durationpb.New(ttLsItem))
+	}
+	target.SetTtls(ttLs)
+	ttLsByID := make(map[string]*durationpb.Duration, len(source.TTLsByID))
+	for ttLsByIDKey, ttLsByIDValue := range source.TTLsByID {
+		ttLsByID[ttLsByIDKey] = durationpb.New(ttLsByIDValue)
+	}
+	target.SetTtlsById(ttLsByID)
+	structValues := make([]*structpb.Struct, 0, len(source.StructValues))
+	for _, structValuesItem := range source.StructValues {
+		var structValuesItemProto *structpb.Struct
+		if structValuesItem != nil {
+			structValuesItemProto2, err := structpb.NewStruct(structValuesItem)
+			if err != nil {
+				return nil, err
+			}
+			structValuesItemProto = structValuesItemProto2
+		}
+		structValues = append(structValues, structValuesItemProto)
+	}
+	target.SetStructValues(structValues)
+	structValuesByID := make(map[string]*structpb.Struct, len(source.StructValuesByID))
+	for structValuesByIDKey, structValuesByIDValue := range source.StructValuesByID {
+		var structValuesByIDValueProto *structpb.Struct
+		if structValuesByIDValue != nil {
+			structValuesByIDValueProto2, err := structpb.NewStruct(structValuesByIDValue)
+			if err != nil {
+				return nil, err
+			}
+			structValuesByIDValueProto = structValuesByIDValueProto2
+		}
+		structValuesByID[structValuesByIDKey] = structValuesByIDValueProto
+	}
+	target.SetStructValuesById(structValuesByID)
+	dynamicValues := make([]*structpb.Value, 0, len(source.DynamicValues))
+	for _, dynamicValuesItem := range source.DynamicValues {
+		dynamicValuesItemProto, err := structpb.NewValue(dynamicValuesItem)
+		if err != nil {
+			return nil, err
+		}
+		dynamicValues = append(dynamicValues, dynamicValuesItemProto)
+	}
+	target.SetDynamicValues(dynamicValues)
+	dynamicValuesByID := make(map[string]*structpb.Value, len(source.DynamicValuesByID))
+	for dynamicValuesByIDKey, dynamicValuesByIDValue := range source.DynamicValuesByID {
+		dynamicValuesByIDValueProto, err := structpb.NewValue(dynamicValuesByIDValue)
+		if err != nil {
+			return nil, err
+		}
+		dynamicValuesByID[dynamicValuesByIDKey] = dynamicValuesByIDValueProto
+	}
+	target.SetDynamicValuesById(dynamicValuesByID)
+	listValues := make([]*structpb.ListValue, 0, len(source.ListValues))
+	for _, listValuesItem := range source.ListValues {
+		var listValuesItemProto *structpb.ListValue
+		if listValuesItem != nil {
+			listValuesItemProto2, err := structpb.NewList(listValuesItem)
+			if err != nil {
+				return nil, err
+			}
+			listValuesItemProto = listValuesItemProto2
+		}
+		listValues = append(listValues, listValuesItemProto)
+	}
+	target.SetListValues(listValues)
+	listValuesByID := make(map[string]*structpb.ListValue, len(source.ListValuesByID))
+	for listValuesByIDKey, listValuesByIDValue := range source.ListValuesByID {
+		var listValuesByIDValueProto *structpb.ListValue
+		if listValuesByIDValue != nil {
+			listValuesByIDValueProto2, err := structpb.NewList(listValuesByIDValue)
+			if err != nil {
+				return nil, err
+			}
+			listValuesByIDValueProto = listValuesByIDValueProto2
+		}
+		listValuesByID[listValuesByIDKey] = listValuesByIDValueProto
+	}
+	target.SetListValuesById(listValuesByID)
+	anyValues := make([]*anypb.Any, 0, len(source.AnyValues))
+	for _, anyValuesItem := range source.AnyValues {
+		anyValues = append(anyValues, anyValuesItem)
+	}
+	target.SetAnyValues(anyValues)
+	anyValuesByID := make(map[string]*anypb.Any, len(source.AnyValuesByID))
+	for anyValuesByIDKey, anyValuesByIDValue := range source.AnyValuesByID {
+		anyValuesByID[anyValuesByIDKey] = anyValuesByIDValue
+	}
+	target.SetAnyValuesById(anyValuesByID)
+	emptyValues := make([]*emptypb.Empty, 0, len(source.EmptyValues))
+	for range source.EmptyValues {
+		emptyValues = append(emptyValues, new(emptypb.Empty))
+	}
+	target.SetEmptyValues(emptyValues)
+	emptyValuesByID := make(map[string]*emptypb.Empty, len(source.EmptyValuesByID))
+	for emptyValuesByIDKey := range source.EmptyValuesByID {
+		emptyValuesByID[emptyValuesByIDKey] = new(emptypb.Empty)
+	}
+	target.SetEmptyValuesById(emptyValuesByID)
 	return target, nil
 }
 

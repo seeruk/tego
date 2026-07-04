@@ -47,6 +47,24 @@ message KitchenSink {
   google.protobuf.Any any_value = 26;
   google.protobuf.Empty empty_value = 27;
   Choice choice = 28;
+  repeated google.protobuf.StringValue wrapped_strings = 29;
+  map<string, google.protobuf.StringValue> wrapped_strings_by_id = 30;
+  repeated google.protobuf.BoolValue wrapped_bools = 31;
+  map<string, google.protobuf.BoolValue> wrapped_bools_by_id = 32;
+  repeated google.protobuf.Timestamp created_at_history = 33;
+  map<string, google.protobuf.Timestamp> created_at_by_id = 34;
+  repeated google.protobuf.Duration ttls = 35;
+  map<string, google.protobuf.Duration> ttls_by_id = 36;
+  repeated google.protobuf.Struct struct_values = 37;
+  map<string, google.protobuf.Struct> struct_values_by_id = 38;
+  repeated google.protobuf.Value dynamic_values = 39;
+  map<string, google.protobuf.Value> dynamic_values_by_id = 40;
+  repeated google.protobuf.ListValue list_values = 41;
+  map<string, google.protobuf.ListValue> list_values_by_id = 42;
+  repeated google.protobuf.Any any_values = 43;
+  map<string, google.protobuf.Any> any_values_by_id = 44;
+  repeated google.protobuf.Empty empty_values = 45;
+  map<string, google.protobuf.Empty> empty_values_by_id = 46;
 }
 
 message Choice {

@@ -497,13 +497,17 @@ func (b0 ProjectSlug_builder) Build() *ProjectSlug {
 }
 
 type Project struct {
-	state                protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Slug      *ProjectSlug           `protobuf:"bytes,1,opt,name=slug"`
-	xxx_hidden_Members   *PeopleByTeam          `protobuf:"bytes,2,opt,name=members"`
-	xxx_hidden_Owner     *NullablePerson        `protobuf:"bytes,3,opt,name=owner"`
-	xxx_hidden_Reviewers *PersonList            `protobuf:"bytes,4,opt,name=reviewers"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                     protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Slug           *ProjectSlug               `protobuf:"bytes,1,opt,name=slug"`
+	xxx_hidden_Members        *PeopleByTeam              `protobuf:"bytes,2,opt,name=members"`
+	xxx_hidden_Owner          *NullablePerson            `protobuf:"bytes,3,opt,name=owner"`
+	xxx_hidden_Reviewers      *PersonList                `protobuf:"bytes,4,opt,name=reviewers"`
+	xxx_hidden_Aliases        *[]*ProjectSlug            `protobuf:"bytes,5,rep,name=aliases"`
+	xxx_hidden_LocalizedSlugs map[string]*ProjectSlug    `protobuf:"bytes,6,rep,name=localized_slugs,json=localizedSlugs" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_PreviousOwners *[]*NullablePerson         `protobuf:"bytes,7,rep,name=previous_owners,json=previousOwners"`
+	xxx_hidden_ContactsByRole map[string]*NullablePerson `protobuf:"bytes,8,rep,name=contacts_by_role,json=contactsByRole" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *Project) Reset() {
@@ -559,6 +563,38 @@ func (x *Project) GetReviewers() *PersonList {
 	return nil
 }
 
+func (x *Project) GetAliases() []*ProjectSlug {
+	if x != nil {
+		if x.xxx_hidden_Aliases != nil {
+			return *x.xxx_hidden_Aliases
+		}
+	}
+	return nil
+}
+
+func (x *Project) GetLocalizedSlugs() map[string]*ProjectSlug {
+	if x != nil {
+		return x.xxx_hidden_LocalizedSlugs
+	}
+	return nil
+}
+
+func (x *Project) GetPreviousOwners() []*NullablePerson {
+	if x != nil {
+		if x.xxx_hidden_PreviousOwners != nil {
+			return *x.xxx_hidden_PreviousOwners
+		}
+	}
+	return nil
+}
+
+func (x *Project) GetContactsByRole() map[string]*NullablePerson {
+	if x != nil {
+		return x.xxx_hidden_ContactsByRole
+	}
+	return nil
+}
+
 func (x *Project) SetSlug(v *ProjectSlug) {
 	x.xxx_hidden_Slug = v
 }
@@ -573,6 +609,22 @@ func (x *Project) SetOwner(v *NullablePerson) {
 
 func (x *Project) SetReviewers(v *PersonList) {
 	x.xxx_hidden_Reviewers = v
+}
+
+func (x *Project) SetAliases(v []*ProjectSlug) {
+	x.xxx_hidden_Aliases = &v
+}
+
+func (x *Project) SetLocalizedSlugs(v map[string]*ProjectSlug) {
+	x.xxx_hidden_LocalizedSlugs = v
+}
+
+func (x *Project) SetPreviousOwners(v []*NullablePerson) {
+	x.xxx_hidden_PreviousOwners = &v
+}
+
+func (x *Project) SetContactsByRole(v map[string]*NullablePerson) {
+	x.xxx_hidden_ContactsByRole = v
 }
 
 func (x *Project) HasSlug() bool {
@@ -622,10 +674,14 @@ func (x *Project) ClearReviewers() {
 type Project_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Slug      *ProjectSlug
-	Members   *PeopleByTeam
-	Owner     *NullablePerson
-	Reviewers *PersonList
+	Slug           *ProjectSlug
+	Members        *PeopleByTeam
+	Owner          *NullablePerson
+	Reviewers      *PersonList
+	Aliases        []*ProjectSlug
+	LocalizedSlugs map[string]*ProjectSlug
+	PreviousOwners []*NullablePerson
+	ContactsByRole map[string]*NullablePerson
 }
 
 func (b0 Project_builder) Build() *Project {
@@ -636,6 +692,10 @@ func (b0 Project_builder) Build() *Project {
 	x.xxx_hidden_Members = b.Members
 	x.xxx_hidden_Owner = b.Owner
 	x.xxx_hidden_Reviewers = b.Reviewers
+	x.xxx_hidden_Aliases = &b.Aliases
+	x.xxx_hidden_LocalizedSlugs = b.LocalizedSlugs
+	x.xxx_hidden_PreviousOwners = &b.PreviousOwners
+	x.xxx_hidden_ContactsByRole = b.ContactsByRole
 	return m0
 }
 
@@ -764,16 +824,26 @@ const file_proto_shapes_v1_shapes_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x11.shapes.v1.PersonR\x05value\"+\n" +
 	"\vProjectSlug\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value:\x06҅\n" +
-	"\x028\x01\"\xce\x01\n" +
+	"\x028\x01\"\xa0\x05\n" +
 	"\aProject\x12*\n" +
 	"\x04slug\x18\x01 \x01(\v2\x16.shapes.v1.ProjectSlugR\x04slug\x121\n" +
 	"\amembers\x18\x02 \x01(\v2\x17.shapes.v1.PeopleByTeamR\amembers\x12/\n" +
 	"\x05owner\x18\x03 \x01(\v2\x19.shapes.v1.NullablePersonR\x05owner\x123\n" +
-	"\treviewers\x18\x04 \x01(\v2\x15.shapes.v1.PersonListR\treviewersBx҅\n" +
+	"\treviewers\x18\x04 \x01(\v2\x15.shapes.v1.PersonListR\treviewers\x120\n" +
+	"\aaliases\x18\x05 \x03(\v2\x16.shapes.v1.ProjectSlugR\aaliases\x12O\n" +
+	"\x0flocalized_slugs\x18\x06 \x03(\v2&.shapes.v1.Project.LocalizedSlugsEntryR\x0elocalizedSlugs\x12B\n" +
+	"\x0fprevious_owners\x18\a \x03(\v2\x19.shapes.v1.NullablePersonR\x0epreviousOwners\x12P\n" +
+	"\x10contacts_by_role\x18\b \x03(\v2&.shapes.v1.Project.ContactsByRoleEntryR\x0econtactsByRole\x1aY\n" +
+	"\x13LocalizedSlugsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
+	"\x05value\x18\x02 \x01(\v2\x16.shapes.v1.ProjectSlugR\x05value:\x028\x01\x1a\\\n" +
+	"\x13ContactsByRoleEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12/\n" +
+	"\x05value\x18\x02 \x01(\v2\x19.shapes.v1.NullablePersonR\x05value:\x028\x01Bx҅\n" +
 	"6\n" +
 	"4github.com/seeruk/tego/examples/shapes/shapes;shapesZ<github.com/seeruk/tego/examples/shapes/shapespbv1;shapespbv1b\beditionsp\xe9\a"
 
-var file_proto_shapes_v1_shapes_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_proto_shapes_v1_shapes_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_shapes_v1_shapes_proto_goTypes = []any{
 	(*Person)(nil),           // 0: shapes.v1.Person
 	(*PersonList)(nil),       // 1: shapes.v1.PersonList
@@ -782,23 +852,31 @@ var file_proto_shapes_v1_shapes_proto_goTypes = []any{
 	(*ProjectSlug)(nil),      // 4: shapes.v1.ProjectSlug
 	(*Project)(nil),          // 5: shapes.v1.Project
 	(*PeopleByTeam_Map)(nil), // 6: shapes.v1.PeopleByTeam.Map
-	(structpb.NullValue)(0),  // 7: google.protobuf.NullValue
+	nil,                      // 7: shapes.v1.Project.LocalizedSlugsEntry
+	nil,                      // 8: shapes.v1.Project.ContactsByRoleEntry
+	(structpb.NullValue)(0),  // 9: google.protobuf.NullValue
 }
 var file_proto_shapes_v1_shapes_proto_depIdxs = []int32{
-	0, // 0: shapes.v1.PersonList.people:type_name -> shapes.v1.Person
-	0, // 1: shapes.v1.NullablePerson.person:type_name -> shapes.v1.Person
-	7, // 2: shapes.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
-	6, // 3: shapes.v1.PeopleByTeam.entries:type_name -> shapes.v1.PeopleByTeam.Map
-	4, // 4: shapes.v1.Project.slug:type_name -> shapes.v1.ProjectSlug
-	3, // 5: shapes.v1.Project.members:type_name -> shapes.v1.PeopleByTeam
-	2, // 6: shapes.v1.Project.owner:type_name -> shapes.v1.NullablePerson
-	1, // 7: shapes.v1.Project.reviewers:type_name -> shapes.v1.PersonList
-	0, // 8: shapes.v1.PeopleByTeam.Map.value:type_name -> shapes.v1.Person
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	0,  // 0: shapes.v1.PersonList.people:type_name -> shapes.v1.Person
+	0,  // 1: shapes.v1.NullablePerson.person:type_name -> shapes.v1.Person
+	9,  // 2: shapes.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
+	6,  // 3: shapes.v1.PeopleByTeam.entries:type_name -> shapes.v1.PeopleByTeam.Map
+	4,  // 4: shapes.v1.Project.slug:type_name -> shapes.v1.ProjectSlug
+	3,  // 5: shapes.v1.Project.members:type_name -> shapes.v1.PeopleByTeam
+	2,  // 6: shapes.v1.Project.owner:type_name -> shapes.v1.NullablePerson
+	1,  // 7: shapes.v1.Project.reviewers:type_name -> shapes.v1.PersonList
+	4,  // 8: shapes.v1.Project.aliases:type_name -> shapes.v1.ProjectSlug
+	7,  // 9: shapes.v1.Project.localized_slugs:type_name -> shapes.v1.Project.LocalizedSlugsEntry
+	2,  // 10: shapes.v1.Project.previous_owners:type_name -> shapes.v1.NullablePerson
+	8,  // 11: shapes.v1.Project.contacts_by_role:type_name -> shapes.v1.Project.ContactsByRoleEntry
+	0,  // 12: shapes.v1.PeopleByTeam.Map.value:type_name -> shapes.v1.Person
+	4,  // 13: shapes.v1.Project.LocalizedSlugsEntry.value:type_name -> shapes.v1.ProjectSlug
+	2,  // 14: shapes.v1.Project.ContactsByRoleEntry.value:type_name -> shapes.v1.NullablePerson
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_proto_shapes_v1_shapes_proto_init() }
@@ -816,7 +894,7 @@ func file_proto_shapes_v1_shapes_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_shapes_v1_shapes_proto_rawDesc), len(file_proto_shapes_v1_shapes_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

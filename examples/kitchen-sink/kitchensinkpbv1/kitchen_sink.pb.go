@@ -72,39 +72,57 @@ func (x Status) Number() protoreflect.EnumNumber {
 }
 
 type KitchenSink struct {
-	state                    protoimpl.MessageState  `protogen:"opaque.v1"`
-	xxx_hidden_BoolValue     bool                    `protobuf:"varint,1,opt,name=bool_value,json=boolValue"`
-	xxx_hidden_Int32Value    int32                   `protobuf:"varint,2,opt,name=int32_value,json=int32Value"`
-	xxx_hidden_Sint32Value   int32                   `protobuf:"zigzag32,3,opt,name=sint32_value,json=sint32Value"`
-	xxx_hidden_Sfixed32Value int32                   `protobuf:"fixed32,4,opt,name=sfixed32_value,json=sfixed32Value"`
-	xxx_hidden_Uint32Value   uint32                  `protobuf:"varint,5,opt,name=uint32_value,json=uint32Value"`
-	xxx_hidden_Fixed32Value  uint32                  `protobuf:"fixed32,6,opt,name=fixed32_value,json=fixed32Value"`
-	xxx_hidden_Int64Value    int64                   `protobuf:"varint,7,opt,name=int64_value,json=int64Value"`
-	xxx_hidden_Sint64Value   int64                   `protobuf:"zigzag64,8,opt,name=sint64_value,json=sint64Value"`
-	xxx_hidden_Sfixed64Value int64                   `protobuf:"fixed64,9,opt,name=sfixed64_value,json=sfixed64Value"`
-	xxx_hidden_Uint64Value   uint64                  `protobuf:"varint,10,opt,name=uint64_value,json=uint64Value"`
-	xxx_hidden_Fixed64Value  uint64                  `protobuf:"fixed64,11,opt,name=fixed64_value,json=fixed64Value"`
-	xxx_hidden_FloatValue    float32                 `protobuf:"fixed32,12,opt,name=float_value,json=floatValue"`
-	xxx_hidden_DoubleValue   float64                 `protobuf:"fixed64,13,opt,name=double_value,json=doubleValue"`
-	xxx_hidden_StringValue   *string                 `protobuf:"bytes,14,opt,name=string_value,json=stringValue"`
-	xxx_hidden_BytesValue    []byte                  `protobuf:"bytes,15,opt,name=bytes_value,json=bytesValue"`
-	xxx_hidden_Status        Status                  `protobuf:"varint,16,opt,name=status,enum=kitchensink.v1.Status"`
-	xxx_hidden_Tags          []string                `protobuf:"bytes,17,rep,name=tags"`
-	xxx_hidden_Counts        map[string]int32        `protobuf:"bytes,18,rep,name=counts" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	xxx_hidden_WrappedBool   *wrapperspb.BoolValue   `protobuf:"bytes,19,opt,name=wrapped_bool,json=wrappedBool"`
-	xxx_hidden_WrappedString *wrapperspb.StringValue `protobuf:"bytes,20,opt,name=wrapped_string,json=wrappedString"`
-	xxx_hidden_CreatedAt     *timestamppb.Timestamp  `protobuf:"bytes,21,opt,name=created_at,json=createdAt"`
-	xxx_hidden_Ttl           *durationpb.Duration    `protobuf:"bytes,22,opt,name=ttl"`
-	xxx_hidden_StructValue   *structpb.Struct        `protobuf:"bytes,23,opt,name=struct_value,json=structValue"`
-	xxx_hidden_DynamicValue  *structpb.Value         `protobuf:"bytes,24,opt,name=dynamic_value,json=dynamicValue"`
-	xxx_hidden_ListValue     *structpb.ListValue     `protobuf:"bytes,25,opt,name=list_value,json=listValue"`
-	xxx_hidden_AnyValue      *anypb.Any              `protobuf:"bytes,26,opt,name=any_value,json=anyValue"`
-	xxx_hidden_EmptyValue    *emptypb.Empty          `protobuf:"bytes,27,opt,name=empty_value,json=emptyValue"`
-	xxx_hidden_Choice        *Choice                 `protobuf:"bytes,28,opt,name=choice"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                         protoimpl.MessageState             `protogen:"opaque.v1"`
+	xxx_hidden_BoolValue          bool                               `protobuf:"varint,1,opt,name=bool_value,json=boolValue"`
+	xxx_hidden_Int32Value         int32                              `protobuf:"varint,2,opt,name=int32_value,json=int32Value"`
+	xxx_hidden_Sint32Value        int32                              `protobuf:"zigzag32,3,opt,name=sint32_value,json=sint32Value"`
+	xxx_hidden_Sfixed32Value      int32                              `protobuf:"fixed32,4,opt,name=sfixed32_value,json=sfixed32Value"`
+	xxx_hidden_Uint32Value        uint32                             `protobuf:"varint,5,opt,name=uint32_value,json=uint32Value"`
+	xxx_hidden_Fixed32Value       uint32                             `protobuf:"fixed32,6,opt,name=fixed32_value,json=fixed32Value"`
+	xxx_hidden_Int64Value         int64                              `protobuf:"varint,7,opt,name=int64_value,json=int64Value"`
+	xxx_hidden_Sint64Value        int64                              `protobuf:"zigzag64,8,opt,name=sint64_value,json=sint64Value"`
+	xxx_hidden_Sfixed64Value      int64                              `protobuf:"fixed64,9,opt,name=sfixed64_value,json=sfixed64Value"`
+	xxx_hidden_Uint64Value        uint64                             `protobuf:"varint,10,opt,name=uint64_value,json=uint64Value"`
+	xxx_hidden_Fixed64Value       uint64                             `protobuf:"fixed64,11,opt,name=fixed64_value,json=fixed64Value"`
+	xxx_hidden_FloatValue         float32                            `protobuf:"fixed32,12,opt,name=float_value,json=floatValue"`
+	xxx_hidden_DoubleValue        float64                            `protobuf:"fixed64,13,opt,name=double_value,json=doubleValue"`
+	xxx_hidden_StringValue        *string                            `protobuf:"bytes,14,opt,name=string_value,json=stringValue"`
+	xxx_hidden_BytesValue         []byte                             `protobuf:"bytes,15,opt,name=bytes_value,json=bytesValue"`
+	xxx_hidden_Status             Status                             `protobuf:"varint,16,opt,name=status,enum=kitchensink.v1.Status"`
+	xxx_hidden_Tags               []string                           `protobuf:"bytes,17,rep,name=tags"`
+	xxx_hidden_Counts             map[string]int32                   `protobuf:"bytes,18,rep,name=counts" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	xxx_hidden_WrappedBool        *wrapperspb.BoolValue              `protobuf:"bytes,19,opt,name=wrapped_bool,json=wrappedBool"`
+	xxx_hidden_WrappedString      *wrapperspb.StringValue            `protobuf:"bytes,20,opt,name=wrapped_string,json=wrappedString"`
+	xxx_hidden_CreatedAt          *timestamppb.Timestamp             `protobuf:"bytes,21,opt,name=created_at,json=createdAt"`
+	xxx_hidden_Ttl                *durationpb.Duration               `protobuf:"bytes,22,opt,name=ttl"`
+	xxx_hidden_StructValue        *structpb.Struct                   `protobuf:"bytes,23,opt,name=struct_value,json=structValue"`
+	xxx_hidden_DynamicValue       *structpb.Value                    `protobuf:"bytes,24,opt,name=dynamic_value,json=dynamicValue"`
+	xxx_hidden_ListValue          *structpb.ListValue                `protobuf:"bytes,25,opt,name=list_value,json=listValue"`
+	xxx_hidden_AnyValue           *anypb.Any                         `protobuf:"bytes,26,opt,name=any_value,json=anyValue"`
+	xxx_hidden_EmptyValue         *emptypb.Empty                     `protobuf:"bytes,27,opt,name=empty_value,json=emptyValue"`
+	xxx_hidden_Choice             *Choice                            `protobuf:"bytes,28,opt,name=choice"`
+	xxx_hidden_WrappedStrings     *[]*wrapperspb.StringValue         `protobuf:"bytes,29,rep,name=wrapped_strings,json=wrappedStrings"`
+	xxx_hidden_WrappedStringsById map[string]*wrapperspb.StringValue `protobuf:"bytes,30,rep,name=wrapped_strings_by_id,json=wrappedStringsById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_WrappedBools       *[]*wrapperspb.BoolValue           `protobuf:"bytes,31,rep,name=wrapped_bools,json=wrappedBools"`
+	xxx_hidden_WrappedBoolsById   map[string]*wrapperspb.BoolValue   `protobuf:"bytes,32,rep,name=wrapped_bools_by_id,json=wrappedBoolsById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_CreatedAtHistory   *[]*timestamppb.Timestamp          `protobuf:"bytes,33,rep,name=created_at_history,json=createdAtHistory"`
+	xxx_hidden_CreatedAtById      map[string]*timestamppb.Timestamp  `protobuf:"bytes,34,rep,name=created_at_by_id,json=createdAtById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Ttls               *[]*durationpb.Duration            `protobuf:"bytes,35,rep,name=ttls"`
+	xxx_hidden_TtlsById           map[string]*durationpb.Duration    `protobuf:"bytes,36,rep,name=ttls_by_id,json=ttlsById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_StructValues       *[]*structpb.Struct                `protobuf:"bytes,37,rep,name=struct_values,json=structValues"`
+	xxx_hidden_StructValuesById   map[string]*structpb.Struct        `protobuf:"bytes,38,rep,name=struct_values_by_id,json=structValuesById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_DynamicValues      *[]*structpb.Value                 `protobuf:"bytes,39,rep,name=dynamic_values,json=dynamicValues"`
+	xxx_hidden_DynamicValuesById  map[string]*structpb.Value         `protobuf:"bytes,40,rep,name=dynamic_values_by_id,json=dynamicValuesById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_ListValues         *[]*structpb.ListValue             `protobuf:"bytes,41,rep,name=list_values,json=listValues"`
+	xxx_hidden_ListValuesById     map[string]*structpb.ListValue     `protobuf:"bytes,42,rep,name=list_values_by_id,json=listValuesById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_AnyValues          *[]*anypb.Any                      `protobuf:"bytes,43,rep,name=any_values,json=anyValues"`
+	xxx_hidden_AnyValuesById      map[string]*anypb.Any              `protobuf:"bytes,44,rep,name=any_values_by_id,json=anyValuesById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_EmptyValues        *[]*emptypb.Empty                  `protobuf:"bytes,45,rep,name=empty_values,json=emptyValues"`
+	xxx_hidden_EmptyValuesById    map[string]*emptypb.Empty          `protobuf:"bytes,46,rep,name=empty_values_by_id,json=emptyValuesById" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
+	XXX_presence                  [2]uint32
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *KitchenSink) Reset() {
@@ -333,74 +351,218 @@ func (x *KitchenSink) GetChoice() *Choice {
 	return nil
 }
 
+func (x *KitchenSink) GetWrappedStrings() []*wrapperspb.StringValue {
+	if x != nil {
+		if x.xxx_hidden_WrappedStrings != nil {
+			return *x.xxx_hidden_WrappedStrings
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetWrappedStringsById() map[string]*wrapperspb.StringValue {
+	if x != nil {
+		return x.xxx_hidden_WrappedStringsById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetWrappedBools() []*wrapperspb.BoolValue {
+	if x != nil {
+		if x.xxx_hidden_WrappedBools != nil {
+			return *x.xxx_hidden_WrappedBools
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetWrappedBoolsById() map[string]*wrapperspb.BoolValue {
+	if x != nil {
+		return x.xxx_hidden_WrappedBoolsById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetCreatedAtHistory() []*timestamppb.Timestamp {
+	if x != nil {
+		if x.xxx_hidden_CreatedAtHistory != nil {
+			return *x.xxx_hidden_CreatedAtHistory
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetCreatedAtById() map[string]*timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_CreatedAtById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetTtls() []*durationpb.Duration {
+	if x != nil {
+		if x.xxx_hidden_Ttls != nil {
+			return *x.xxx_hidden_Ttls
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetTtlsById() map[string]*durationpb.Duration {
+	if x != nil {
+		return x.xxx_hidden_TtlsById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetStructValues() []*structpb.Struct {
+	if x != nil {
+		if x.xxx_hidden_StructValues != nil {
+			return *x.xxx_hidden_StructValues
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetStructValuesById() map[string]*structpb.Struct {
+	if x != nil {
+		return x.xxx_hidden_StructValuesById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetDynamicValues() []*structpb.Value {
+	if x != nil {
+		if x.xxx_hidden_DynamicValues != nil {
+			return *x.xxx_hidden_DynamicValues
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetDynamicValuesById() map[string]*structpb.Value {
+	if x != nil {
+		return x.xxx_hidden_DynamicValuesById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetListValues() []*structpb.ListValue {
+	if x != nil {
+		if x.xxx_hidden_ListValues != nil {
+			return *x.xxx_hidden_ListValues
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetListValuesById() map[string]*structpb.ListValue {
+	if x != nil {
+		return x.xxx_hidden_ListValuesById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetAnyValues() []*anypb.Any {
+	if x != nil {
+		if x.xxx_hidden_AnyValues != nil {
+			return *x.xxx_hidden_AnyValues
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetAnyValuesById() map[string]*anypb.Any {
+	if x != nil {
+		return x.xxx_hidden_AnyValuesById
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetEmptyValues() []*emptypb.Empty {
+	if x != nil {
+		if x.xxx_hidden_EmptyValues != nil {
+			return *x.xxx_hidden_EmptyValues
+		}
+	}
+	return nil
+}
+
+func (x *KitchenSink) GetEmptyValuesById() map[string]*emptypb.Empty {
+	if x != nil {
+		return x.xxx_hidden_EmptyValuesById
+	}
+	return nil
+}
+
 func (x *KitchenSink) SetBoolValue(v bool) {
 	x.xxx_hidden_BoolValue = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 46)
 }
 
 func (x *KitchenSink) SetInt32Value(v int32) {
 	x.xxx_hidden_Int32Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 46)
 }
 
 func (x *KitchenSink) SetSint32Value(v int32) {
 	x.xxx_hidden_Sint32Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 46)
 }
 
 func (x *KitchenSink) SetSfixed32Value(v int32) {
 	x.xxx_hidden_Sfixed32Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 46)
 }
 
 func (x *KitchenSink) SetUint32Value(v uint32) {
 	x.xxx_hidden_Uint32Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 46)
 }
 
 func (x *KitchenSink) SetFixed32Value(v uint32) {
 	x.xxx_hidden_Fixed32Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 46)
 }
 
 func (x *KitchenSink) SetInt64Value(v int64) {
 	x.xxx_hidden_Int64Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 46)
 }
 
 func (x *KitchenSink) SetSint64Value(v int64) {
 	x.xxx_hidden_Sint64Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 46)
 }
 
 func (x *KitchenSink) SetSfixed64Value(v int64) {
 	x.xxx_hidden_Sfixed64Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 46)
 }
 
 func (x *KitchenSink) SetUint64Value(v uint64) {
 	x.xxx_hidden_Uint64Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 46)
 }
 
 func (x *KitchenSink) SetFixed64Value(v uint64) {
 	x.xxx_hidden_Fixed64Value = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 46)
 }
 
 func (x *KitchenSink) SetFloatValue(v float32) {
 	x.xxx_hidden_FloatValue = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 46)
 }
 
 func (x *KitchenSink) SetDoubleValue(v float64) {
 	x.xxx_hidden_DoubleValue = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 46)
 }
 
 func (x *KitchenSink) SetStringValue(v string) {
 	x.xxx_hidden_StringValue = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 46)
 }
 
 func (x *KitchenSink) SetBytesValue(v []byte) {
@@ -408,12 +570,12 @@ func (x *KitchenSink) SetBytesValue(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_BytesValue = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 46)
 }
 
 func (x *KitchenSink) SetStatus(v Status) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 28)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 46)
 }
 
 func (x *KitchenSink) SetTags(v []string) {
@@ -462,6 +624,78 @@ func (x *KitchenSink) SetEmptyValue(v *emptypb.Empty) {
 
 func (x *KitchenSink) SetChoice(v *Choice) {
 	x.xxx_hidden_Choice = v
+}
+
+func (x *KitchenSink) SetWrappedStrings(v []*wrapperspb.StringValue) {
+	x.xxx_hidden_WrappedStrings = &v
+}
+
+func (x *KitchenSink) SetWrappedStringsById(v map[string]*wrapperspb.StringValue) {
+	x.xxx_hidden_WrappedStringsById = v
+}
+
+func (x *KitchenSink) SetWrappedBools(v []*wrapperspb.BoolValue) {
+	x.xxx_hidden_WrappedBools = &v
+}
+
+func (x *KitchenSink) SetWrappedBoolsById(v map[string]*wrapperspb.BoolValue) {
+	x.xxx_hidden_WrappedBoolsById = v
+}
+
+func (x *KitchenSink) SetCreatedAtHistory(v []*timestamppb.Timestamp) {
+	x.xxx_hidden_CreatedAtHistory = &v
+}
+
+func (x *KitchenSink) SetCreatedAtById(v map[string]*timestamppb.Timestamp) {
+	x.xxx_hidden_CreatedAtById = v
+}
+
+func (x *KitchenSink) SetTtls(v []*durationpb.Duration) {
+	x.xxx_hidden_Ttls = &v
+}
+
+func (x *KitchenSink) SetTtlsById(v map[string]*durationpb.Duration) {
+	x.xxx_hidden_TtlsById = v
+}
+
+func (x *KitchenSink) SetStructValues(v []*structpb.Struct) {
+	x.xxx_hidden_StructValues = &v
+}
+
+func (x *KitchenSink) SetStructValuesById(v map[string]*structpb.Struct) {
+	x.xxx_hidden_StructValuesById = v
+}
+
+func (x *KitchenSink) SetDynamicValues(v []*structpb.Value) {
+	x.xxx_hidden_DynamicValues = &v
+}
+
+func (x *KitchenSink) SetDynamicValuesById(v map[string]*structpb.Value) {
+	x.xxx_hidden_DynamicValuesById = v
+}
+
+func (x *KitchenSink) SetListValues(v []*structpb.ListValue) {
+	x.xxx_hidden_ListValues = &v
+}
+
+func (x *KitchenSink) SetListValuesById(v map[string]*structpb.ListValue) {
+	x.xxx_hidden_ListValuesById = v
+}
+
+func (x *KitchenSink) SetAnyValues(v []*anypb.Any) {
+	x.xxx_hidden_AnyValues = &v
+}
+
+func (x *KitchenSink) SetAnyValuesById(v map[string]*anypb.Any) {
+	x.xxx_hidden_AnyValuesById = v
+}
+
+func (x *KitchenSink) SetEmptyValues(v []*emptypb.Empty) {
+	x.xxx_hidden_EmptyValues = &v
+}
+
+func (x *KitchenSink) SetEmptyValuesById(v map[string]*emptypb.Empty) {
+	x.xxx_hidden_EmptyValuesById = v
 }
 
 func (x *KitchenSink) HasBoolValue() bool {
@@ -769,34 +1003,52 @@ func (x *KitchenSink) ClearChoice() {
 type KitchenSink_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	BoolValue     *bool
-	Int32Value    *int32
-	Sint32Value   *int32
-	Sfixed32Value *int32
-	Uint32Value   *uint32
-	Fixed32Value  *uint32
-	Int64Value    *int64
-	Sint64Value   *int64
-	Sfixed64Value *int64
-	Uint64Value   *uint64
-	Fixed64Value  *uint64
-	FloatValue    *float32
-	DoubleValue   *float64
-	StringValue   *string
-	BytesValue    []byte
-	Status        *Status
-	Tags          []string
-	Counts        map[string]int32
-	WrappedBool   *wrapperspb.BoolValue
-	WrappedString *wrapperspb.StringValue
-	CreatedAt     *timestamppb.Timestamp
-	Ttl           *durationpb.Duration
-	StructValue   *structpb.Struct
-	DynamicValue  *structpb.Value
-	ListValue     *structpb.ListValue
-	AnyValue      *anypb.Any
-	EmptyValue    *emptypb.Empty
-	Choice        *Choice
+	BoolValue          *bool
+	Int32Value         *int32
+	Sint32Value        *int32
+	Sfixed32Value      *int32
+	Uint32Value        *uint32
+	Fixed32Value       *uint32
+	Int64Value         *int64
+	Sint64Value        *int64
+	Sfixed64Value      *int64
+	Uint64Value        *uint64
+	Fixed64Value       *uint64
+	FloatValue         *float32
+	DoubleValue        *float64
+	StringValue        *string
+	BytesValue         []byte
+	Status             *Status
+	Tags               []string
+	Counts             map[string]int32
+	WrappedBool        *wrapperspb.BoolValue
+	WrappedString      *wrapperspb.StringValue
+	CreatedAt          *timestamppb.Timestamp
+	Ttl                *durationpb.Duration
+	StructValue        *structpb.Struct
+	DynamicValue       *structpb.Value
+	ListValue          *structpb.ListValue
+	AnyValue           *anypb.Any
+	EmptyValue         *emptypb.Empty
+	Choice             *Choice
+	WrappedStrings     []*wrapperspb.StringValue
+	WrappedStringsById map[string]*wrapperspb.StringValue
+	WrappedBools       []*wrapperspb.BoolValue
+	WrappedBoolsById   map[string]*wrapperspb.BoolValue
+	CreatedAtHistory   []*timestamppb.Timestamp
+	CreatedAtById      map[string]*timestamppb.Timestamp
+	Ttls               []*durationpb.Duration
+	TtlsById           map[string]*durationpb.Duration
+	StructValues       []*structpb.Struct
+	StructValuesById   map[string]*structpb.Struct
+	DynamicValues      []*structpb.Value
+	DynamicValuesById  map[string]*structpb.Value
+	ListValues         []*structpb.ListValue
+	ListValuesById     map[string]*structpb.ListValue
+	AnyValues          []*anypb.Any
+	AnyValuesById      map[string]*anypb.Any
+	EmptyValues        []*emptypb.Empty
+	EmptyValuesById    map[string]*emptypb.Empty
 }
 
 func (b0 KitchenSink_builder) Build() *KitchenSink {
@@ -804,67 +1056,67 @@ func (b0 KitchenSink_builder) Build() *KitchenSink {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.BoolValue != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 46)
 		x.xxx_hidden_BoolValue = *b.BoolValue
 	}
 	if b.Int32Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 46)
 		x.xxx_hidden_Int32Value = *b.Int32Value
 	}
 	if b.Sint32Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 46)
 		x.xxx_hidden_Sint32Value = *b.Sint32Value
 	}
 	if b.Sfixed32Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 46)
 		x.xxx_hidden_Sfixed32Value = *b.Sfixed32Value
 	}
 	if b.Uint32Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 46)
 		x.xxx_hidden_Uint32Value = *b.Uint32Value
 	}
 	if b.Fixed32Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 46)
 		x.xxx_hidden_Fixed32Value = *b.Fixed32Value
 	}
 	if b.Int64Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 46)
 		x.xxx_hidden_Int64Value = *b.Int64Value
 	}
 	if b.Sint64Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 46)
 		x.xxx_hidden_Sint64Value = *b.Sint64Value
 	}
 	if b.Sfixed64Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 46)
 		x.xxx_hidden_Sfixed64Value = *b.Sfixed64Value
 	}
 	if b.Uint64Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 46)
 		x.xxx_hidden_Uint64Value = *b.Uint64Value
 	}
 	if b.Fixed64Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 46)
 		x.xxx_hidden_Fixed64Value = *b.Fixed64Value
 	}
 	if b.FloatValue != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 46)
 		x.xxx_hidden_FloatValue = *b.FloatValue
 	}
 	if b.DoubleValue != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 46)
 		x.xxx_hidden_DoubleValue = *b.DoubleValue
 	}
 	if b.StringValue != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 46)
 		x.xxx_hidden_StringValue = b.StringValue
 	}
 	if b.BytesValue != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 46)
 		x.xxx_hidden_BytesValue = b.BytesValue
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 28)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 46)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_Tags = b.Tags
@@ -879,6 +1131,24 @@ func (b0 KitchenSink_builder) Build() *KitchenSink {
 	x.xxx_hidden_AnyValue = b.AnyValue
 	x.xxx_hidden_EmptyValue = b.EmptyValue
 	x.xxx_hidden_Choice = b.Choice
+	x.xxx_hidden_WrappedStrings = &b.WrappedStrings
+	x.xxx_hidden_WrappedStringsById = b.WrappedStringsById
+	x.xxx_hidden_WrappedBools = &b.WrappedBools
+	x.xxx_hidden_WrappedBoolsById = b.WrappedBoolsById
+	x.xxx_hidden_CreatedAtHistory = &b.CreatedAtHistory
+	x.xxx_hidden_CreatedAtById = b.CreatedAtById
+	x.xxx_hidden_Ttls = &b.Ttls
+	x.xxx_hidden_TtlsById = b.TtlsById
+	x.xxx_hidden_StructValues = &b.StructValues
+	x.xxx_hidden_StructValuesById = b.StructValuesById
+	x.xxx_hidden_DynamicValues = &b.DynamicValues
+	x.xxx_hidden_DynamicValuesById = b.DynamicValuesById
+	x.xxx_hidden_ListValues = &b.ListValues
+	x.xxx_hidden_ListValuesById = b.ListValuesById
+	x.xxx_hidden_AnyValues = &b.AnyValues
+	x.xxx_hidden_AnyValuesById = b.AnyValuesById
+	x.xxx_hidden_EmptyValues = &b.EmptyValues
+	x.xxx_hidden_EmptyValuesById = b.EmptyValuesById
 	return m0
 }
 
@@ -1049,8 +1319,7 @@ var File_proto_kitchensink_v1_kitchen_sink_proto protoreflect.FileDescriptor
 
 const file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc = "" +
 	"\n" +
-	"'proto/kitchensink/v1/kitchen_sink.proto\x12\x0ekitchensink.v1\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x12tego/options.proto\"\x96\n" +
-	"\n" +
+	"'proto/kitchensink/v1/kitchen_sink.proto\x12\x0ekitchensink.v1\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x12tego/options.proto\"\xd3\x1b\n" +
 	"\vKitchenSink\x12\x1d\n" +
 	"\n" +
 	"bool_value\x18\x01 \x01(\bR\tboolValue\x12\x1f\n" +
@@ -1088,10 +1357,58 @@ const file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc = "" +
 	"\tany_value\x18\x1a \x01(\v2\x14.google.protobuf.AnyR\banyValue\x127\n" +
 	"\vempty_value\x18\x1b \x01(\v2\x16.google.protobuf.EmptyR\n" +
 	"emptyValue\x12.\n" +
-	"\x06choice\x18\x1c \x01(\v2\x16.kitchensink.v1.ChoiceR\x06choice\x1a9\n" +
+	"\x06choice\x18\x1c \x01(\v2\x16.kitchensink.v1.ChoiceR\x06choice\x12E\n" +
+	"\x0fwrapped_strings\x18\x1d \x03(\v2\x1c.google.protobuf.StringValueR\x0ewrappedStrings\x12f\n" +
+	"\x15wrapped_strings_by_id\x18\x1e \x03(\v23.kitchensink.v1.KitchenSink.WrappedStringsByIdEntryR\x12wrappedStringsById\x12?\n" +
+	"\rwrapped_bools\x18\x1f \x03(\v2\x1a.google.protobuf.BoolValueR\fwrappedBools\x12`\n" +
+	"\x13wrapped_bools_by_id\x18  \x03(\v21.kitchensink.v1.KitchenSink.WrappedBoolsByIdEntryR\x10wrappedBoolsById\x12H\n" +
+	"\x12created_at_history\x18! \x03(\v2\x1a.google.protobuf.TimestampR\x10createdAtHistory\x12W\n" +
+	"\x10created_at_by_id\x18\" \x03(\v2..kitchensink.v1.KitchenSink.CreatedAtByIdEntryR\rcreatedAtById\x12-\n" +
+	"\x04ttls\x18# \x03(\v2\x19.google.protobuf.DurationR\x04ttls\x12G\n" +
+	"\n" +
+	"ttls_by_id\x18$ \x03(\v2).kitchensink.v1.KitchenSink.TtlsByIdEntryR\bttlsById\x12<\n" +
+	"\rstruct_values\x18% \x03(\v2\x17.google.protobuf.StructR\fstructValues\x12`\n" +
+	"\x13struct_values_by_id\x18& \x03(\v21.kitchensink.v1.KitchenSink.StructValuesByIdEntryR\x10structValuesById\x12=\n" +
+	"\x0edynamic_values\x18' \x03(\v2\x16.google.protobuf.ValueR\rdynamicValues\x12c\n" +
+	"\x14dynamic_values_by_id\x18( \x03(\v22.kitchensink.v1.KitchenSink.DynamicValuesByIdEntryR\x11dynamicValuesById\x12;\n" +
+	"\vlist_values\x18) \x03(\v2\x1a.google.protobuf.ListValueR\n" +
+	"listValues\x12Z\n" +
+	"\x11list_values_by_id\x18* \x03(\v2/.kitchensink.v1.KitchenSink.ListValuesByIdEntryR\x0elistValuesById\x123\n" +
+	"\n" +
+	"any_values\x18+ \x03(\v2\x14.google.protobuf.AnyR\tanyValues\x12W\n" +
+	"\x10any_values_by_id\x18, \x03(\v2..kitchensink.v1.KitchenSink.AnyValuesByIdEntryR\ranyValuesById\x129\n" +
+	"\fempty_values\x18- \x03(\v2\x16.google.protobuf.EmptyR\vemptyValues\x12]\n" +
+	"\x12empty_values_by_id\x18. \x03(\v20.kitchensink.v1.KitchenSink.EmptyValuesByIdEntryR\x0femptyValuesById\x1a9\n" +
 	"\vCountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"A\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\x1ac\n" +
+	"\x17WrappedStringsByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x122\n" +
+	"\x05value\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\x05value:\x028\x01\x1a_\n" +
+	"\x15WrappedBoolsByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x1a.google.protobuf.BoolValueR\x05value:\x028\x01\x1a\\\n" +
+	"\x12CreatedAtByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05value:\x028\x01\x1aV\n" +
+	"\rTtlsByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12/\n" +
+	"\x05value\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\x05value:\x028\x01\x1a\\\n" +
+	"\x15StructValuesByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
+	"\x05value\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05value:\x028\x01\x1a\\\n" +
+	"\x16DynamicValuesByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
+	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01\x1a]\n" +
+	"\x13ListValuesByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x120\n" +
+	"\x05value\x18\x02 \x01(\v2\x1a.google.protobuf.ListValueR\x05value:\x028\x01\x1aV\n" +
+	"\x12AnyValuesByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
+	"\x05value\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x05value:\x028\x01\x1aZ\n" +
+	"\x14EmptyValuesByIdEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
+	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.EmptyR\x05value:\x028\x01\"A\n" +
 	"\x06Choice\x12\x14\n" +
 	"\x04text\x18\x01 \x01(\tH\x00R\x04text\x12\x18\n" +
 	"\x06number\x18\x02 \x01(\x05H\x00R\x06numberB\a\n" +
@@ -1104,40 +1421,76 @@ const file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc = "" +
 	"Dgithub.com/seeruk/tego/examples/kitchen-sink/kitchensink;kitchensinkZLgithub.com/seeruk/tego/examples/kitchen-sink/kitchensinkpbv1;kitchensinkpbv1b\beditionsp\xe9\a"
 
 var file_proto_kitchensink_v1_kitchen_sink_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_proto_kitchensink_v1_kitchen_sink_proto_goTypes = []any{
 	(Status)(0),                    // 0: kitchensink.v1.Status
 	(*KitchenSink)(nil),            // 1: kitchensink.v1.KitchenSink
 	(*Choice)(nil),                 // 2: kitchensink.v1.Choice
 	nil,                            // 3: kitchensink.v1.KitchenSink.CountsEntry
-	(*wrapperspb.BoolValue)(nil),   // 4: google.protobuf.BoolValue
-	(*wrapperspb.StringValue)(nil), // 5: google.protobuf.StringValue
-	(*timestamppb.Timestamp)(nil),  // 6: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),    // 7: google.protobuf.Duration
-	(*structpb.Struct)(nil),        // 8: google.protobuf.Struct
-	(*structpb.Value)(nil),         // 9: google.protobuf.Value
-	(*structpb.ListValue)(nil),     // 10: google.protobuf.ListValue
-	(*anypb.Any)(nil),              // 11: google.protobuf.Any
-	(*emptypb.Empty)(nil),          // 12: google.protobuf.Empty
+	nil,                            // 4: kitchensink.v1.KitchenSink.WrappedStringsByIdEntry
+	nil,                            // 5: kitchensink.v1.KitchenSink.WrappedBoolsByIdEntry
+	nil,                            // 6: kitchensink.v1.KitchenSink.CreatedAtByIdEntry
+	nil,                            // 7: kitchensink.v1.KitchenSink.TtlsByIdEntry
+	nil,                            // 8: kitchensink.v1.KitchenSink.StructValuesByIdEntry
+	nil,                            // 9: kitchensink.v1.KitchenSink.DynamicValuesByIdEntry
+	nil,                            // 10: kitchensink.v1.KitchenSink.ListValuesByIdEntry
+	nil,                            // 11: kitchensink.v1.KitchenSink.AnyValuesByIdEntry
+	nil,                            // 12: kitchensink.v1.KitchenSink.EmptyValuesByIdEntry
+	(*wrapperspb.BoolValue)(nil),   // 13: google.protobuf.BoolValue
+	(*wrapperspb.StringValue)(nil), // 14: google.protobuf.StringValue
+	(*timestamppb.Timestamp)(nil),  // 15: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),    // 16: google.protobuf.Duration
+	(*structpb.Struct)(nil),        // 17: google.protobuf.Struct
+	(*structpb.Value)(nil),         // 18: google.protobuf.Value
+	(*structpb.ListValue)(nil),     // 19: google.protobuf.ListValue
+	(*anypb.Any)(nil),              // 20: google.protobuf.Any
+	(*emptypb.Empty)(nil),          // 21: google.protobuf.Empty
 }
 var file_proto_kitchensink_v1_kitchen_sink_proto_depIdxs = []int32{
 	0,  // 0: kitchensink.v1.KitchenSink.status:type_name -> kitchensink.v1.Status
 	3,  // 1: kitchensink.v1.KitchenSink.counts:type_name -> kitchensink.v1.KitchenSink.CountsEntry
-	4,  // 2: kitchensink.v1.KitchenSink.wrapped_bool:type_name -> google.protobuf.BoolValue
-	5,  // 3: kitchensink.v1.KitchenSink.wrapped_string:type_name -> google.protobuf.StringValue
-	6,  // 4: kitchensink.v1.KitchenSink.created_at:type_name -> google.protobuf.Timestamp
-	7,  // 5: kitchensink.v1.KitchenSink.ttl:type_name -> google.protobuf.Duration
-	8,  // 6: kitchensink.v1.KitchenSink.struct_value:type_name -> google.protobuf.Struct
-	9,  // 7: kitchensink.v1.KitchenSink.dynamic_value:type_name -> google.protobuf.Value
-	10, // 8: kitchensink.v1.KitchenSink.list_value:type_name -> google.protobuf.ListValue
-	11, // 9: kitchensink.v1.KitchenSink.any_value:type_name -> google.protobuf.Any
-	12, // 10: kitchensink.v1.KitchenSink.empty_value:type_name -> google.protobuf.Empty
+	13, // 2: kitchensink.v1.KitchenSink.wrapped_bool:type_name -> google.protobuf.BoolValue
+	14, // 3: kitchensink.v1.KitchenSink.wrapped_string:type_name -> google.protobuf.StringValue
+	15, // 4: kitchensink.v1.KitchenSink.created_at:type_name -> google.protobuf.Timestamp
+	16, // 5: kitchensink.v1.KitchenSink.ttl:type_name -> google.protobuf.Duration
+	17, // 6: kitchensink.v1.KitchenSink.struct_value:type_name -> google.protobuf.Struct
+	18, // 7: kitchensink.v1.KitchenSink.dynamic_value:type_name -> google.protobuf.Value
+	19, // 8: kitchensink.v1.KitchenSink.list_value:type_name -> google.protobuf.ListValue
+	20, // 9: kitchensink.v1.KitchenSink.any_value:type_name -> google.protobuf.Any
+	21, // 10: kitchensink.v1.KitchenSink.empty_value:type_name -> google.protobuf.Empty
 	2,  // 11: kitchensink.v1.KitchenSink.choice:type_name -> kitchensink.v1.Choice
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	14, // 12: kitchensink.v1.KitchenSink.wrapped_strings:type_name -> google.protobuf.StringValue
+	4,  // 13: kitchensink.v1.KitchenSink.wrapped_strings_by_id:type_name -> kitchensink.v1.KitchenSink.WrappedStringsByIdEntry
+	13, // 14: kitchensink.v1.KitchenSink.wrapped_bools:type_name -> google.protobuf.BoolValue
+	5,  // 15: kitchensink.v1.KitchenSink.wrapped_bools_by_id:type_name -> kitchensink.v1.KitchenSink.WrappedBoolsByIdEntry
+	15, // 16: kitchensink.v1.KitchenSink.created_at_history:type_name -> google.protobuf.Timestamp
+	6,  // 17: kitchensink.v1.KitchenSink.created_at_by_id:type_name -> kitchensink.v1.KitchenSink.CreatedAtByIdEntry
+	16, // 18: kitchensink.v1.KitchenSink.ttls:type_name -> google.protobuf.Duration
+	7,  // 19: kitchensink.v1.KitchenSink.ttls_by_id:type_name -> kitchensink.v1.KitchenSink.TtlsByIdEntry
+	17, // 20: kitchensink.v1.KitchenSink.struct_values:type_name -> google.protobuf.Struct
+	8,  // 21: kitchensink.v1.KitchenSink.struct_values_by_id:type_name -> kitchensink.v1.KitchenSink.StructValuesByIdEntry
+	18, // 22: kitchensink.v1.KitchenSink.dynamic_values:type_name -> google.protobuf.Value
+	9,  // 23: kitchensink.v1.KitchenSink.dynamic_values_by_id:type_name -> kitchensink.v1.KitchenSink.DynamicValuesByIdEntry
+	19, // 24: kitchensink.v1.KitchenSink.list_values:type_name -> google.protobuf.ListValue
+	10, // 25: kitchensink.v1.KitchenSink.list_values_by_id:type_name -> kitchensink.v1.KitchenSink.ListValuesByIdEntry
+	20, // 26: kitchensink.v1.KitchenSink.any_values:type_name -> google.protobuf.Any
+	11, // 27: kitchensink.v1.KitchenSink.any_values_by_id:type_name -> kitchensink.v1.KitchenSink.AnyValuesByIdEntry
+	21, // 28: kitchensink.v1.KitchenSink.empty_values:type_name -> google.protobuf.Empty
+	12, // 29: kitchensink.v1.KitchenSink.empty_values_by_id:type_name -> kitchensink.v1.KitchenSink.EmptyValuesByIdEntry
+	14, // 30: kitchensink.v1.KitchenSink.WrappedStringsByIdEntry.value:type_name -> google.protobuf.StringValue
+	13, // 31: kitchensink.v1.KitchenSink.WrappedBoolsByIdEntry.value:type_name -> google.protobuf.BoolValue
+	15, // 32: kitchensink.v1.KitchenSink.CreatedAtByIdEntry.value:type_name -> google.protobuf.Timestamp
+	16, // 33: kitchensink.v1.KitchenSink.TtlsByIdEntry.value:type_name -> google.protobuf.Duration
+	17, // 34: kitchensink.v1.KitchenSink.StructValuesByIdEntry.value:type_name -> google.protobuf.Struct
+	18, // 35: kitchensink.v1.KitchenSink.DynamicValuesByIdEntry.value:type_name -> google.protobuf.Value
+	19, // 36: kitchensink.v1.KitchenSink.ListValuesByIdEntry.value:type_name -> google.protobuf.ListValue
+	20, // 37: kitchensink.v1.KitchenSink.AnyValuesByIdEntry.value:type_name -> google.protobuf.Any
+	21, // 38: kitchensink.v1.KitchenSink.EmptyValuesByIdEntry.value:type_name -> google.protobuf.Empty
+	39, // [39:39] is the sub-list for method output_type
+	39, // [39:39] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_proto_kitchensink_v1_kitchen_sink_proto_init() }
@@ -1155,7 +1508,7 @@ func file_proto_kitchensink_v1_kitchen_sink_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc), len(file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

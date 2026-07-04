@@ -383,6 +383,185 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.Equal(t, MappingValueKindScalarCast, plan.Value.Kind)
 	})
 
+	t.Run("plans repeated wrapper mappings", func(t *testing.T) {
+		field := repeatedMessageField("names", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		target, diagnostics := planner.planFieldType(field, &ShapeIndex{})
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, &ShapeIndex{}, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindSlice, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Elem.Kind)
+		assertWellKnownMapping(t, *fromProto.Elem.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindSlice, toProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Elem.Kind)
+		assertWellKnownMapping(t, *toProto.Elem.Elem, MappingWellKnownKindWrapper)
+	})
+
+	t.Run("plans map wrapper value mappings", func(t *testing.T) {
+		field := protoMapField("names_by_id")
+		field.MapValue = messageField("value", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		target, diagnostics := planner.planFieldType(field, &ShapeIndex{})
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, &ShapeIndex{}, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Value)
+		require.NotNil(t, toProto.Value)
+		assert.Equal(t, MappingValueKindMap, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Value.Kind)
+		assertWellKnownMapping(t, *fromProto.Value.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindMap, toProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Value.Kind)
+		assertWellKnownMapping(t, *toProto.Value.Elem, MappingWellKnownKindWrapper)
+	})
+
+	t.Run("plans repeated flatten shape mappings", func(t *testing.T) {
+		shape := flattenShapeMessage(field("value", protoreflect.StringKind))
+		shape.FullName = "example.v1.Slug"
+		shapeIndex := &ShapeIndex{Flattens: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
+		field := repeatedMessageField("slugs", shape)
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindSlice, fromProto.Kind)
+		assert.Equal(t, MappingValueKindFlatten, fromProto.Elem.Kind)
+		assert.Equal(t, MappingValueKindSlice, toProto.Kind)
+		assert.Equal(t, MappingValueKindFlatten, toProto.Elem.Kind)
+	})
+
+	t.Run("plans map flatten shape value mappings", func(t *testing.T) {
+		shape := flattenShapeMessage(field("value", protoreflect.StringKind))
+		shape.FullName = "example.v1.Slug"
+		shapeIndex := &ShapeIndex{Flattens: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
+		field := protoMapField("slugs_by_id")
+		field.MapValue = messageField("value", shape)
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Value)
+		require.NotNil(t, toProto.Value)
+		assert.Equal(t, MappingValueKindMap, fromProto.Kind)
+		assert.Equal(t, MappingValueKindFlatten, fromProto.Value.Kind)
+		assert.Equal(t, MappingValueKindMap, toProto.Kind)
+		assert.Equal(t, MappingValueKindFlatten, toProto.Value.Kind)
+	})
+
+	t.Run("plans repeated nullable shape mappings", func(t *testing.T) {
+		shape := plannerNullableStringShape()
+		shapeIndex := &ShapeIndex{Nullables: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
+		field := repeatedMessageField("names", shape)
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindSlice, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Elem.Kind)
+		assert.Equal(t, MappingNullableFormOneof, fromProto.Elem.Access.NullableForm)
+		assert.Equal(t, MappingValueKindSlice, toProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Elem.Kind)
+		assert.Equal(t, MappingNullableFormOneof, toProto.Elem.Access.NullableForm)
+	})
+
+	t.Run("plans map nullable shape value mappings", func(t *testing.T) {
+		shape := plannerNullableStringShape()
+		shapeIndex := &ShapeIndex{Nullables: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
+		field := protoMapField("names_by_id")
+		field.MapValue = messageField("value", shape)
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Value)
+		require.NotNil(t, toProto.Value)
+		assert.Equal(t, MappingValueKindMap, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Value.Kind)
+		assert.Equal(t, MappingNullableFormOneof, fromProto.Value.Access.NullableForm)
+		assert.Equal(t, MappingValueKindMap, toProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Value.Kind)
+		assert.Equal(t, MappingNullableFormOneof, toProto.Value.Access.NullableForm)
+	})
+
+	t.Run("plans slice shape wrapper elements", func(t *testing.T) {
+		shape := plannerMessage("example.v1.Names", "Names")
+		shape.Fields = []*ProtoField{repeatedMessageField("values", &ProtoMessage{FullName: "google.protobuf.StringValue"})}
+		shapeIndex := &ShapeIndex{Slices: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
+		field := messageField("names", shape)
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindSlice, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Elem.Kind)
+		assert.Equal(t, MappingValueKindSlice, toProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Elem.Kind)
+	})
+
+	t.Run("plans map shape wrapper values", func(t *testing.T) {
+		shape, entry := plannerMapShape()
+		entry.Fields[1] = messageField("value", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		shapeIndex := &ShapeIndex{Maps: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
+		field := messageField("names_by_id", shape)
+		target, diagnostics := planner.planFieldType(field, shapeIndex)
+		require.Empty(t, diagnostics)
+		source := planner.planProtoFieldType(field)
+
+		fromProto := planner.planFieldMappingValue(field, source, target, shapeIndex, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, target, source, shapeIndex, mappingDirectionToProto)
+
+		assertNoUnsupportedMapping(t, fromProto)
+		assertNoUnsupportedMapping(t, toProto)
+		require.NotNil(t, fromProto.Value)
+		require.NotNil(t, toProto.Value)
+		assert.Equal(t, MappingValueKindMap, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Value.Kind)
+		assert.Equal(t, MappingValueKindMap, toProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Value.Kind)
+	})
+
 	t.Run("plans omittable wrapping", func(t *testing.T) {
 		field := field("title", protoreflect.StringKind)
 		target := TypePlan{Kind: TypeKindOmittable, Elem: &stringType}
@@ -433,12 +612,37 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 	})
 }
 
+func assertNoUnsupportedMapping(t *testing.T, plan MappingValuePlan) {
+	t.Helper()
+	require.NotEqual(t, MappingValueKindUnsupported, plan.Kind)
+	if plan.Elem != nil {
+		assertNoUnsupportedMapping(t, *plan.Elem)
+	}
+	if plan.Key != nil {
+		assertNoUnsupportedMapping(t, *plan.Key)
+	}
+	if plan.Value != nil {
+		assertNoUnsupportedMapping(t, *plan.Value)
+	}
+	if plan.Oneof != nil {
+		for _, variant := range plan.Oneof.Variants {
+			assertNoUnsupportedMapping(t, variant.Value)
+		}
+	}
+}
+
 func assertWellKnownMapping(t *testing.T, plan MappingValuePlan, kind MappingWellKnownKind) {
 	t.Helper()
 	require.NotNil(t, plan.WellKnown)
 	assert.Equal(t, MappingValueKindWellKnown, plan.Kind)
 	assert.Equal(t, kind, plan.WellKnown.Kind)
 	assert.False(t, plan.CanError)
+}
+
+func plannerNullableStringShape() *ProtoMessage {
+	shape := plannerMessage("example.v1.NullableString", "NullableString")
+	plannerOneof(shape, "value", field("value_string", protoreflect.StringKind), nullValueField("value_null"))
+	return shape
 }
 
 func TestPlannerPlanMappingCustomGoTypes(t *testing.T) {

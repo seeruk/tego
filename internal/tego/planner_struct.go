@@ -34,6 +34,18 @@ var wrapperScalarTypes = map[protoreflect.FullName]ScalarKind{
 	"google.protobuf.BytesValue":  ScalarKindBytes,
 }
 
+var wrapperGoNamesByFullName = map[protoreflect.FullName]string{
+	"google.protobuf.BoolValue":   "BoolValue",
+	"google.protobuf.Int32Value":  "Int32Value",
+	"google.protobuf.Int64Value":  "Int64Value",
+	"google.protobuf.UInt32Value": "UInt32Value",
+	"google.protobuf.UInt64Value": "UInt64Value",
+	"google.protobuf.FloatValue":  "FloatValue",
+	"google.protobuf.DoubleValue": "DoubleValue",
+	"google.protobuf.StringValue": "StringValue",
+	"google.protobuf.BytesValue":  "BytesValue",
+}
+
 var wrapperScalarTypesByGoName = map[string]ScalarKind{
 	"BoolValue":   ScalarKindBool,
 	"Int32Value":  ScalarKindInt32,

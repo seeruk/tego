@@ -672,8 +672,14 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 	}
 	tmp := ctx.tempName("items")
 	item := ctx.collectionItemName(source)
-	ctx.line(tmp + " := make(" + targetType + ", 0, len(" + source + "))")
-	ctx.line("for _, " + item + " := range " + source + " {")
+	if mappingConsumesSource(elem) {
+		ctx.line(tmp + " := make(" + targetType + ", 0, len(" + source + "))")
+		ctx.line("for _, " + item + " := range " + source + " {")
+	} else {
+		item = "_"
+		ctx.line(tmp + " := make(" + targetType + ", 0, len(" + source + "))")
+		ctx.line("for range " + source + " {")
+	}
 	mapped, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(item, elem), elem, item)
 	if err != nil {
 		return "", err
@@ -1003,6 +1009,10 @@ func typeTargetsProto(plan TypePlan) bool {
 	}
 }
 
+func mappingConsumesSource(plan MappingValuePlan) bool {
+	return plan.Kind != MappingValueKindEmptyStruct
+}
+
 func (ctx *mappingRenderContext) renderNativeMap(
 	plan MappingValuePlan,
 	source string,
@@ -1018,7 +1028,12 @@ func (ctx *mappingRenderContext) renderNativeMap(
 	key := ctx.tempPartName("key")
 	value := ctx.tempPartName("value")
 	ctx.line(tmp + " := make(" + targetType + ", len(" + source + "))")
-	ctx.line("for " + key + ", " + value + " := range " + source + " {")
+	if mappingConsumesSource(valuePlan) {
+		ctx.line("for " + key + ", " + value + " := range " + source + " {")
+	} else {
+		value = "_"
+		ctx.line("for " + key + " := range " + source + " {")
+	}
 	mappedKey, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(key, keyPlan), keyPlan, key)
 	if err != nil {
 		return "", err
