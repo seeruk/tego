@@ -23,12 +23,11 @@ import (
 type TicketStatus uint
 
 const (
-	// TicketStatus is the current lifecycle state of a ticket.
-	TicketStatusUnknown    TicketStatus = 0
-	TicketStatusOpen       TicketStatus = 1
-	TicketStatusInProgress TicketStatus = 2
-	TicketStatusBlocked    TicketStatus = 3
-	TicketStatusClosed     TicketStatus = 4
+	TicketStatusUnspecified TicketStatus = 0
+	TicketStatusOpen        TicketStatus = 1
+	TicketStatusInProgress  TicketStatus = 2
+	TicketStatusBlocked     TicketStatus = 3
+	TicketStatusClosed      TicketStatus = 4
 )
 
 type TicketPriority uint
@@ -126,7 +125,7 @@ type ImportTicketEventsResponse struct {
 }
 
 type Ticket struct {
-	ID          string `json:"id,omitempty"`
+	ID          string
 	ProjectID   string
 	Title       string
 	Description string
@@ -326,10 +325,8 @@ func ImportTicketEventsResponseFromInline(importedCount int32, err error) (Impor
 	return ImportTicketEventsResponse{ImportedCount: importedCount}, nil
 }
 
-// TicketService is the facade API for Yira tickets.
 type TicketService interface {
 	ListTickets(ctx context.Context, projectID string, filter TicketFilter, cursor CursorRequest) ([]Ticket, map[TicketStatus][]Ticket, CursorResponse, error)
-	// GetTicket fetches a ticket by ID.
 	GetTicket(ctx context.Context, ticketID string) (Ticket, error)
 	CreateTicket(ctx context.Context, ticket TicketDraft) (Ticket, error)
 	UpdateTicket(ctx context.Context, ticketID string, patch TicketPatch) (Ticket, error)

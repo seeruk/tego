@@ -3554,11 +3554,9 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x1b\n" +
 	"\tticket_id\x18\x02 \x01(\tR\bticketId\"C\n" +
 	"\x1aImportTicketEventsResponse\x12%\n" +
-	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount\"\xcc\x06\n" +
-	"\x06Ticket\x12\x1c\n" +
-	"\x02id\x18\x01 \x01(\tB\f҅\n" +
-	"\b2\x06\n" +
-	"\x02id\x10\x01R\x02id\x12\x1d\n" +
+	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount\"\xbe\x06\n" +
+	"\x06Ticket\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
@@ -3656,35 +3654,27 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\aentries\x18\x01 \x03(\v2\x1e.yirapb.v1.TicketsByStatus.MapR\aentries\x1aY\n" +
 	"\x03Map\x12)\n" +
 	"\x03key\x18\x01 \x01(\x0e2\x17.yirapb.v1.TicketStatusR\x03key\x12'\n" +
-	"\x05value\x18\x02 \x03(\v2\x11.yirapb.v1.TicketR\x05value*\x86\x02\n" +
-	"\fTicketStatus\x12t\n" +
-	"\x19TICKET_STATUS_UNSPECIFIED\x10\x00\x1aU҅\n" +
-	"Q\n" +
-	"\x13TicketStatusUnknown\x128TicketStatus is the current lifecycle state of a ticket. \x00\x12\x16\n" +
+	"\x05value\x18\x02 \x03(\v2\x11.yirapb.v1.TicketR\x05value*\x99\x01\n" +
+	"\fTicketStatus\x12\x1d\n" +
+	"\x19TICKET_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TICKET_STATUS_OPEN\x10\x01\x12\x1d\n" +
 	"\x19TICKET_STATUS_IN_PROGRESS\x10\x02\x12\x19\n" +
 	"\x15TICKET_STATUS_BLOCKED\x10\x03\x12\x18\n" +
-	"\x14TICKET_STATUS_CLOSED\x10\x04\x1a\x14҅\n" +
-	"\x10\n" +
-	"\fTicketStatus \x01*\x80\x01\n" +
+	"\x14TICKET_STATUS_CLOSED\x10\x04*\x80\x01\n" +
 	"\x0eTicketPriority\x12\x1f\n" +
 	"\x1bTICKET_PRIORITY_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TICKET_PRIORITY_LOW\x10\x01\x12\x1a\n" +
 	"\x16TICKET_PRIORITY_NORMAL\x10\x02\x12\x18\n" +
-	"\x14TICKET_PRIORITY_HIGH\x10\x032\x80\x06\n" +
+	"\x14TICKET_PRIORITY_HIGH\x10\x032\x80\x05\n" +
 	"\rTicketService\x12L\n" +
-	"\vListTickets\x12\x1d.yirapb.v1.ListTicketsRequest\x1a\x1e.yirapb.v1.ListTicketsResponse\x12|\n" +
-	"\tGetTicket\x12\x1b.yirapb.v1.GetTicketRequest\x1a\x1c.yirapb.v1.GetTicketResponse\"4҅\n" +
-	"0\n" +
-	"\tGetTicket\x12!GetTicket fetches a ticket by ID.\x18\x01\x12O\n" +
+	"\vListTickets\x12\x1d.yirapb.v1.ListTicketsRequest\x1a\x1e.yirapb.v1.ListTicketsResponse\x12F\n" +
+	"\tGetTicket\x12\x1b.yirapb.v1.GetTicketRequest\x1a\x1c.yirapb.v1.GetTicketResponse\x12O\n" +
 	"\fCreateTicket\x12\x1e.yirapb.v1.CreateTicketRequest\x1a\x1f.yirapb.v1.CreateTicketResponse\x12O\n" +
 	"\fUpdateTicket\x12\x1e.yirapb.v1.UpdateTicketRequest\x1a\x1f.yirapb.v1.UpdateTicketResponse\x12D\n" +
 	"\vCloseTicket\x12\x1d.yirapb.v1.CloseTicketRequest\x1a\x16.google.protobuf.Empty\x12R\n" +
 	"\x11WatchTicketEvents\x12#.yirapb.v1.WatchTicketEventsRequest\x1a\x16.yirapb.v1.TicketEvent0\x01\x12U\n" +
 	"\x12ImportTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a%.yirapb.v1.ImportTicketEventsResponse(\x01\x12F\n" +
-	"\x10SyncTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a\x16.yirapb.v1.TicketEvent(\x010\x01\x1aH҅\n" +
-	"D\n" +
-	"\rTicketService\x121TicketService is the facade API for Yira tickets.\x18\x01B`҅\n" +
+	"\x10SyncTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a\x16.yirapb.v1.TicketEvent(\x010\x01B`҅\n" +
 	"*\n" +
 	"(github.com/seeruk/tego/example/yira;yiraZ0github.com/seeruk/tego/example/yirapbv1;yirapbv1b\beditionsp\xe9\a"
 
