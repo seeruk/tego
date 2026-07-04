@@ -709,6 +709,10 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 		return dynamicList
 	}
 
+	if wellKnown, ok := wellKnownTypeMapping(source, target, direction); ok {
+		return wellKnown
+	}
+
 	if source.Kind == TypeKindEnum && target.Kind == TypeKindEnum {
 		enum := MappingEnumPlan{Source: source, Target: target}
 		return MappingValuePlan{
@@ -720,7 +724,11 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 	}
 
 	if source.Kind == TypeKindScalar && target.Kind == TypeKindScalar && needsScalarCast(source, target) {
-		cast := MappingCastPlan{Source: source, Target: target}
+		cast := MappingCastPlan{
+			Source:      source,
+			Target:      target,
+			ProtoTarget: direction == mappingDirectionToProto,
+		}
 		return MappingValuePlan{
 			Kind:   MappingValueKindScalarCast,
 			Source: source,
@@ -738,7 +746,16 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 	}
 
 	if source.Kind == TypeKindPointer || target.Kind == TypeKindPointer {
-		elem := p.planMappingValue(pointerMappingElem(source, direction), pointerMappingElem(target, direction), direction)
+		elemSource := pointerMappingElem(source, direction)
+		elemTarget := pointerMappingElem(target, direction)
+		if reflect.DeepEqual(elemSource, source) && reflect.DeepEqual(elemTarget, target) {
+			return MappingValuePlan{
+				Kind:   MappingValueKindUnsupported,
+				Source: source,
+				Target: target,
+			}
+		}
+		elem := p.planMappingValue(elemSource, elemTarget, direction)
 		return MappingValuePlan{
 			Kind:     MappingValueKindNullable,
 			Source:   source,
@@ -752,6 +769,63 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 		Kind:   MappingValueKindUnsupported,
 		Source: source,
 		Target: target,
+	}
+}
+
+func wellKnownTypeMapping(source TypePlan, target TypePlan, direction mappingDirection) (MappingValuePlan, bool) {
+	switch {
+	case isWrapperMapping(source, target, direction):
+		return wellKnownMapping(source, target, MappingWellKnownKindWrapper), true
+	case isTimestampMapping(source, target, direction):
+		return wellKnownMapping(source, target, MappingWellKnownKindTimestamp), true
+	case isDurationMapping(source, target, direction):
+		return wellKnownMapping(source, target, MappingWellKnownKindDuration), true
+	default:
+		return MappingValuePlan{}, false
+	}
+}
+
+func wellKnownMapping(source TypePlan, target TypePlan, kind MappingWellKnownKind) MappingValuePlan {
+	return MappingValuePlan{
+		Kind:      MappingValueKindWellKnown,
+		Source:    source,
+		Target:    target,
+		WellKnown: &MappingWellKnownPlan{Kind: kind},
+	}
+}
+
+func isWrapperMapping(source TypePlan, target TypePlan, direction mappingDirection) bool {
+	switch direction {
+	case mappingDirectionFromProto:
+		scalar, ok := wrapperScalarKind(source)
+		return ok && target.Kind == TypeKindScalar && target.Scalar == scalar
+	case mappingDirectionToProto:
+		scalar, ok := wrapperScalarKind(target)
+		return ok && source.Kind == TypeKindScalar && source.Scalar == scalar
+	default:
+		return false
+	}
+}
+
+func isTimestampMapping(source TypePlan, target TypePlan, direction mappingDirection) bool {
+	switch direction {
+	case mappingDirectionFromProto:
+		return isTimestamppbTimestampPointer(source) && isTimeTime(target)
+	case mappingDirectionToProto:
+		return isTimeTime(source) && isTimestamppbTimestampPointer(target)
+	default:
+		return false
+	}
+}
+
+func isDurationMapping(source TypePlan, target TypePlan, direction mappingDirection) bool {
+	switch direction {
+	case mappingDirectionFromProto:
+		return isDurationpbDurationPointer(source) && isTimeDuration(target)
+	case mappingDirectionToProto:
+		return isTimeDuration(source) && isDurationpbDurationPointer(target)
+	default:
+		return false
 	}
 }
 
@@ -1047,6 +1121,31 @@ func isStructpbListValuePointer(plan TypePlan) bool {
 	return plan.Elem.Ref.ImportPath == structpbImportPath && plan.Elem.Ref.Name == "ListValue"
 }
 
+func wrapperScalarKind(plan TypePlan) (ScalarKind, bool) {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return 0, false
+	}
+	if plan.Elem.Ref.ImportPath != wrapperspbImportPath {
+		return 0, false
+	}
+	scalar, ok := wrapperScalarTypesByGoName[plan.Elem.Ref.Name]
+	return scalar, ok
+}
+
+func isTimestamppbTimestampPointer(plan TypePlan) bool {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return false
+	}
+	return plan.Elem.Ref.ImportPath == timestamppbImportPath && plan.Elem.Ref.Name == "Timestamp"
+}
+
+func isDurationpbDurationPointer(plan TypePlan) bool {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return false
+	}
+	return plan.Elem.Ref.ImportPath == durationpbImportPath && plan.Elem.Ref.Name == "Duration"
+}
+
 func isEmptypbEmptyPointer(plan TypePlan) bool {
 	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
 		return false
@@ -1064,6 +1163,14 @@ func isTegoValue(plan TypePlan) bool {
 
 func isTegoListValue(plan TypePlan) bool {
 	return plan.Kind == TypeKindExternal && plan.Ref.ImportPath == tegoImportPath && plan.Ref.Name == "ListValue"
+}
+
+func isTimeTime(plan TypePlan) bool {
+	return plan.Kind == TypeKindExternal && plan.Ref.ImportPath == "time" && plan.Ref.Name == "Time"
+}
+
+func isTimeDuration(plan TypePlan) bool {
+	return plan.Kind == TypeKindExternal && plan.Ref.ImportPath == "time" && plan.Ref.Name == "Duration"
 }
 
 func nullableMappingElemTypes(source TypePlan, target TypePlan, direction mappingDirection) (TypePlan, TypePlan) {

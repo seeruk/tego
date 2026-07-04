@@ -2,7 +2,15 @@
 version: v2
 
 modules:
-- path: example
+- path: examples/quickstart-grpc
+- path: examples/quickstart-connect
+- path: examples/shapes
+- path: examples/options
+- path: examples/custom-types
+- path: examples/presence-patch
+- path: examples/streaming-grpc
+- path: examples/transport-override
+- path: examples/kitchen-sink
 - path: proto
 - path: internal/tego/testdata/proto
 

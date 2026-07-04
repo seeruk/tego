@@ -1,0 +1,64 @@
+edition = "2024";
+package custom.v1;
+
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/examples/custom-types/custompbv1;custompbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/custom-types/custom;custom";
+
+message UUID {
+  option (tego.message).go_type = {
+    ref: "github.com/seeruk/tego/examples/custom-types/types.UUID"
+    from_proto: "github.com/seeruk/tego/examples/custom-types/types.UUIDFromProto"
+    to_proto: "github.com/seeruk/tego/examples/custom-types/types.UUIDToProto"
+    comparable: true
+  };
+
+  string value = 1;
+}
+
+message EmailAddress {
+  option (tego.message).flatten = true;
+
+  string value = 1 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/examples/custom-types/types.Email"
+    from_proto: "github.com/seeruk/tego/examples/custom-types/types.EmailFromProto"
+    to_proto: "github.com/seeruk/tego/examples/custom-types/types.EmailToProto"
+    comparable: true
+  }];
+}
+
+message Customer {
+  UUID id = 1;
+  EmailAddress email = 2;
+  int64 credit_cents = 3 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/examples/custom-types/types.Money"
+    from_proto: "github.com/seeruk/tego/examples/custom-types/types.MoneyFromProto"
+    to_proto: "github.com/seeruk/tego/examples/custom-types/types.MoneyToProto"
+    comparable: true
+  }];
+  string display_name = 4 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/examples/custom-types/types.DisplayName"
+    from_proto: "github.com/seeruk/tego/examples/custom-types/types.DisplayNameFromProto"
+    to_proto: "github.com/seeruk/tego/examples/custom-types/types.DisplayNameToProto"
+    as_pointer: true
+  }];
+  repeated string labels = 5 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/examples/custom-types/types.Set[T]"
+    from_proto: "github.com/seeruk/tego/examples/custom-types/types.LabelSetFromProto"
+    to_proto: "github.com/seeruk/tego/examples/custom-types/types.LabelSetToProto"
+    type_args: {
+      key: "T"
+      value: {type: "github.com/seeruk/tego/examples/custom-types/types.Label"}
+    }
+  }];
+  repeated string contact_aliases = 6 [(tego.field).go_type = {
+    ref: "github.com/seeruk/tego/examples/custom-types/types.Box[*[]*T]"
+    from_proto: "github.com/seeruk/tego/examples/custom-types/types.ContactAliasesFromProto"
+    to_proto: "github.com/seeruk/tego/examples/custom-types/types.ContactAliasesToProto"
+    type_args: {
+      key: "T"
+      value: {type: "github.com/seeruk/tego/examples/custom-types/types.Email"}
+    }
+  }];
+}

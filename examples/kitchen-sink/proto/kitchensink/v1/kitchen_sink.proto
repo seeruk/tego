@@ -1,0 +1,57 @@
+edition = "2024";
+package kitchensink.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/examples/kitchen-sink/kitchensinkpbv1;kitchensinkpbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/kitchen-sink/kitchensink;kitchensink";
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE = 1;
+  STATUS_ARCHIVED = 2;
+}
+
+message KitchenSink {
+  bool bool_value = 1;
+  int32 int32_value = 2;
+  sint32 sint32_value = 3;
+  sfixed32 sfixed32_value = 4;
+  uint32 uint32_value = 5;
+  fixed32 fixed32_value = 6;
+  int64 int64_value = 7;
+  sint64 sint64_value = 8;
+  sfixed64 sfixed64_value = 9;
+  uint64 uint64_value = 10;
+  fixed64 fixed64_value = 11;
+  float float_value = 12;
+  double double_value = 13;
+  string string_value = 14;
+  bytes bytes_value = 15;
+  Status status = 16;
+  repeated string tags = 17;
+  map<string, int32> counts = 18;
+  google.protobuf.BoolValue wrapped_bool = 19;
+  google.protobuf.StringValue wrapped_string = 20;
+  google.protobuf.Timestamp created_at = 21;
+  google.protobuf.Duration ttl = 22;
+  google.protobuf.Struct struct_value = 23;
+  google.protobuf.Value dynamic_value = 24;
+  google.protobuf.ListValue list_value = 25;
+  google.protobuf.Any any_value = 26;
+  google.protobuf.Empty empty_value = 27;
+  Choice choice = 28;
+}
+
+message Choice {
+  oneof value {
+    string text = 1;
+    int32 number = 2;
+  }
+}

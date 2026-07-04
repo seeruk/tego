@@ -26,8 +26,12 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		intPlan := planner.planMappingValue(int64Type, int64Type, mappingDirectionFromProto)
 		uintPlan := planner.planMappingValue(uint64Type, uint64Type, mappingDirectionToProto)
 
+		require.NotNil(t, intPlan.Cast)
+		require.NotNil(t, uintPlan.Cast)
 		assert.Equal(t, MappingValueKindScalarCast, intPlan.Kind)
+		assert.False(t, intPlan.Cast.ProtoTarget)
 		assert.Equal(t, MappingValueKindScalarCast, uintPlan.Kind)
+		assert.True(t, uintPlan.Cast.ProtoTarget)
 	})
 
 	t.Run("plans enum conversion", func(t *testing.T) {
@@ -132,6 +136,104 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.Equal(t, MappingValueKindDynamic, toProto.Kind)
 		assert.Equal(t, MappingDynamicKindListValue, toProto.Dynamic.Kind)
 		assert.True(t, toProto.CanError)
+	})
+
+	t.Run("plans wrapper conversions through nullable fields", func(t *testing.T) {
+		protoWrapper := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "StringValue"},
+		})
+		nativeWrapper := pointerType(stringType)
+		field := messageField("wrapped_string", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+
+		fromProto := planner.planFieldMappingValue(field, protoWrapper, nativeWrapper, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, nativeWrapper, protoWrapper, &ShapeIndex{}, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Kind)
+		assertWellKnownMapping(t, *fromProto.Elem, MappingWellKnownKindWrapper)
+		assertWellKnownMapping(t, *toProto.Elem, MappingWellKnownKindWrapper)
+	})
+
+	t.Run("plans timestamp conversions", func(t *testing.T) {
+		protoTimestamp := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: timestamppbImportPath, Name: "Timestamp"},
+		})
+		nativeTimestamp := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Time"}}
+
+		fromProto := planner.planMappingValue(protoTimestamp, nativeTimestamp, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(nativeTimestamp, protoTimestamp, mappingDirectionToProto)
+
+		assertWellKnownMapping(t, fromProto, MappingWellKnownKindTimestamp)
+		assertWellKnownMapping(t, toProto, MappingWellKnownKindTimestamp)
+	})
+
+	t.Run("plans nullable timestamp conversions", func(t *testing.T) {
+		protoTimestamp := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: timestamppbImportPath, Name: "Timestamp"},
+		})
+		nativeTimestamp := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Time"}}
+		nullableTimestamp := pointerType(nativeTimestamp)
+		field := nullableMessageField("created_at", &ProtoMessage{FullName: timestampFullName})
+
+		fromProto := planner.planFieldMappingValue(field, protoTimestamp, nullableTimestamp, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, nullableTimestamp, protoTimestamp, &ShapeIndex{}, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Kind)
+		assertWellKnownMapping(t, *fromProto.Elem, MappingWellKnownKindTimestamp)
+		assertWellKnownMapping(t, *toProto.Elem, MappingWellKnownKindTimestamp)
+	})
+
+	t.Run("plans duration conversions", func(t *testing.T) {
+		protoDuration := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: durationpbImportPath, Name: "Duration"},
+		})
+		nativeDuration := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Duration"}}
+
+		fromProto := planner.planMappingValue(protoDuration, nativeDuration, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(nativeDuration, protoDuration, mappingDirectionToProto)
+
+		assertWellKnownMapping(t, fromProto, MappingWellKnownKindDuration)
+		assertWellKnownMapping(t, toProto, MappingWellKnownKindDuration)
+	})
+
+	t.Run("plans nullable duration conversions", func(t *testing.T) {
+		protoDuration := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: durationpbImportPath, Name: "Duration"},
+		})
+		nativeDuration := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Duration"}}
+		nullableDuration := pointerType(nativeDuration)
+		field := nullableMessageField("ttl", &ProtoMessage{FullName: durationFullName})
+
+		fromProto := planner.planFieldMappingValue(field, protoDuration, nullableDuration, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, nullableDuration, protoDuration, &ShapeIndex{}, mappingDirectionToProto)
+
+		require.NotNil(t, fromProto.Elem)
+		require.NotNil(t, toProto.Elem)
+		assert.Equal(t, MappingValueKindNullable, fromProto.Kind)
+		assert.Equal(t, MappingValueKindNullable, toProto.Kind)
+		assertWellKnownMapping(t, *fromProto.Elem, MappingWellKnownKindDuration)
+		assertWellKnownMapping(t, *toProto.Elem, MappingWellKnownKindDuration)
+	})
+
+	t.Run("returns unsupported when pointer fallback cannot make progress", func(t *testing.T) {
+		protoMessage := pointerType(TypePlan{
+			Kind: TypeKindExternal,
+			Ref:  GoTypeRef{ImportPath: "example.com/external", Name: "Message"},
+		})
+
+		plan := planner.planMappingValue(stringType, protoMessage, mappingDirectionToProto)
+
+		assert.Equal(t, MappingValueKindUnsupported, plan.Kind)
 	})
 
 	t.Run("plans nullable structpb value conversions", func(t *testing.T) {
@@ -329,6 +431,14 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.Equal(t, MappingValueKindCustom, toProto.Elem.Kind)
 		assert.True(t, toProto.CanError)
 	})
+}
+
+func assertWellKnownMapping(t *testing.T, plan MappingValuePlan, kind MappingWellKnownKind) {
+	t.Helper()
+	require.NotNil(t, plan.WellKnown)
+	assert.Equal(t, MappingValueKindWellKnown, plan.Kind)
+	assert.Equal(t, kind, plan.WellKnown.Kind)
+	assert.False(t, plan.CanError)
 }
 
 func TestPlannerPlanMappingCustomGoTypes(t *testing.T) {

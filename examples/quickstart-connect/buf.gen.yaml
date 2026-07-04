@@ -1,0 +1,19 @@
+version: v2
+
+plugins:
+- local: [go, tool, protoc-gen-go]
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/examples/quickstart-connect
+- local: [go, tool, protoc-gen-connect-go]
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/examples/quickstart-connect
+- local: [go, run, ../../cmd/protoc-gen-tego]
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/examples/quickstart-connect
+  - rpc=connect

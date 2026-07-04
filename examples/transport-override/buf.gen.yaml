@@ -1,0 +1,19 @@
+version: v2
+
+plugins:
+- local: [go, tool, protoc-gen-go]
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/examples/transport-override
+- local: [go, tool, protoc-gen-go-grpc]
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/examples/transport-override
+- local: [go, run, ../../cmd/protoc-gen-tego]
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/seeruk/tego/examples/transport-override
+  - rpc=grpc

@@ -11,8 +11,6 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-require github.com/brianvoe/gofakeit/v7 v7.15.0
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect

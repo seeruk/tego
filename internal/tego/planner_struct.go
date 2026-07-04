@@ -34,6 +34,18 @@ var wrapperScalarTypes = map[protoreflect.FullName]ScalarKind{
 	"google.protobuf.BytesValue":  ScalarKindBytes,
 }
 
+var wrapperScalarTypesByGoName = map[string]ScalarKind{
+	"BoolValue":   ScalarKindBool,
+	"Int32Value":  ScalarKindInt32,
+	"Int64Value":  ScalarKindInt64,
+	"UInt32Value": ScalarKindUint32,
+	"UInt64Value": ScalarKindUint64,
+	"FloatValue":  ScalarKindFloat32,
+	"DoubleValue": ScalarKindFloat64,
+	"StringValue": ScalarKindString,
+	"BytesValue":  ScalarKindBytes,
+}
+
 func (p *Planner) planStruct(message *ProtoMessage, si *ShapeIndex) (StructPlan, []Diagnostic, bool) {
 	if message.Options.GetOmit() || message.Options.HasGoType() || isIndexedShape(message, si) ||
 		isIndexedMapEntryMessage(message, si) || isNativeMapEntryMessage(message) {

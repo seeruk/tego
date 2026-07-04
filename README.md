@@ -1,14 +1,179 @@
 # Tego
 
-A protoc plugin that emits a layer of idiomatic and modern Go over your ProtoBuf and gRPC types.
+A protoc plugin that emits a layer of idiomatic and modern Go over your protobuf and gRPC types.
 
 > Tego /'te.ɡoː/ • Latin: To cover, shield, and protect.
+
+## Core Concepts
+
+Tego sits between protobuf's generated Go and the Go you probably want to write by hand. The
+protobuf types still exist, but _your_ code can use smaller, plainer Go types and service
+interfaces.
+
+- [Generated Go package](#generated-go-package)
+- [Types and mappings](#types-and-mappings)
+- [Shapes](#shapes)
+- [Custom types](#custom-types)
+- [Presence and patches](#presence-and-patches)
+- [Facade services](#facade-services)
+- [Transport adapters](#transport-adapters)
+
+### Generated Go Package
+
+Every file that wants Tego output opts into a Go package for the friendly types:
+
+```protobuf
+option go_package = "github.com/acme/project/ticketpbv1;ticketpbv1";
+option (tego.file).go_package = "github.com/acme/project/ticket;ticket";
+```
+
+The `go_package` option is still for protobuf's Go types. The `(tego.file).go_package` option is
+where Tego writes the types you work with in the rest of your app.
+
+### Types and Mappings
+
+Tego generates plain Go structs and mapping functions beside the protobuf types:
+
+```protobuf
+message Ticket {
+  string id = 1;
+  string title = 2;
+}
+```
+
+```go
+type Ticket struct {
+	ID    string
+	Title string
+}
+
+func TicketFromProto(*ticketpbv1.Ticket) Ticket
+func TicketToProto(Ticket) (*ticketpbv1.Ticket, error)
+```
+
+The goal is boring Go; structs, enums, slices, maps, pointers, with conversion code you can read.
+The protobuf code still exists, and Tego provides escape-hatches where necessary, but as much as
+possible the protobuf boundary stays explicit, leaving your with regular Go types that hopefully
+match your usual expectations.
+
+### Shapes
+
+Some protobuf messages are only there to express a shape protobuf does not have directly. Tego can
+collapse those when they are used as fields:
+
+```protobuf
+message TicketList {
+  repeated Ticket tickets = 1;
+}
+
+message TicketSlug {
+  option (tego.message).flatten = true;
+
+  string value = 1;
+}
+```
+
+```go
+type Project struct {
+	Tickets []Ticket
+	Slug    string
+}
+```
+
+This keeps the protobuf schema honest while keeping the Go model small. See
+[examples/shapes](examples/shapes) for slices, maps, nullable values, and flattening.
+
+### Custom Types
+
+When a generated field should really be one of your own types, give Tego the type and the conversion
+functions:
+
+```protobuf
+int64 credit_cents = 1 [(tego.field).go_type = {
+  ref: "github.com/acme/project/money.Money"
+  from_proto: "github.com/acme/project/money.MoneyFromProto"
+  to_proto: "github.com/acme/project/money.MoneyToProto"
+  comparable: true
+}];
+```
+
+This is for keeping domain meaning in the Go code. An email can be an `Email`, money can be `Money`,
+and IDs can be real types instead of strings with good intentions. See
+[examples/custom-types](examples/custom-types).
+
+### Presence and Patches
+
+For patch-style messages, Tego can generate `omittable.Of[T]` so callers can differentiate between
+not set, set to null/nil, and set to a value, as needed.
+
+```protobuf
+message UpdateProfileRequest {
+  option (tego.message).fields.omittable = true;
+
+  string display_name = 1;
+  NullableString bio = 2;
+  string actor_id = 3 [(tego.field).omittable = false];
+}
+```
+
+```go
+type UpdateProfileRequest struct {
+	DisplayName omittable.Of[string]
+	Bio         omittable.Of[*string]
+	ActorID     string
+}
+```
+
+See [examples/presence-patch](examples/presence-patch).
+
+### Facade Services
+
+Services generate a facade interface. Request and response messages are inlined by default when it
+is safe. This inlining can be disabled on a per-method-basis.
+
+```protobuf
+service GreeterService {
+  rpc SayHello(SayHelloRequest) returns (SayHelloResponse);
+}
+```
+
+```go
+type GreeterService interface {
+	SayHello(context.Context, string) (string, error)
+}
+```
+
+This is the interface I expect most Go code to implement and call. It keeps handlers from filling up
+with request/response wrapper plumbing.
+
+### Transport Adapters
+
+If you still want gRPC or Connect, Tego can generate the adapter layer too:
+
+```go
+hello.RegisterGreeterServiceGRPCServer(server, greeter{})
+
+client := hello.NewGreeterServiceGRPCClient(
+	hellopbv1.NewGreeterServiceClient(conn),
+)
+```
+
+Your app implements the facade. The generated gRPC or Connect server/client translates at the edge.
+If you need transport details, you can override a native method and delegate back to the generated
+adapter. See [examples/quickstart-grpc](examples/quickstart-grpc),
+[examples/quickstart-connect](examples/quickstart-connect), and
+[examples/transport-override](examples/transport-override).
+
+## Examples
+
+The [examples suite](examples/README.md) is the best place to start. It has small, focused examples
+for gRPC, Connect, generated shapes, options, custom types, patch semantics, streaming, transport
+overrides, and a kitchen-sink type reference.
+
+Tego is intentionally focused on generated Go types, mapping code, facade service interfaces, and
+optional gRPC/Connect adapters. It does not try to own your transport, application framework,
+storage, validation, or domain model boundaries.
 
 ## License
 
 MIT
-
-## TODO
-
-* Swap `Optional` implementation into separate package (github.com/seeruk/optional?)
-* Reply to https://github.com/golang/protobuf/issues/414 to mention Tego once complete enough

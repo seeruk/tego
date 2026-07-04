@@ -1,0 +1,83 @@
+edition = "2024";
+package options.v1;
+
+import "google/protobuf/struct.proto";
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/examples/options/optionspbv1;optionspbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/options/options;options";
+
+service AccountService {
+  option (tego.service).name = "Accounts";
+  option (tego.service).comment = "Accounts is the facade service name this schema would generate when RPC output is enabled.";
+  option (tego.service).inline_by_default = false;
+
+  rpc LookupAccount(LookupAccountRequest) returns (LookupAccountResponse) {
+    option (tego.method).name = "Find";
+    option (tego.method).comment = "Find fetches one account by ID.";
+    option (tego.method).inline_request = true;
+    option (tego.method).inline_response = true;
+  }
+}
+
+enum Role {
+  option (tego.enum) = {
+    name: "AccessRole"
+    comment: "AccessRole is an int-backed enum with explicit generated values."
+    underlying_type: ENUM_UNDERLYING_TYPE_INT
+  };
+
+  ROLE_UNSPECIFIED = 0 [(tego.enum_value).omit = true];
+  ROLE_VIEWER = 1 [(tego.enum_value) = {
+    name: "AccessRoleViewer"
+    comment: "AccessRoleViewer can read data."
+    int: 10
+  }];
+  ROLE_EDITOR = 2 [(tego.enum_value) = {
+    name: "AccessRoleEditor"
+    int: 20
+  }];
+}
+
+message LookupAccountRequest {
+  string account_id = 1;
+}
+
+message LookupAccountResponse {
+  Account account = 1;
+}
+
+message Account {
+  option (tego.message) = {
+    name: "UserAccount"
+    comment: "UserAccount is the hand-facing account shape."
+  };
+
+  string id = 1 [(tego.field) = {
+    name: "ID"
+    comment: "ID is the stable account identifier."
+    json_tag: {value: "id", omitempty: true}
+    tags: {key: "validate", value: "required"}
+  }];
+  string display_name = 2 [(tego.field).json_tag = {value: "display_name", omitempty: true}];
+  string email = 3 [(tego.field).nullable = true];
+  Role role = 4;
+  string internal_note = 5 [(tego.field).omit = true];
+}
+
+message AccountPatch {
+  option (tego.message).fields.omittable = true;
+
+  string display_name = 1;
+  NullableString email = 2;
+  Role role = 3;
+  google.protobuf.Struct metadata = 4;
+  string actor_id = 5 [(tego.field).omittable = false];
+}
+
+message NullableString {
+  oneof value {
+    string text = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}

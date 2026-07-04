@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	emptypbImportPath  = "google.golang.org/protobuf/types/known/emptypb"
-	structpbImportPath = "google.golang.org/protobuf/types/known/structpb"
+	durationpbImportPath  = "google.golang.org/protobuf/types/known/durationpb"
+	emptypbImportPath     = "google.golang.org/protobuf/types/known/emptypb"
+	structpbImportPath    = "google.golang.org/protobuf/types/known/structpb"
+	timestamppbImportPath = "google.golang.org/protobuf/types/known/timestamppb"
+	wrapperspbImportPath  = "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func generateMapping(g *protogen.GeneratedFile, mapping MappingPlan) error {
@@ -413,7 +416,13 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 	switch plan.Kind {
 	case MappingValueKindDirect:
 		return source, nil
-	case MappingValueKindScalarCast, MappingValueKindEnum:
+	case MappingValueKindScalarCast:
+		target, err := scalarCastTargetType(ctx.g, plan)
+		if err != nil {
+			return "", err
+		}
+		return target + "(" + source + ")", nil
+	case MappingValueKindEnum:
 		target, err := generateType(ctx.g, plan.Target)
 		if err != nil {
 			return "", err
@@ -441,6 +450,8 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 		return ctx.renderMap(plan, source)
 	case MappingValueKindDynamic:
 		return ctx.renderDynamic(plan, source)
+	case MappingValueKindWellKnown:
+		return ctx.renderWellKnown(plan, source)
 	case MappingValueKindEmptyStruct:
 		return ctx.renderEmptyStruct(plan)
 	case MappingValueKindFlatten:
@@ -450,6 +461,18 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 	default:
 		return "", fmt.Errorf("unsupported mapping node")
 	}
+}
+
+func scalarCastTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+	if plan.Cast != nil && plan.Cast.ProtoTarget {
+		switch plan.Target.Scalar {
+		case ScalarKindInt64:
+			return "int64", nil
+		case ScalarKindUint64:
+			return "uint64", nil
+		}
+	}
+	return generateType(g, plan.Target)
 }
 
 func (ctx *mappingRenderContext) renderCustom(plan MappingValuePlan, source string) (string, error) {
@@ -571,13 +594,19 @@ func (ctx *mappingRenderContext) renderNullableToProto(plan MappingValuePlan, so
 
 	if plan.Target.Kind == TypeKindPointer && plan.Target.Elem != nil && plan.Target.Elem.Kind == TypeKindExternal {
 		// Nullable shape wrappers can encode explicit null; ordinary pointer mappings only omit it.
-		empty, err := newValueExpr(ctx.g, plan.Target)
-		if err != nil {
-			return "", err
+		var empty string
+		if plan.Access.NullableForm == MappingNullableFormOneof || plan.Access.NullableForm == MappingNullableFormValue {
+			var err error
+			empty, err = newValueExpr(ctx.g, plan.Target)
+			if err != nil {
+				return "", err
+			}
 		}
 		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
-		ctx.line(tmp + " = " + empty)
+		if empty != "" {
+			ctx.line(tmp + " = " + empty)
+		}
 		childSource := mappingChildSource(source, plan.Source, plan.Elem.Source)
 		child, err := ctx.renderValue(*plan.Elem, childSource)
 		if err != nil {
@@ -592,16 +621,20 @@ func (ctx *mappingRenderContext) renderNullableToProto(plan MappingValuePlan, so
 		default:
 			ctx.line(tmp + " = " + child)
 		}
-		ctx.line("} else {")
 		switch plan.Access.NullableForm {
 		case MappingNullableFormOneof:
+			ctx.line("} else {")
 			ctx.line(tmp + " = " + empty)
 			ctx.line(tmp + "." + plan.Access.Oneof.Null.Setter + "(" + structpbNullValue(ctx.g) + ")")
+			ctx.line("}")
 		case MappingNullableFormValue:
+			ctx.line("} else {")
 			ctx.line(tmp + " = " + empty)
 			ctx.line(tmp + "." + plan.Access.Valid.Setter + "(false)")
+			ctx.line("}")
+		default:
+			ctx.line("}")
 		}
-		ctx.line("}")
 		return tmp, nil
 	}
 
@@ -853,6 +886,77 @@ func (ctx *mappingRenderContext) renderDynamicList(plan MappingValuePlan, source
 	return "", fmt.Errorf("unsupported dynamic list mapping")
 }
 
+func (ctx *mappingRenderContext) renderWellKnown(plan MappingValuePlan, source string) (string, error) {
+	if plan.WellKnown == nil {
+		return "", fmt.Errorf("well-known mapping is missing metadata")
+	}
+
+	switch plan.WellKnown.Kind {
+	case MappingWellKnownKindWrapper:
+		return ctx.renderWrapper(plan, source)
+	case MappingWellKnownKindTimestamp:
+		return ctx.renderTimestamp(plan, source)
+	case MappingWellKnownKindDuration:
+		return ctx.renderDuration(plan, source)
+	default:
+		return "", fmt.Errorf("unsupported well-known mapping")
+	}
+}
+
+func (ctx *mappingRenderContext) renderWrapper(plan MappingValuePlan, source string) (string, error) {
+	if _, ok := wrapperScalarKind(plan.Source); ok && plan.Target.Kind == TypeKindScalar {
+		value := source + ".GetValue()"
+		return castWrapperValueToGenerated(ctx.g, plan.Target, value)
+	}
+
+	if plan.Source.Kind == TypeKindScalar {
+		constructor, ok := wrapperConstructor(ctx.g, plan.Target)
+		if !ok {
+			return "", fmt.Errorf("wrapper mapping is missing target wrapper")
+		}
+		return constructor + "(" + castGeneratedValueToWrapper(plan.Source, source) + ")", nil
+	}
+
+	return "", fmt.Errorf("unsupported wrapper mapping")
+}
+
+func (ctx *mappingRenderContext) renderTimestamp(plan MappingValuePlan, source string) (string, error) {
+	if isTimestamppbTimestampPointer(plan.Source) && isTimeTime(plan.Target) {
+		return ctx.renderWellKnownFromProto(plan.Target, source, "AsTime")
+	}
+
+	if isTimeTime(plan.Source) && isTimestamppbTimestampPointer(plan.Target) {
+		return timestampNew(ctx.g) + "(" + source + ")", nil
+	}
+
+	return "", fmt.Errorf("unsupported timestamp mapping")
+}
+
+func (ctx *mappingRenderContext) renderDuration(plan MappingValuePlan, source string) (string, error) {
+	if isDurationpbDurationPointer(plan.Source) && isTimeDuration(plan.Target) {
+		return ctx.renderWellKnownFromProto(plan.Target, source, "AsDuration")
+	}
+
+	if isTimeDuration(plan.Source) && isDurationpbDurationPointer(plan.Target) {
+		return durationNew(ctx.g) + "(" + source + ")", nil
+	}
+
+	return "", fmt.Errorf("unsupported duration mapping")
+}
+
+func (ctx *mappingRenderContext) renderWellKnownFromProto(plan TypePlan, source string, method string) (string, error) {
+	targetType, err := generateType(ctx.g, plan)
+	if err != nil {
+		return "", err
+	}
+	tmp := ctx.tempName("wellKnown")
+	ctx.line("var " + tmp + " " + targetType)
+	ctx.line("if " + source + " != nil {")
+	ctx.line(tmp + " = " + source + "." + method + "()")
+	ctx.line("}")
+	return tmp, nil
+}
+
 func (ctx *mappingRenderContext) renderEmptyStruct(plan MappingValuePlan) (string, error) {
 	if isEmptypbEmptyPointer(plan.Source) && plan.Target.Kind == TypeKindEmptyStruct {
 		return "struct{}{}", nil
@@ -1029,11 +1133,79 @@ func structpbNewList(g *protogen.GeneratedFile) string {
 	})
 }
 
+func timestampNew(g *protogen.GeneratedFile) string {
+	return g.QualifiedGoIdent(protogen.GoIdent{
+		GoImportPath: timestamppbImportPath,
+		GoName:       "New",
+	})
+}
+
+func durationNew(g *protogen.GeneratedFile) string {
+	return g.QualifiedGoIdent(protogen.GoIdent{
+		GoImportPath: durationpbImportPath,
+		GoName:       "New",
+	})
+}
+
 func errorsNew(g *protogen.GeneratedFile) string {
 	return g.QualifiedGoIdent(protogen.GoIdent{
 		GoImportPath: "errors",
 		GoName:       "New",
 	})
+}
+
+var wrapperConstructorNames = map[string]string{
+	"BoolValue":   "Bool",
+	"Int32Value":  "Int32",
+	"Int64Value":  "Int64",
+	"UInt32Value": "UInt32",
+	"UInt64Value": "UInt64",
+	"FloatValue":  "Float",
+	"DoubleValue": "Double",
+	"StringValue": "String",
+	"BytesValue":  "Bytes",
+}
+
+func wrapperConstructor(g *protogen.GeneratedFile, plan TypePlan) (string, bool) {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
+		return "", false
+	}
+	name, ok := wrapperConstructorNames[plan.Elem.Ref.Name]
+	if !ok {
+		return "", false
+	}
+	return g.QualifiedGoIdent(protogen.GoIdent{
+		GoImportPath: wrapperspbImportPath,
+		GoName:       name,
+	}), true
+}
+
+func castWrapperValueToGenerated(g *protogen.GeneratedFile, target TypePlan, value string) (string, error) {
+	if target.Kind != TypeKindScalar {
+		return value, nil
+	}
+	if target.Scalar != ScalarKindInt64 && target.Scalar != ScalarKindUint64 {
+		return value, nil
+	}
+	targetType, err := generateType(g, target)
+	if err != nil {
+		return "", err
+	}
+	return targetType + "(" + value + ")", nil
+}
+
+func castGeneratedValueToWrapper(source TypePlan, value string) string {
+	if source.Kind != TypeKindScalar {
+		return value
+	}
+	switch source.Scalar {
+	case ScalarKindInt64:
+		return "int64(" + value + ")"
+	case ScalarKindUint64:
+		return "uint64(" + value + ")"
+	default:
+		return value
+	}
 }
 
 func newValueExpr(g *protogen.GeneratedFile, plan TypePlan) (string, error) {

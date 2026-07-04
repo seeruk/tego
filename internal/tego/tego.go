@@ -236,20 +236,21 @@ type FieldMappingPlan struct {
 
 // MappingValuePlan describes one value-level conversion expression or block.
 type MappingValuePlan struct {
-	Kind     MappingValueKind
-	Source   TypePlan
-	Target   TypePlan
-	CanError bool
-	Access   MappingAccessPlan
-	Oneof    *MappingOneofPlan
-	Struct   *MappingRefPlan
-	Custom   *CustomGoTypePlan
-	Enum     *MappingEnumPlan
-	Cast     *MappingCastPlan
-	Dynamic  *MappingDynamicPlan
-	Elem     *MappingValuePlan
-	Key      *MappingValuePlan
-	Value    *MappingValuePlan
+	Kind      MappingValueKind
+	Source    TypePlan
+	Target    TypePlan
+	CanError  bool
+	Access    MappingAccessPlan
+	Oneof     *MappingOneofPlan
+	Struct    *MappingRefPlan
+	Custom    *CustomGoTypePlan
+	Enum      *MappingEnumPlan
+	Cast      *MappingCastPlan
+	Dynamic   *MappingDynamicPlan
+	WellKnown *MappingWellKnownPlan
+	Elem      *MappingValuePlan
+	Key       *MappingValuePlan
+	Value     *MappingValuePlan
 }
 
 // MappingAccessPlan records generated accessor names needed by mapping renderers.
@@ -343,6 +344,8 @@ const (
 	MappingValueKindEmptyStruct
 	// MappingValueKindDynamic maps Struct, Value, or ListValue well-known dynamic data.
 	MappingValueKindDynamic
+	// MappingValueKindWellKnown maps wrapper, timestamp, or duration well-known types.
+	MappingValueKindWellKnown
 	// MappingValueKindFlatten maps an explicit one-field flatten shape.
 	MappingValueKindFlatten
 )
@@ -364,6 +367,23 @@ type MappingDynamicPlan struct {
 	Kind MappingDynamicKind
 }
 
+// MappingWellKnownKind identifies which non-dynamic protobuf well-known type is being mapped.
+type MappingWellKnownKind uint
+
+const (
+	// MappingWellKnownKindWrapper maps google.protobuf.*Value wrapper messages.
+	MappingWellKnownKindWrapper MappingWellKnownKind = iota
+	// MappingWellKnownKindTimestamp maps google.protobuf.Timestamp.
+	MappingWellKnownKindTimestamp
+	// MappingWellKnownKindDuration maps google.protobuf.Duration.
+	MappingWellKnownKindDuration
+)
+
+// MappingWellKnownPlan carries non-dynamic well-known type mapping details.
+type MappingWellKnownPlan struct {
+	Kind MappingWellKnownKind
+}
+
 // MappingRefPlan refers to another mapping function, local or imported.
 type MappingRefPlan struct {
 	Name   string
@@ -380,8 +400,9 @@ type MappingEnumPlan struct {
 
 // MappingCastPlan describes scalar conversion that is rendered as a Go cast.
 type MappingCastPlan struct {
-	Source TypePlan
-	Target TypePlan
+	Source      TypePlan
+	Target      TypePlan
+	ProtoTarget bool
 }
 
 // ServicePlan describes generated service/client interfaces and transport adapters.

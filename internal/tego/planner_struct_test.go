@@ -62,9 +62,18 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		require.Empty(t, diagnostics)
 		assert.Equal(t, TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Time"}}, timestamp)
 
+		duration, diagnostics := planner.planSingularFieldType(messageField("ttl", &ProtoMessage{FullName: durationFullName}), shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Duration"}}, duration)
+
+		boolValue, diagnostics := planner.planSingularFieldType(messageField("flag", &ProtoMessage{FullName: "google.protobuf.BoolValue"}), shapeIndex)
+		require.Empty(t, diagnostics)
+		elem := requirePointerElem(t, boolValue, TypeKindScalar)
+		assert.Equal(t, ScalarKindBool, elem.Scalar)
+
 		stringValue, diagnostics := planner.planSingularFieldType(messageField("name", &ProtoMessage{FullName: "google.protobuf.StringValue"}), shapeIndex)
 		require.Empty(t, diagnostics)
-		elem := requirePointerElem(t, stringValue, TypeKindScalar)
+		elem = requirePointerElem(t, stringValue, TypeKindScalar)
 		assert.Equal(t, ScalarKindString, elem.Scalar)
 
 		empty, diagnostics := planner.planSingularFieldType(messageField("marker", &ProtoMessage{FullName: emptyFullName}), shapeIndex)

@@ -401,6 +401,26 @@ func generatorTestFilePlan() FilePlan {
 	int64Type := TypePlan{Kind: TypeKindScalar, Scalar: ScalarKindInt64}
 	personType := TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "Person"}}
 	personPointer := TypePlan{Kind: TypeKindPointer, Elem: &personType}
+	stringPointer := TypePlan{Kind: TypeKindPointer, Elem: &stringType}
+	int64Pointer := TypePlan{Kind: TypeKindPointer, Elem: &int64Type}
+	timeType := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Time"}}
+	durationType := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Duration"}}
+	protoStringWrapperType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "StringValue"},
+	}}
+	protoInt64WrapperType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "Int64Value"},
+	}}
+	protoTimestampType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  GoTypeRef{ImportPath: timestamppbImportPath, Name: "Timestamp"},
+	}}
+	protoDurationType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  GoTypeRef{ImportPath: durationpbImportPath, Name: "Duration"},
+	}}
 	labelSetType := TypePlan{
 		Kind: TypeKindCustom,
 		Ref: GoTypeRef{
@@ -478,7 +498,10 @@ func generatorTestFilePlan() FilePlan {
 					{Name: "Value", Type: TypePlan{Kind: TypeKindOneof, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "PersonValue"}}},
 					{Name: "Raw", Type: TypePlan{Kind: TypeKindScalar, Scalar: ScalarKindBytes}},
 					{Name: "Status", Type: TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "UintStatus"}}},
-					{Name: "CreatedAt", Type: TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Time"}}},
+					{Name: "WrappedName", Type: stringPointer},
+					{Name: "WrappedCount", Type: int64Pointer},
+					{Name: "CreatedAt", Type: timeType},
+					{Name: "TTL", Type: durationType},
 					{Name: "Description", Type: TypePlan{
 						Kind: TypeKindPointer,
 						Elem: &TypePlan{Kind: TypeKindCustom, Ref: GoTypeRef{ImportPath: plannerTestPkg, Name: "Description"}},
@@ -571,7 +594,7 @@ func generatorTestFilePlan() FilePlan {
 							Kind:   MappingValueKindScalarCast,
 							Source: int64Type,
 							Target: int64Type,
-							Cast:   &MappingCastPlan{Source: int64Type, Target: int64Type},
+							Cast:   &MappingCastPlan{Source: int64Type, Target: int64Type, ProtoTarget: true},
 						},
 					},
 					{
@@ -586,6 +609,90 @@ func generatorTestFilePlan() FilePlan {
 							Kind:   MappingValueKindEnum,
 							Source: TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "UintStatus"}},
 							Target: TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "UintStatus"}},
+						},
+					},
+					{
+						Name:  "WrappedName",
+						Proto: MappingFieldAccessPlan{Name: "WrappedName", Getter: "GetWrappedName", Setter: "SetWrappedName", Has: "HasWrappedName"},
+						FromProto: MappingValuePlan{
+							Kind:   MappingValueKindNullable,
+							Source: protoStringWrapperType,
+							Target: stringPointer,
+							Elem: &MappingValuePlan{
+								Kind:      MappingValueKindWellKnown,
+								Source:    protoStringWrapperType,
+								Target:    stringType,
+								WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindWrapper},
+							},
+						},
+						ToProto: MappingValuePlan{
+							Kind:   MappingValueKindNullable,
+							Source: stringPointer,
+							Target: protoStringWrapperType,
+							Elem: &MappingValuePlan{
+								Kind:      MappingValueKindWellKnown,
+								Source:    stringType,
+								Target:    protoStringWrapperType,
+								WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindWrapper},
+							},
+						},
+					},
+					{
+						Name:  "WrappedCount",
+						Proto: MappingFieldAccessPlan{Name: "WrappedCount", Getter: "GetWrappedCount", Setter: "SetWrappedCount", Has: "HasWrappedCount"},
+						FromProto: MappingValuePlan{
+							Kind:   MappingValueKindNullable,
+							Source: protoInt64WrapperType,
+							Target: int64Pointer,
+							Elem: &MappingValuePlan{
+								Kind:      MappingValueKindWellKnown,
+								Source:    protoInt64WrapperType,
+								Target:    int64Type,
+								WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindWrapper},
+							},
+						},
+						ToProto: MappingValuePlan{
+							Kind:   MappingValueKindNullable,
+							Source: int64Pointer,
+							Target: protoInt64WrapperType,
+							Elem: &MappingValuePlan{
+								Kind:      MappingValueKindWellKnown,
+								Source:    int64Type,
+								Target:    protoInt64WrapperType,
+								WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindWrapper},
+							},
+						},
+					},
+					{
+						Name:  "CreatedAt",
+						Proto: MappingFieldAccessPlan{Name: "CreatedAt", Getter: "GetCreatedAt", Setter: "SetCreatedAt", Has: "HasCreatedAt"},
+						FromProto: MappingValuePlan{
+							Kind:      MappingValueKindWellKnown,
+							Source:    protoTimestampType,
+							Target:    timeType,
+							WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindTimestamp},
+						},
+						ToProto: MappingValuePlan{
+							Kind:      MappingValueKindWellKnown,
+							Source:    timeType,
+							Target:    protoTimestampType,
+							WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindTimestamp},
+						},
+					},
+					{
+						Name:  "TTL",
+						Proto: MappingFieldAccessPlan{Name: "Ttl", Getter: "GetTtl", Setter: "SetTtl", Has: "HasTtl"},
+						FromProto: MappingValuePlan{
+							Kind:      MappingValueKindWellKnown,
+							Source:    protoDurationType,
+							Target:    durationType,
+							WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindDuration},
+						},
+						ToProto: MappingValuePlan{
+							Kind:      MappingValueKindWellKnown,
+							Source:    durationType,
+							Target:    protoDurationType,
+							WellKnown: &MappingWellKnownPlan{Kind: MappingWellKnownKindDuration},
 						},
 					},
 					{

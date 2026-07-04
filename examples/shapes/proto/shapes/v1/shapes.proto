@@ -1,0 +1,46 @@
+edition = "2024";
+package shapes.v1;
+
+import "google/protobuf/struct.proto";
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/examples/shapes/shapespbv1;shapespbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/shapes/shapes;shapes";
+
+message Person {
+  string id = 1;
+  string display_name = 2;
+}
+
+message PersonList {
+  repeated Person people = 1;
+}
+
+message NullablePerson {
+  oneof value {
+    Person person = 1;
+    google.protobuf.NullValue null = 2;
+  }
+}
+
+message PeopleByTeam {
+  message Map {
+    string key = 1;
+    Person value = 2;
+  }
+
+  repeated Map entries = 1;
+}
+
+message ProjectSlug {
+  option (tego.message).flatten = true;
+
+  string value = 1;
+}
+
+message Project {
+  ProjectSlug slug = 1;
+  PeopleByTeam members = 2;
+  NullablePerson owner = 3;
+  PersonList reviewers = 4;
+}

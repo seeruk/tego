@@ -1,0 +1,24 @@
+edition = "2024";
+package override.v1;
+
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/examples/transport-override/overridepbv1;overridepbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/transport-override/override;override";
+
+service ProfileService {
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+}
+
+message GetProfileRequest {
+  string id = 1;
+}
+
+message GetProfileResponse {
+  Profile profile = 1;
+}
+
+message Profile {
+  string id = 1;
+  string display_name = 2;
+}

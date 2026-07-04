@@ -1,0 +1,26 @@
+edition = "2024";
+package streaming.v1;
+
+import "tego/options.proto";
+
+option go_package = "github.com/seeruk/tego/examples/streaming-grpc/streamingpbv1;streamingpbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/streaming-grpc/streaming;streaming";
+
+service EventService {
+  rpc Watch(WatchRequest) returns (stream Event);
+  rpc Import(stream Event) returns (ImportResponse);
+  rpc Chat(stream Event) returns (stream Event);
+}
+
+message WatchRequest {
+  string topic = 1;
+}
+
+message Event {
+  string topic = 1;
+  string message = 2;
+}
+
+message ImportResponse {
+  int32 count = 1;
+}

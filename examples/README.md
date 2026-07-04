@@ -1,0 +1,25 @@
+# Tego Examples
+
+These examples are small on purpose. Each one keeps the proto source and generated output close
+together, with handwritten usage code only where it helps, so you can read the shape of Tego
+without deciphering a large demo app.
+
+## Learning Path
+
+1. [quickstart-grpc](quickstart-grpc): unary gRPC service using the facade interface and facade
+   client.
+2. [quickstart-connect](quickstart-connect): the same shape using Connect.
+3. [shapes](shapes): generated Go shapes for slices, maps, nullable values, flattening, and
+   composition.
+4. [options](options): naming, comments, tags, omit, nullable, omittable, enums, and service/method
+   option syntax.
+5. [custom-types](custom-types): custom Go types and conversion functions.
+6. [presence-patch](presence-patch): patch inputs that distinguish leave unchanged, set value, and
+   clear value.
+7. [streaming-grpc](streaming-grpc): server, client, and bidi streaming through facade iterators.
+8. [transport-override](transport-override): overriding one native gRPC method while delegating to
+   the generated adapter.
+9. [kitchen-sink](kitchen-sink): a reference-style type coverage example.
+
+Each example has its own `buf.gen.yaml`, `README.md`, proto source, and generated output. The
+runnable ones also include a little handwritten Go under `cmd/`.

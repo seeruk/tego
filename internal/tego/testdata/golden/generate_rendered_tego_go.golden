@@ -6,6 +6,9 @@ import (
 	generatedpb "github.com/seeruk/tego/internal/tego/testdata/generatedpb"
 	plannertest "github.com/seeruk/tego/internal/tego/testdata/plannertest"
 	omittable "github.com/seeruk/tego/omittable"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	time "time"
 )
 
@@ -64,7 +67,10 @@ type Person struct {
 	Value          PersonValue
 	Raw            []byte
 	Status         UintStatus
+	WrappedName    *string
+	WrappedCount   *int
 	CreatedAt      time.Time
+	TTL            time.Duration
 	Description    *plannertest.Description
 	Labels         plannertest.Set[plannertest.CustomString]
 	Box            plannertest.Box[*[]*plannertest.CustomString]
@@ -101,6 +107,26 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 	}
 	target.Version = int(source.GetVersion())
 	target.Status = UintStatus(source.GetStatus())
+	var wrappedName *string
+	if source.GetWrappedName() != nil {
+		wrappedName = new(source.GetWrappedName().GetValue())
+	}
+	target.WrappedName = wrappedName
+	var wrappedCount *int
+	if source.GetWrappedCount() != nil {
+		wrappedCount = new(int(source.GetWrappedCount().GetValue()))
+	}
+	target.WrappedCount = wrappedCount
+	var createdAt time.Time
+	if source.GetCreatedAt() != nil {
+		createdAt = source.GetCreatedAt().AsTime()
+	}
+	target.CreatedAt = createdAt
+	var ttl time.Duration
+	if source.GetTtl() != nil {
+		ttl = source.GetTtl().AsDuration()
+	}
+	target.TTL = ttl
 	description2, err := plannertest.DescriptionFromProto(source.GetDescription())
 	if err != nil {
 		return target, err
@@ -166,8 +192,20 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
-	target.SetVersion(int(source.Version))
+	target.SetVersion(int64(source.Version))
 	target.SetStatus(generatedpb.UintStatus(source.Status))
+	var wrappedName *wrapperspb.StringValue
+	if source.WrappedName != nil {
+		wrappedName = wrapperspb.String(*source.WrappedName)
+	}
+	target.SetWrappedName(wrappedName)
+	var wrappedCount *wrapperspb.Int64Value
+	if source.WrappedCount != nil {
+		wrappedCount = wrapperspb.Int64(int64(*source.WrappedCount))
+	}
+	target.SetWrappedCount(wrappedCount)
+	target.SetCreatedAt(timestamppb.New(source.CreatedAt))
+	target.SetTtl(durationpb.New(source.TTL))
 	description3, err := (source.Description)
 	if err != nil {
 		return nil, err
