@@ -14,6 +14,12 @@ func (p *Planner) planService(
 	structsByProtoName map[protoreflect.FullName]StructPlan,
 ) (ServicePlan, []Diagnostic) {
 	name := plannedServiceName(service)
+	comment := ""
+	hasComment := false
+	if service.Options != nil {
+		comment = service.Options.GetComment()
+		hasComment = service.Options.HasComment()
+	}
 	plan := ServicePlan{
 		ProtoName:             service.FullName,
 		ProtoRef:              protoServicePlanRef(service),
@@ -32,8 +38,8 @@ func (p *Planner) planService(
 		ConnectNewHandlerName: plannedServiceConnectNewHandlerName(name),
 		ConnectNewClientName:  plannedServiceConnectNewClientName(name),
 		Comment: plannedComment(
-			"",
-			false,
+			comment,
+			hasComment,
 			serviceLeadingComment(service),
 			string(service.Name),
 			name,
@@ -57,6 +63,12 @@ func (p *Planner) planServiceMethod(
 	structsByProtoName map[protoreflect.FullName]StructPlan,
 ) (ServiceMethodPlan, []Diagnostic) {
 	name := plannedMethodName(method)
+	comment := ""
+	hasComment := false
+	if method.Options != nil {
+		comment = method.Options.GetComment()
+		hasComment = method.Options.HasComment()
+	}
 	plan := ServiceMethodPlan{
 		ProtoName:   method.FullName,
 		ProtoGoName: method.GoName,
@@ -64,8 +76,8 @@ func (p *Planner) planServiceMethod(
 		Procedure:   serviceMethodProcedure(method),
 		StreamType:  serviceMethodStreamType(method),
 		Comment: plannedComment(
-			"",
-			false,
+			comment,
+			hasComment,
 			methodLeadingComment(method),
 			string(method.Name),
 			name,

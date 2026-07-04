@@ -132,9 +132,13 @@ extend google.protobuf.ServiceOptions {
 }
 
 message ServiceOptions {
+  // name is used to override the name of the generated facade service interface.
+  string name = 1;
+  // comment is used to override the comment to be added to the generated facade service interface.
+  string comment = 2;
   // inline_by_default controls whether Tego should inline every safely inlineable facade method side
   // on this service unless a method overrides that side.
-  bool inline_by_default = 1 [default = true];
+  bool inline_by_default = 3 [default = true];
 }
 
 extend google.protobuf.MethodOptions {
@@ -142,15 +146,19 @@ extend google.protobuf.MethodOptions {
 }
 
 message MethodOptions {
+  // name is used to override the name of the generated facade service method.
+  string name = 1;
+  // comment is used to override the comment to be added to the generated facade service method.
+  string comment = 2;
   // inline indicates that both the request and response should be inlined in the generated facade
   // method signature.
-  bool inline = 1;
+  bool inline = 3;
   // inline_request indicates that the request should be inlined in the generated facade method
   // signature.
-  bool inline_request = 2;
+  bool inline_request = 4;
   // inline_response indicates that the response should be inlined in the generated facade method
   // signature.
-  bool inline_response = 3;
+  bool inline_response = 5;
 }
 
 message GoJsonStructTag {

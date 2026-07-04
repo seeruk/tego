@@ -17,6 +17,9 @@ func plannedMessageName(message *ProtoMessage) string {
 }
 
 func plannedServiceName(service *ProtoService) string {
+	if service.Options != nil && service.Options.HasName() {
+		return service.Options.GetName()
+	}
 	return goName(string(service.Name))
 }
 
@@ -69,6 +72,9 @@ func plannedServiceConnectNewClientName(serviceName string) string {
 }
 
 func plannedMethodName(method *ProtoMethod) string {
+	if method.Options != nil && method.Options.HasName() {
+		return method.Options.GetName()
+	}
 	return goName(string(method.Name))
 }
 

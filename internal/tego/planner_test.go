@@ -3,6 +3,7 @@ package tego
 import (
 	"testing"
 
+	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -86,6 +87,7 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 
 		t.Run("names adapters and constructors", func(t *testing.T) {
 			assert.Equal(t, "TicketService", service.Name)
+			assert.Equal(t, "TicketService is the facade API for Yira tickets.", service.Comment)
 			assert.Equal(t, "UnimplementedTicketService", service.UnimplementedName)
 			assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect", service.ConnectRef.ImportPath)
 			assert.Equal(t, "TicketServiceGRPCAdapter", service.GRPCAdapterName)
@@ -121,6 +123,8 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 			assert.Equal(t, []string{"tickets", "ticketsByStatus", "cursor"}, inlineFieldNames(listTickets.InlineResponse.Fields))
 
 			getTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.GetTicket")
+			assert.Equal(t, "GetTicket", getTicket.Name)
+			assert.Equal(t, "GetTicket fetches a ticket by ID.", getTicket.Comment)
 			require.NotNil(t, getTicket.InlineRequest)
 			require.NotNil(t, getTicket.InlineResponse)
 			assert.Equal(t, "GetTicketRequestToInline", getTicket.InlineRequest.ToInlineName)
@@ -396,6 +400,99 @@ func TestPlannerPlanNestedDeclarations(t *testing.T) {
 		plan := NewPlanner().planFile(file, &ShapeIndex{})
 
 		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "FooBar"`)
+	})
+}
+
+func TestPlannerGeneratedNameDiagnostics(t *testing.T) {
+	t.Run("reports invalid explicit names", func(t *testing.T) {
+		file := protoFileWithOutput("names.proto", "github.com/example/names;names", "")
+		message := plannerMessage("example.v1.Person", "Person")
+		message.Options.SetName("not-valid")
+		message.Fields = []*ProtoField{field("name", protoreflect.StringKind)}
+		attachMessagesToFile(file, message)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "not-valid"`)
+		requireFatalDiagnostic(t, plan.Diagnostics, "not a valid non-blank Go identifier")
+	})
+
+	t.Run("reports enum constant package collisions", func(t *testing.T) {
+		statusOpen := protoEnumValue(
+			"example.v1.STATUS_OPEN",
+			"StatusOpen",
+			1,
+			testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
+				options.SetName("Duplicate")
+			}),
+		)
+		kindOpen := protoEnumValue(
+			"example.v1.KIND_OPEN",
+			"KindOpen",
+			1,
+			testEnumValueOptions(func(options *tegopb.EnumValueOptions) {
+				options.SetName("Duplicate")
+			}),
+		)
+		file := protoFileWithOutput("enums.proto", "github.com/example/enums;enums", "")
+		attachMessagesToFile(file)
+		file.Enums = []*ProtoEnum{
+			protoEnum("example.v1.Status", "Status", statusOpen),
+			protoEnum("example.v1.Kind", "Kind", kindOpen),
+		}
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "Duplicate"`)
+	})
+
+	t.Run("reports mapping function package collisions", func(t *testing.T) {
+		file := protoFileWithOutput("mapping.proto", "github.com/example/mapping;mapping", "")
+		ticket := plannerMessage("example.v1.Ticket", "Ticket")
+		ticket.Fields = []*ProtoField{field("id", protoreflect.StringKind)}
+		colliding := plannerMessage("example.v1.TicketMapping", "TicketMapping")
+		colliding.Options.SetName("TicketFromProto")
+		colliding.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+		attachMessagesToFile(file, ticket, colliding)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "TicketFromProto"`)
+	})
+
+	t.Run("reports duplicate struct fields", func(t *testing.T) {
+		file := protoFileWithOutput("fields.proto", "github.com/example/fields;fields", "")
+		person := plannerMessage("example.v1.Person", "Person")
+		first := field("primary_id", protoreflect.StringKind)
+		first.FullName = "example.v1.Person.primary_id"
+		first.Options = &tegopb.FieldOptions{}
+		first.Options.SetName("ID")
+		second := field("secondary_id", protoreflect.StringKind)
+		second.FullName = "example.v1.Person.secondary_id"
+		second.Options = &tegopb.FieldOptions{}
+		second.Options.SetName("ID")
+		person.Fields = []*ProtoField{first, second}
+		attachMessagesToFile(file, person)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go field name "ID"`)
+	})
+
+	t.Run("reports ToProto struct field conflicts", func(t *testing.T) {
+		file := protoFileWithOutput("to_proto.proto", "github.com/example/toproto;toproto", "")
+		person := plannerMessage("example.v1.Person", "Person")
+		field := field("to_proto", protoreflect.StringKind)
+		field.FullName = "example.v1.Person.to_proto"
+		field.Options = &tegopb.FieldOptions{}
+		field.Options.SetName("ToProto")
+		person.Fields = []*ProtoField{field}
+		attachMessagesToFile(file, person)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go field name "ToProto"`)
+		requireFatalDiagnostic(t, plan.Diagnostics, "conflicts with generated ToProto method")
 	})
 }
 

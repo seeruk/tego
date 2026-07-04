@@ -1299,7 +1299,9 @@ func (b0 FieldOptions_builder) Build() *FieldOptions {
 
 type ServiceOptions struct {
 	state                      protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_InlineByDefault bool                   `protobuf:"varint,1,opt,name=inline_by_default,json=inlineByDefault,def=1"`
+	xxx_hidden_Name            *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Comment         *string                `protobuf:"bytes,2,opt,name=comment"`
+	xxx_hidden_InlineByDefault bool                   `protobuf:"varint,3,opt,name=inline_by_default,json=inlineByDefault,def=1"`
 	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
 	XXX_presence               [1]uint32
 	unknownFields              protoimpl.UnknownFields
@@ -1336,34 +1338,92 @@ func (x *ServiceOptions) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *ServiceOptions) GetName() string {
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ServiceOptions) GetComment() string {
+	if x != nil {
+		if x.xxx_hidden_Comment != nil {
+			return *x.xxx_hidden_Comment
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ServiceOptions) GetInlineByDefault() bool {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
 			return x.xxx_hidden_InlineByDefault
 		}
 	}
 	return Default_ServiceOptions_InlineByDefault
 }
 
-func (x *ServiceOptions) SetInlineByDefault(v bool) {
-	x.xxx_hidden_InlineByDefault = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+func (x *ServiceOptions) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *ServiceOptions) HasInlineByDefault() bool {
+func (x *ServiceOptions) SetComment(v string) {
+	x.xxx_hidden_Comment = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ServiceOptions) SetInlineByDefault(v bool) {
+	x.xxx_hidden_InlineByDefault = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ServiceOptions) HasName() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *ServiceOptions) ClearInlineByDefault() {
+func (x *ServiceOptions) HasComment() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ServiceOptions) HasInlineByDefault() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ServiceOptions) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *ServiceOptions) ClearComment() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Comment = nil
+}
+
+func (x *ServiceOptions) ClearInlineByDefault() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 }
 
 type ServiceOptions_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// name is used to override the name of the generated facade service interface.
+	Name *string
+	// comment is used to override the comment to be added to the generated facade service interface.
+	Comment *string
 	// inline_by_default controls whether Tego should inline every safely inlineable facade method side
 	// on this service unless a method overrides that side.
 	InlineByDefault *bool
@@ -1373,8 +1433,16 @@ func (b0 ServiceOptions_builder) Build() *ServiceOptions {
 	m0 := &ServiceOptions{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Comment != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_Comment = b.Comment
+	}
 	if b.InlineByDefault != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
 		x.xxx_hidden_InlineByDefault = *b.InlineByDefault
 	}
 	return m0
@@ -1382,9 +1450,11 @@ func (b0 ServiceOptions_builder) Build() *ServiceOptions {
 
 type MethodOptions struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Inline         bool                   `protobuf:"varint,1,opt,name=inline"`
-	xxx_hidden_InlineRequest  bool                   `protobuf:"varint,2,opt,name=inline_request,json=inlineRequest"`
-	xxx_hidden_InlineResponse bool                   `protobuf:"varint,3,opt,name=inline_response,json=inlineResponse"`
+	xxx_hidden_Name           *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Comment        *string                `protobuf:"bytes,2,opt,name=comment"`
+	xxx_hidden_Inline         bool                   `protobuf:"varint,3,opt,name=inline"`
+	xxx_hidden_InlineRequest  bool                   `protobuf:"varint,4,opt,name=inline_request,json=inlineRequest"`
+	xxx_hidden_InlineResponse bool                   `protobuf:"varint,5,opt,name=inline_response,json=inlineResponse"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -1416,6 +1486,26 @@ func (x *MethodOptions) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *MethodOptions) GetName() string {
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *MethodOptions) GetComment() string {
+	if x != nil {
+		if x.xxx_hidden_Comment != nil {
+			return *x.xxx_hidden_Comment
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *MethodOptions) GetInline() bool {
 	if x != nil {
 		return x.xxx_hidden_Inline
@@ -1437,60 +1527,98 @@ func (x *MethodOptions) GetInlineResponse() bool {
 	return false
 }
 
+func (x *MethodOptions) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *MethodOptions) SetComment(v string) {
+	x.xxx_hidden_Comment = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
 func (x *MethodOptions) SetInline(v bool) {
 	x.xxx_hidden_Inline = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *MethodOptions) SetInlineRequest(v bool) {
 	x.xxx_hidden_InlineRequest = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
 }
 
 func (x *MethodOptions) SetInlineResponse(v bool) {
 	x.xxx_hidden_InlineResponse = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
-func (x *MethodOptions) HasInline() bool {
+func (x *MethodOptions) HasName() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *MethodOptions) HasInlineRequest() bool {
+func (x *MethodOptions) HasComment() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *MethodOptions) HasInlineResponse() bool {
+func (x *MethodOptions) HasInline() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *MethodOptions) ClearInline() {
+func (x *MethodOptions) HasInlineRequest() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *MethodOptions) HasInlineResponse() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *MethodOptions) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *MethodOptions) ClearComment() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Comment = nil
+}
+
+func (x *MethodOptions) ClearInline() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_Inline = false
 }
 
 func (x *MethodOptions) ClearInlineRequest() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_InlineRequest = false
 }
 
 func (x *MethodOptions) ClearInlineResponse() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_InlineResponse = false
 }
 
 type MethodOptions_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// name is used to override the name of the generated facade service method.
+	Name *string
+	// comment is used to override the comment to be added to the generated facade service method.
+	Comment *string
 	// inline indicates that both the request and response should be inlined in the generated facade
 	// method signature.
 	Inline *bool
@@ -1506,16 +1634,24 @@ func (b0 MethodOptions_builder) Build() *MethodOptions {
 	m0 := &MethodOptions{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Comment != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_Comment = b.Comment
+	}
 	if b.Inline != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_Inline = *b.Inline
 	}
 	if b.InlineRequest != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_InlineRequest = *b.InlineRequest
 	}
 	if b.InlineResponse != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
 		x.xxx_hidden_InlineResponse = *b.InlineResponse
 	}
 	return m0
@@ -2231,13 +2367,17 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x04tags\x18\x05 \x03(\v2\x11.tego.GoStructTagR\x04tags\x120\n" +
 	"\bjson_tag\x18\x06 \x01(\v2\x15.tego.GoJsonStructTagR\ajsonTag\x12\x1c\n" +
 	"\tomittable\x18\a \x01(\bR\tomittable\x12\x1a\n" +
-	"\bnullable\x18\b \x01(\bR\bnullable\"B\n" +
-	"\x0eServiceOptions\x120\n" +
-	"\x11inline_by_default\x18\x01 \x01(\b:\x04trueR\x0finlineByDefault\"w\n" +
-	"\rMethodOptions\x12\x16\n" +
-	"\x06inline\x18\x01 \x01(\bR\x06inline\x12%\n" +
-	"\x0einline_request\x18\x02 \x01(\bR\rinlineRequest\x12'\n" +
-	"\x0finline_response\x18\x03 \x01(\bR\x0einlineResponse\"a\n" +
+	"\bnullable\x18\b \x01(\bR\bnullable\"p\n" +
+	"\x0eServiceOptions\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\acomment\x18\x02 \x01(\tR\acomment\x120\n" +
+	"\x11inline_by_default\x18\x03 \x01(\b:\x04trueR\x0finlineByDefault\"\xa5\x01\n" +
+	"\rMethodOptions\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\acomment\x18\x02 \x01(\tR\acomment\x12\x16\n" +
+	"\x06inline\x18\x03 \x01(\bR\x06inline\x12%\n" +
+	"\x0einline_request\x18\x04 \x01(\bR\rinlineRequest\x12'\n" +
+	"\x0finline_response\x18\x05 \x01(\bR\x0einlineResponse\"a\n" +
 	"\x0fGoJsonStructTag\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x1c\n" +
 	"\tomitempty\x18\x02 \x01(\bR\tomitempty\x12\x1a\n" +

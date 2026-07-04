@@ -326,8 +326,10 @@ func ImportTicketEventsResponseFromInline(importedCount int32, err error) (Impor
 	return ImportTicketEventsResponse{ImportedCount: importedCount}, nil
 }
 
+// TicketService is the facade API for Yira tickets.
 type TicketService interface {
 	ListTickets(ctx context.Context, projectID string, filter TicketFilter, cursor CursorRequest) ([]Ticket, map[TicketStatus][]Ticket, CursorResponse, error)
+	// GetTicket fetches a ticket by ID.
 	GetTicket(ctx context.Context, ticketID string) (Ticket, error)
 	CreateTicket(ctx context.Context, ticket TicketDraft) (Ticket, error)
 	UpdateTicket(ctx context.Context, ticketID string, patch TicketPatch) (Ticket, error)

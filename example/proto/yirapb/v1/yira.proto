@@ -10,12 +10,8 @@ option go_package = "github.com/seeruk/tego/example/yirapbv1;yirapbv1";
 option (tego.file).go_package = "github.com/seeruk/tego/example/yira;yira";
 
 service TicketService {
-  option (tego.service).inline_by_default = true;
-
   rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
-  rpc GetTicket(GetTicketRequest) returns (GetTicketResponse) {
-    option (tego.method).inline = true;
-  }
+  rpc GetTicket(GetTicketRequest) returns (GetTicketResponse);
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
   rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
   rpc CloseTicket(CloseTicketRequest) returns (google.protobuf.Empty);
@@ -76,16 +72,7 @@ message ImportTicketEventsResponse {
 }
 
 enum TicketStatus {
-  option (tego.enum) = {
-    name: "TicketStatus"
-    underlying_type: ENUM_UNDERLYING_TYPE_UINT
-  };
-
-  TICKET_STATUS_UNSPECIFIED = 0 [(tego.enum_value) = {
-    name: "TicketStatusUnknown"
-    comment: "TicketStatus is the current lifecycle state of a ticket."
-    uint: 0
-  }];
+  TICKET_STATUS_UNSPECIFIED = 0;
   TICKET_STATUS_OPEN = 1;
   TICKET_STATUS_IN_PROGRESS = 2;
   TICKET_STATUS_BLOCKED = 3;
@@ -106,10 +93,7 @@ message Ticket {
     VISIBILITY_PRIVATE = 2;
   }
 
-  string id = 1 [(tego.field).json_tag = {
-    value: "id"
-    omitempty: true
-  }];
+  string id = 1;
   string project_id = 2;
   string title = 3;
   string description = 4;

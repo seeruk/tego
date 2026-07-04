@@ -16,7 +16,8 @@ import (
 )
 
 type TicketService interface {
-	GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error)
+	// FetchTicket loads a ticket.
+	FetchTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error)
 	WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error)
 	ImportTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (ImportTicketEventsResponse, error)
 	SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error)
@@ -24,9 +25,9 @@ type TicketService interface {
 
 type UnimplementedTicketService struct{}
 
-func (UnimplementedTicketService) GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
+func (UnimplementedTicketService) FetchTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
 	var zero GetTicketResponse
-	return zero, unimplementedTicketServiceError("GetTicket")
+	return zero, unimplementedTicketServiceError("FetchTicket")
 }
 
 func (UnimplementedTicketService) WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error) {
@@ -76,7 +77,7 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestPr
 	if err != nil {
 		return nil, err
 	}
-	response, err := a.service.GetTicket(ctx, request)
+	response, err := a.service.FetchTicket(ctx, request)
 	if err != nil {
 		return nil, tego.GRPCError(err)
 	}
@@ -222,7 +223,7 @@ type ticketServiceGRPCClient struct {
 	client generatedpb.TicketServiceClient
 }
 
-func (c *ticketServiceGRPCClient) GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
+func (c *ticketServiceGRPCClient) FetchTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
 	var zero GetTicketResponse
 	requestProto, err := GetTicketRequestToProto(request)
 	if err != nil {
@@ -381,7 +382,7 @@ func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, reques
 	if err != nil {
 		return nil, err
 	}
-	response, err := a.service.GetTicket(ctx, request)
+	response, err := a.service.FetchTicket(ctx, request)
 	if err != nil {
 		return nil, tego.ConnectError(err)
 	}
@@ -521,7 +522,7 @@ type ticketServiceConnectClient struct {
 	client generatedpbconnect.TicketServiceClient
 }
 
-func (c *ticketServiceConnectClient) GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
+func (c *ticketServiceConnectClient) FetchTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
 	var zero GetTicketResponse
 	requestProto, err := GetTicketRequestToProto(request)
 	if err != nil {

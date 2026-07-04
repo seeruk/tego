@@ -282,6 +282,9 @@ func serviceInterfaceTestFilePlan() FilePlan {
 	watchTicketEventsRequest := message("WatchTicketEventsRequest")
 	ticketEvent := message("TicketEvent")
 	importTicketEventsResponse := message("ImportTicketEventsResponse")
+	getTicketMethod := method("GetTicket", ServiceStreamTypeUnary, getTicketRequest, getTicketResponse)
+	getTicketMethod.Name = "FetchTicket"
+	getTicketMethod.Comment = "FetchTicket loads a ticket."
 
 	return FilePlan{
 		ProtoPath: "generated.proto",
@@ -304,7 +307,7 @@ func serviceInterfaceTestFilePlan() FilePlan {
 			ConnectNewHandlerName: "NewTicketServiceConnectHandler",
 			ConnectNewClientName:  "NewTicketServiceConnectClient",
 			Methods: []ServiceMethodPlan{
-				method("GetTicket", ServiceStreamTypeUnary, getTicketRequest, getTicketResponse),
+				getTicketMethod,
 				method("WatchTicketEvents", ServiceStreamTypeServerStreaming, watchTicketEventsRequest, ticketEvent),
 				method("ImportTicketEvents", ServiceStreamTypeClientStreaming, ticketEvent, importTicketEventsResponse),
 				method("SyncTicketEvents", ServiceStreamTypeBidiStreaming, ticketEvent, ticketEvent),

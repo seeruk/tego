@@ -10,10 +10,14 @@ option go_package = "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv
 option (tego.file).go_package = "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1";
 
 service TicketService {
+  option (tego.service).name = "TicketService";
+  option (tego.service).comment = "TicketService is the facade API for Yira tickets.";
   option (tego.service).inline_by_default = true;
 
   rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
   rpc GetTicket(GetTicketRequest) returns (GetTicketResponse) {
+    option (tego.method).name = "GetTicket";
+    option (tego.method).comment = "GetTicket fetches a ticket by ID.";
     option (tego.method).inline = true;
   }
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);

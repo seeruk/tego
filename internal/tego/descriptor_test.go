@@ -239,6 +239,10 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		service := requireService(t, index, "yirapb.v1.TicketService")
 		require.True(t, service.HasOptions())
 		require.NotNil(t, service.Options)
+		assert.True(t, service.Options.HasName())
+		assert.Equal(t, "TicketService", service.Options.GetName())
+		assert.True(t, service.Options.HasComment())
+		assert.Equal(t, "TicketService is the facade API for Yira tickets.", service.Options.GetComment())
 		assert.True(t, service.Options.HasInlineByDefault())
 		assert.True(t, service.Options.GetInlineByDefault())
 
@@ -248,6 +252,10 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 
 		getTicket := methodByName(t, service, "GetTicket")
 		require.True(t, getTicket.HasOptions())
+		assert.True(t, getTicket.Options.HasName())
+		assert.Equal(t, "GetTicket", getTicket.Options.GetName())
+		assert.True(t, getTicket.Options.HasComment())
+		assert.Equal(t, "GetTicket fetches a ticket by ID.", getTicket.Options.GetComment())
 		assert.True(t, getTicket.Options.HasInline())
 		assert.True(t, getTicket.Options.GetInline())
 

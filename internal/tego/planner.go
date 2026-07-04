@@ -2,6 +2,7 @@ package tego
 
 import (
 	"fmt"
+	"go/token"
 	"path"
 	"reflect"
 	"strings"
@@ -316,10 +317,11 @@ func inlineHelperOwner(helper ServiceInlineHelperPlan, helperKind string) string
 
 func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic {
 	inlineHelperCount := len(plan.RequestInlineHelpers) + len(plan.ResponseInlineHelpers)
-	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Services)*8+inlineHelperCount*2)
+	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Mappings)*2+len(plan.Services)*16+inlineHelperCount*2)
 	var diagnostics []Diagnostic
 
 	add := func(name, owner string) {
+		diagnostics = append(diagnostics, plannedIdentifierDiagnostics(plan.ProtoPath, name, owner)...)
 		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, name, owner)...)
 	}
 	addInlineHelper := func(helper ServiceInlineHelperPlan, helperKind string) {
@@ -330,15 +332,28 @@ func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic
 
 	for _, enum := range plan.Enums {
 		add(enum.Name, string(enum.ProtoName))
+		for _, constant := range enum.Constants {
+			add(constant.Name, string(constant.ProtoName))
+		}
 	}
 	for _, oneof := range plan.Oneofs {
 		add(oneof.Name, string(oneof.ProtoName))
 		for _, variant := range oneof.Variants {
 			add(variant.Name, string(variant.ProtoName))
+			diagnostics = append(diagnostics, plannedIdentifierDiagnostics(
+				plan.ProtoPath,
+				variant.FieldName,
+				string(variant.ProtoName)+" field",
+			)...)
 		}
 	}
 	for _, structure := range plan.Structs {
 		add(structure.Name, string(structure.ProtoName))
+		diagnostics = append(diagnostics, plannedStructNameDiagnostics(plan, structure)...)
+	}
+	for _, mapping := range plan.Mappings {
+		add(mapping.FromProto.Name, string(mapping.ProtoName)+" from-proto mapping")
+		add(mapping.ToProto.Name, string(mapping.ProtoName)+" to-proto mapping")
 	}
 	for _, helper := range plan.RequestInlineHelpers {
 		addInlineHelper(helper, "request")
@@ -349,20 +364,40 @@ func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic
 	for _, service := range plan.Services {
 		add(service.Name, string(service.ProtoName))
 		add(service.UnimplementedName, string(service.ProtoName)+" unimplemented facade")
+		add(service.UnimplementedErrorName(), string(service.ProtoName)+" unimplemented facade helper")
+		diagnostics = append(diagnostics, plannedServiceMethodNameDiagnostics(plan, service, rpc)...)
 		if rpc.GRPC {
+			add(service.GRPCServerName, string(service.ProtoName)+" gRPC server")
 			add(service.GRPCAdapterName, string(service.ProtoName)+" gRPC adapter")
+			add("New"+service.GRPCAdapterName, string(service.ProtoName)+" gRPC adapter constructor")
+			add(service.GRPCClientName, string(service.ProtoName)+" gRPC client")
 			add(service.GRPCRegisterName, string(service.ProtoName)+" gRPC server registration helper")
 			add(service.GRPCNewServerName, string(service.ProtoName)+" gRPC server constructor")
 			add(service.GRPCNewClientName, string(service.ProtoName)+" gRPC client constructor")
 		}
 		if rpc.Connect {
+			add(service.ConnectHandlerName, string(service.ProtoName)+" Connect handler")
 			add(service.ConnectAdapterName, string(service.ProtoName)+" Connect adapter")
+			add("New"+service.ConnectAdapterName, string(service.ProtoName)+" Connect adapter constructor")
+			add(service.ConnectClientName, string(service.ProtoName)+" Connect client")
 			add(service.ConnectNewHandlerName, string(service.ProtoName)+" Connect handler constructor")
 			add(service.ConnectNewClientName, string(service.ProtoName)+" Connect client constructor")
 		}
 	}
 
 	return diagnostics
+}
+
+func plannedIdentifierDiagnostics(protoPath, name, owner string) []Diagnostic {
+	if name == "" || name == "_" || !token.IsIdentifier(name) {
+		return []Diagnostic{fatalDiagnostic(
+			protoPath,
+			"planned Go name %q for %s is not a valid non-blank Go identifier",
+			name,
+			owner,
+		)}
+	}
+	return nil
 }
 
 func plannedNameCollisionDiagnostic(plan FilePlan, seen map[string]string, name, owner string) []Diagnostic {
@@ -378,6 +413,92 @@ func plannedNameCollisionDiagnostic(plan FilePlan, seen map[string]string, name,
 
 	seen[name] = owner
 	return nil
+}
+
+func plannedStructNameDiagnostics(plan FilePlan, structure StructPlan) []Diagnostic {
+	seen := make(map[string]string, len(structure.Fields))
+	var diagnostics []Diagnostic
+
+	for _, field := range structure.Fields {
+		owner := string(field.ProtoName)
+		diagnostics = append(diagnostics, plannedIdentifierDiagnostics(plan.ProtoPath, field.Name, owner)...)
+		if field.Name == "ToProto" {
+			diagnostics = append(diagnostics, fatalDiagnostic(
+				plan.ProtoPath,
+				"planned Go field name %q conflicts with generated ToProto method for %s",
+				field.Name,
+				structure.ProtoName,
+			))
+		}
+		if previous, ok := seen[field.Name]; ok {
+			diagnostics = append(diagnostics, fatalDiagnostic(
+				plan.ProtoPath,
+				"planned Go field name %q is used by both %s and %s in %s",
+				field.Name,
+				previous,
+				owner,
+				structure.ProtoName,
+			))
+			continue
+		}
+		seen[field.Name] = owner
+	}
+
+	return diagnostics
+}
+
+func plannedServiceMethodNameDiagnostics(plan FilePlan, service ServicePlan, rpc RPCOptions) []Diagnostic {
+	var diagnostics []Diagnostic
+
+	addMethod := func(seen map[string]string, receiver, name, owner string) {
+		diagnostics = append(diagnostics, plannedIdentifierDiagnostics(plan.ProtoPath, name, owner)...)
+		if previous, ok := seen[name]; ok {
+			diagnostics = append(diagnostics, fatalDiagnostic(
+				plan.ProtoPath,
+				"planned Go method name %q is used by both %s and %s on %s",
+				name,
+				previous,
+				owner,
+				receiver,
+			))
+			return
+		}
+		seen[name] = owner
+	}
+
+	facadeMethods := make(map[string]string, len(service.Methods))
+	for _, method := range service.Methods {
+		owner := string(method.ProtoName)
+		addMethod(facadeMethods, service.Name, method.Name, owner)
+	}
+
+	if rpc.GRPC {
+		grpcServerMethods := make(map[string]string, len(service.Methods))
+		grpcAdapterMethods := make(map[string]string, len(service.Methods))
+		grpcClientMethods := make(map[string]string, len(service.Methods))
+		for _, method := range service.Methods {
+			owner := string(method.ProtoName)
+			nativeName := serviceNativeMethodName(method)
+			addMethod(grpcServerMethods, service.GRPCServerName, nativeName, owner)
+			addMethod(grpcAdapterMethods, service.GRPCAdapterName, "Adapt"+nativeName, owner)
+			addMethod(grpcClientMethods, service.GRPCClientName, method.Name, owner)
+		}
+	}
+
+	if rpc.Connect {
+		connectHandlerMethods := make(map[string]string, len(service.Methods))
+		connectAdapterMethods := make(map[string]string, len(service.Methods))
+		connectClientMethods := make(map[string]string, len(service.Methods))
+		for _, method := range service.Methods {
+			owner := string(method.ProtoName)
+			nativeName := serviceNativeMethodName(method)
+			addMethod(connectHandlerMethods, service.ConnectHandlerName, nativeName, owner)
+			addMethod(connectAdapterMethods, service.ConnectAdapterName, "Adapt"+nativeName, owner)
+			addMethod(connectClientMethods, service.ConnectClientName, method.Name, owner)
+		}
+	}
+
+	return diagnostics
 }
 
 func packageRef(goPackage string) PackageRef {

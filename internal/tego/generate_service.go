@@ -408,7 +408,8 @@ func generateGRPCAdapter(g *protogen.GeneratedFile, service ServicePlan) {
 }
 
 func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateGRPCServerMethodSignature(g, method.Name, method)
+	nativeMethodName := serviceNativeMethodName(method)
+	signature, err := generateGRPCServerMethodSignature(g, nativeMethodName, method)
 	if err != nil {
 		return err
 	}
@@ -419,14 +420,14 @@ func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, me
 	}
 
 	g.P("func (s *", service.GRPCServerName, ") ", signature, " {")
-	g.P("\treturn s.Adapt", method.Name, "(", arguments, ")")
+	g.P("\treturn s.Adapt", nativeMethodName, "(", arguments, ")")
 	g.P("}")
 	g.P()
 	return nil
 }
 
 func generateGRPCAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateGRPCServerMethodSignature(g, "Adapt"+method.Name, method)
+	signature, err := generateGRPCServerMethodSignature(g, "Adapt"+serviceNativeMethodName(method), method)
 	if err != nil {
 		return err
 	}
@@ -733,7 +734,7 @@ func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service Servic
 	if serviceResponseIsEmpty(method) {
 		responseProto = "_"
 	}
-	ctx.line(responseProto + ", err := c.client." + method.Name + "(ctx, requestProto)")
+	ctx.line(responseProto + ", err := c.client." + serviceNativeMethodName(method) + "(ctx, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
@@ -765,7 +766,7 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("stream, err := c.client." + method.Name + "(ctx, requestProto)")
+	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
@@ -797,7 +798,7 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
-	ctx.line("stream, err := c.client." + method.Name + "(ctx)")
+	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("if err != nil {")
 	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
@@ -838,7 +839,7 @@ func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, servic
 		return err
 	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	ctx.line("stream, err := c.client." + method.Name + "(ctx)")
+	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
@@ -943,7 +944,8 @@ func generateConnectAdapter(g *protogen.GeneratedFile, service ServicePlan) {
 }
 
 func generateConnectHandlerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateConnectHandlerMethodSignature(g, method.Name, method)
+	nativeMethodName := serviceNativeMethodName(method)
+	signature, err := generateConnectHandlerMethodSignature(g, nativeMethodName, method)
 	if err != nil {
 		return err
 	}
@@ -953,14 +955,14 @@ func generateConnectHandlerMethod(g *protogen.GeneratedFile, service ServicePlan
 	}
 
 	g.P("func (s *", service.ConnectHandlerName, ") ", signature, " {")
-	g.P("\treturn s.Adapt", method.Name, "(", arguments, ")")
+	g.P("\treturn s.Adapt", nativeMethodName, "(", arguments, ")")
 	g.P("}")
 	g.P()
 	return nil
 }
 
 func generateConnectAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateConnectHandlerMethodSignature(g, "Adapt"+method.Name, method)
+	signature, err := generateConnectHandlerMethodSignature(g, "Adapt"+serviceNativeMethodName(method), method)
 	if err != nil {
 		return err
 	}
@@ -1269,7 +1271,7 @@ func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service Ser
 	if serviceResponseIsEmpty(method) {
 		responseProto = "_"
 	}
-	ctx.line(responseProto + ", err := c.client." + method.Name + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
+	ctx.line(responseProto + ", err := c.client." + serviceNativeMethodName(method) + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
 	ctx.line("if err != nil {")
 	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
@@ -1301,7 +1303,7 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("stream, err := c.client." + method.Name + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
+	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
@@ -1329,7 +1331,7 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
-	ctx.line("stream := c.client." + method.Name + "(ctx)")
+	ctx.line("stream := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("for request, err := range requests {")
 	ctx.line("if err != nil {")
 	ctx.line("return " + serviceClientErrorReturn(g, method))
@@ -1367,7 +1369,7 @@ func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, ser
 		return err
 	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	ctx.line("stream := c.client." + method.Name + "(ctx)")
+	ctx.line("stream := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
 	ctx.line("sendErr := make(chan error, 1)")
 	ctx.line("go func() {")
@@ -1440,6 +1442,13 @@ func serviceMethodCall(method ServiceMethodPlan, receiver, ctxExpr, requestExpr 
 		return receiver + "." + method.Name + "(" + method.InlineRequest.ToInlineName + "(" + ctxExpr + ", " + requestExpr + "))"
 	}
 	return receiver + "." + method.Name + "(" + ctxExpr + ", " + requestExpr + ")"
+}
+
+func serviceNativeMethodName(method ServiceMethodPlan) string {
+	if method.ProtoGoName != "" {
+		return method.ProtoGoName
+	}
+	return method.Name
 }
 
 func serviceInlineFieldNames(fields []ServiceInlineFieldPlan) string {

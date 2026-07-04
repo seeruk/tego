@@ -3,6 +3,7 @@ package tego
 import (
 	"testing"
 
+	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -105,6 +106,30 @@ func TestPlannerPlanServices(t *testing.T) {
 				assert.Equal(t, tt.want, service.ConnectRef.ImportPath)
 			})
 		}
+	})
+
+	t.Run("uses explicit facade service and method names", func(t *testing.T) {
+		fixture := newTicketIDInlineFixture("GetTicket")
+		fixture.Service.Options = &tegopb.ServiceOptions{}
+		fixture.Service.Options.SetName("TicketManager")
+		fixture.Service.Options.SetComment("TicketManager owns ticket operations.")
+		fixture.Method.GoName = "GetTicket"
+		fixture.Method.Options = &tegopb.MethodOptions{}
+		fixture.Method.Options.SetName("FetchTicket")
+		fixture.Method.Options.SetComment("FetchTicket loads a ticket.")
+
+		plan := planInlineServiceFixture(t, fixture, nil)
+
+		require.Empty(t, plan.Diagnostics)
+		service := serviceByProtoName(t, plan, fixture.Service.FullName)
+		assert.Equal(t, "TicketManager", service.Name)
+		assert.Equal(t, "TicketManager owns ticket operations.", service.Comment)
+		assert.Equal(t, "UnimplementedTicketManager", service.UnimplementedName)
+		assert.Equal(t, "TicketManagerGRPCAdapter", service.GRPCAdapterName)
+		method := serviceMethodByProtoName(t, service, fixture.Method.FullName)
+		assert.Equal(t, "FetchTicket", method.Name)
+		assert.Equal(t, "GetTicket", method.ProtoGoName)
+		assert.Equal(t, "FetchTicket loads a ticket.", method.Comment)
 	})
 
 	t.Run("plans default unary inline helpers", func(t *testing.T) {
@@ -327,16 +352,55 @@ func TestPlannerPlanServices(t *testing.T) {
 		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "GetTicketRequestToInline"`)
 	})
 
+	t.Run("reports invalid facade service and method names", func(t *testing.T) {
+		fixture := newTicketIDInlineFixture("GetTicket")
+		fixture.Service.Options = &tegopb.ServiceOptions{}
+		fixture.Service.Options.SetName("not-valid")
+		fixture.Method.Options = &tegopb.MethodOptions{}
+		fixture.Method.Options.SetName("_")
+
+		plan := planInlineServiceFixture(t, fixture, nil)
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "not-valid"`)
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "_"`)
+	})
+
+	t.Run("reports duplicate facade method names", func(t *testing.T) {
+		first := newTicketIDInlineFixture("GetTicket")
+		secondMethod := plannerMethod(
+			"example.v1.TicketService.FindTicket",
+			"FindTicket",
+			first.Request,
+			first.Response,
+		)
+		secondMethod.Options = &tegopb.MethodOptions{}
+		secondMethod.Options.SetName("GetTicket")
+		first.Service.Methods = append(first.Service.Methods, secondMethod)
+		secondMethod.Parent = first.Service
+
+		plan := planInlineServiceFixture(t, first, nil)
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go method name "GetTicket"`)
+	})
+
 	t.Run("reports service name collisions", func(t *testing.T) {
 		tests := map[string]struct {
 			messageName string
 			rpc         RPCOptions
 		}{
-			"service facade":       {messageName: "TicketService"},
-			"unimplemented facade": {messageName: "UnimplementedTicketService"},
-			"grpc adapter":         {messageName: "TicketServiceGRPCAdapter"},
-			"grpc constructor":     {messageName: "NewTicketServiceGRPCClient"},
-			"connect constructor":  {messageName: "NewTicketServiceConnectClient", rpc: RPCOptions{Connect: true}},
+			"service facade":              {messageName: "TicketService"},
+			"unimplemented facade":        {messageName: "UnimplementedTicketService"},
+			"unimplemented helper":        {messageName: "unimplementedTicketServiceError"},
+			"grpc server":                 {messageName: "ticketServiceGRPCServer"},
+			"grpc adapter":                {messageName: "TicketServiceGRPCAdapter"},
+			"grpc adapter constructor":    {messageName: "NewTicketServiceGRPCAdapter"},
+			"grpc client":                 {messageName: "ticketServiceGRPCClient"},
+			"grpc constructor":            {messageName: "NewTicketServiceGRPCClient"},
+			"connect handler":             {messageName: "ticketServiceConnectHandler"},
+			"connect adapter":             {messageName: "TicketServiceConnectAdapter"},
+			"connect adapter constructor": {messageName: "NewTicketServiceConnectAdapter"},
+			"connect client":              {messageName: "ticketServiceConnectClient"},
+			"connect constructor":         {messageName: "NewTicketServiceConnectClient", rpc: RPCOptions{Connect: true}},
 		}
 
 		for name, tt := range tests {
