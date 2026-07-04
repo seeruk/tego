@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/seeruk/tego/examples/quickstart-grpc/hello"
+	"github.com/seeruk/tego/examples/quickstart/hello"
 	"google.golang.org/grpc"
 )
 

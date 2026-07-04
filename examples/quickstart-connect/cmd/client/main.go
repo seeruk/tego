@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/seeruk/tego/examples/quickstart-connect/hello"
-	"github.com/seeruk/tego/examples/quickstart-connect/hellopbv1/hellopbv1connect"
+	"github.com/seeruk/tego/examples/quickstart/hello"
+	"github.com/seeruk/tego/examples/quickstart/hellopbv1/hellopbv1connect"
 )
 
 func main() {

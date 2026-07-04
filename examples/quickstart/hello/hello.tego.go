@@ -6,8 +6,9 @@ import (
 	context "context"
 	fmt "fmt"
 	tego "github.com/seeruk/tego"
-	hellopbv1 "github.com/seeruk/tego/examples/quickstart-connect/hellopbv1"
-	hellopbv1connect "github.com/seeruk/tego/examples/quickstart-connect/hellopbv1/hellopbv1connect"
+	hellopbv1 "github.com/seeruk/tego/examples/quickstart/hellopbv1"
+	hellopbv1connect "github.com/seeruk/tego/examples/quickstart/hellopbv1/hellopbv1connect"
+	grpc "google.golang.org/grpc"
 	http "net/http"
 )
 
@@ -56,6 +57,61 @@ func (UnimplementedGreeterService) SayHello(ctx context.Context, name string) (s
 
 func unimplementedGreeterServiceError(method string) error {
 	return fmt.Errorf("GreeterService.%s: %w", method, tego.ErrUnimplemented)
+}
+
+func RegisterGreeterServiceGRPCServer(registrar grpc.ServiceRegistrar, service GreeterService) {
+	hellopbv1.RegisterGreeterServiceServer(registrar, NewGreeterServiceGRPCServer(service))
+}
+
+func NewGreeterServiceGRPCServer(service GreeterService) hellopbv1.GreeterServiceServer {
+	return &greeterServiceGRPCServer{GreeterServiceGRPCAdapter: NewGreeterServiceGRPCAdapter(service)}
+}
+
+type greeterServiceGRPCServer struct {
+	hellopbv1.UnimplementedGreeterServiceServer
+	*GreeterServiceGRPCAdapter
+}
+
+type GreeterServiceGRPCAdapter struct {
+	service GreeterService
+}
+
+func NewGreeterServiceGRPCAdapter(service GreeterService) *GreeterServiceGRPCAdapter {
+	return &GreeterServiceGRPCAdapter{service: service}
+}
+
+func (s *greeterServiceGRPCServer) SayHello(ctx context.Context, requestProto *hellopbv1.SayHelloRequest) (*hellopbv1.SayHelloResponse, error) {
+	return s.AdaptSayHello(ctx, requestProto)
+}
+
+func (a *GreeterServiceGRPCAdapter) AdaptSayHello(ctx context.Context, requestProto *hellopbv1.SayHelloRequest) (*hellopbv1.SayHelloResponse, error) {
+	request := SayHelloRequestFromProto(requestProto)
+	response, err := SayHelloResponseFromInline(a.service.SayHello(SayHelloRequestToInline(ctx, request)))
+	if err != nil {
+		return nil, tego.GRPCError(err)
+	}
+	responseProto := SayHelloResponseToProto(response)
+	return responseProto, nil
+}
+
+func NewGreeterServiceGRPCClient(client hellopbv1.GreeterServiceClient) GreeterService {
+	return &greeterServiceGRPCClient{client: client}
+}
+
+type greeterServiceGRPCClient struct {
+	client hellopbv1.GreeterServiceClient
+}
+
+func (c *greeterServiceGRPCClient) SayHello(ctx context.Context, name string) (string, error) {
+	var zero SayHelloResponse
+	ctx, request := SayHelloRequestFromInline(ctx, name)
+	requestProto := SayHelloRequestToProto(request)
+	responseProto, err := c.client.SayHello(ctx, requestProto)
+	if err != nil {
+		return SayHelloResponseToInline(zero, err)
+	}
+	response := SayHelloResponseFromProto(responseProto)
+	return SayHelloResponseToInline(response, nil)
 }
 
 func NewGreeterServiceConnectHandler(service GreeterService, opts ...connect.HandlerOption) (string, http.Handler) {

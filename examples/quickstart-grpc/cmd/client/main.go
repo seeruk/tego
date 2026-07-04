@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/seeruk/tego/examples/quickstart-grpc/hello"
-	"github.com/seeruk/tego/examples/quickstart-grpc/hellopbv1"
+	"github.com/seeruk/tego/examples/quickstart/hello"
+	"github.com/seeruk/tego/examples/quickstart/hellopbv1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

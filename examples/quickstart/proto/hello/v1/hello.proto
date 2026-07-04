@@ -3,8 +3,8 @@ package hello.v1;
 
 import "tego/options.proto";
 
-option go_package = "github.com/seeruk/tego/examples/quickstart-grpc/hellopbv1;hellopbv1";
-option (tego.file).go_package = "github.com/seeruk/tego/examples/quickstart-grpc/hello;hello";
+option go_package = "github.com/seeruk/tego/examples/quickstart/hellopbv1;hellopbv1";
+option (tego.file).go_package = "github.com/seeruk/tego/examples/quickstart/hello;hello";
 
 service GreeterService {
   rpc SayHello(SayHelloRequest) returns (SayHelloResponse);

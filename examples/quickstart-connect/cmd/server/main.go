@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/seeruk/tego/examples/quickstart-connect/hello"
+	"github.com/seeruk/tego/examples/quickstart/hello"
 )
 
 type greeter struct {

@@ -2,8 +2,7 @@
 version: v2
 
 modules:
-- path: examples/quickstart-grpc
-- path: examples/quickstart-connect
+- path: examples/quickstart/proto
 - path: examples/shapes
 - path: examples/options
 - path: examples/custom-types
@@ -12,6 +11,7 @@ modules:
 - path: examples/transport-override
 - path: examples/kitchen-sink
 - path: proto
+  name: buf.build/seeruk-oss/tego
 - path: internal/tego/testdata/proto
 
 lint:

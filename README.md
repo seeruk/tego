@@ -4,6 +4,58 @@ A protoc plugin that emits a layer of idiomatic and modern Go over your protobuf
 
 > Tego /'te.ɡoː/ • Latin: To cover, shield, and protect.
 
+## Installation and Usage
+
+Install the generator binary somewhere Buf can find it:
+
+```sh
+go install github.com/seeruk/tego/cmd/protoc-gen-tego@latest
+```
+
+Add Tego's options module to your `buf.yaml`:
+
+```yaml
+version: v2
+
+deps:
+- buf.build/seeruk-oss/tego
+```
+
+Then opt a proto file into Tego output:
+
+```protobuf
+import "tego/options.proto";
+
+option go_package = "github.com/acme/project/hellopbv1;hellopbv1";
+option (tego.file).go_package = "github.com/acme/project/hello;hello";
+```
+
+And add Tego to `buf.gen.yaml` alongside `protoc-gen-go`:
+
+```yaml
+version: v2
+
+plugins:
+- local: protoc-gen-tego
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/acme/project
+  - rpc=grpc
+```
+
+Then run:
+
+```sh
+buf generate
+```
+
+Use `rpc=grpc` for gRPC, `rpc=connect` for Connect, `rpc=none` for just types and mapping
+functions, or omit `rpc` to generate both gRPC and Connect adapters.
+
+If you are using `protoc` directly, you can still use Tego, but you need to make
+`tego/options.proto` available on your proto include path.
+
 ## Core Concepts
 
 Tego sits between protobuf's generated Go and the Go you probably want to write by hand. The
