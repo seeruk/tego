@@ -527,32 +527,6 @@ func TestPlannerPlanOneofMappings(t *testing.T) {
 	})
 }
 
-func mappingByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) MappingPlan {
-	t.Helper()
-
-	for _, mapping := range file.Mappings {
-		if mapping.ProtoName == name {
-			return mapping
-		}
-	}
-
-	t.Fatalf("mapping %q not found", name)
-	return MappingPlan{}
-}
-
-func fieldMappingByProtoName(t *testing.T, mapping MappingPlan, name protoreflect.FullName) FieldMappingPlan {
-	t.Helper()
-
-	for _, field := range mapping.Fields {
-		if field.ProtoName == name {
-			return field
-		}
-	}
-
-	t.Fatalf("field mapping %q not found", name)
-	return FieldMappingPlan{}
-}
-
 func plannerScalarField(parent *ProtoMessage, name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
 	field := field(name, kind)
 	field.FullName = protoreflect.FullName(string(parent.FullName) + "." + string(name))

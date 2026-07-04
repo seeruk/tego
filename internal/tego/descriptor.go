@@ -185,7 +185,13 @@ type ProtoService struct {
 
 	Methods []*ProtoMethod
 
-	Desc *protogen.Service
+	Desc    *protogen.Service
+	Options *tegopb.ServiceOptions
+}
+
+// HasOptions reports whether this service has Tego-specific options.
+func (s *ProtoService) HasOptions() bool {
+	return s.Options != nil
 }
 
 // ProtoMethod describes a protobuf service method with links to its input and output messages.
@@ -203,7 +209,13 @@ type ProtoMethod struct {
 	ClientStreaming bool
 	ServerStreaming bool
 
-	Desc *protogen.Method
+	Desc    *protogen.Method
+	Options *tegopb.MethodOptions
+}
+
+// HasOptions reports whether this method has Tego-specific options.
+func (m *ProtoMethod) HasOptions() bool {
+	return m.Options != nil
 }
 
 // BuildDescriptorIndex builds an indexed descriptor graph from a protogen plugin request.
@@ -415,6 +427,7 @@ func (b *descriptorIndexBuilder) indexService(file *ProtoFile, desc *protogen.Se
 		GoName:   desc.GoName,
 		File:     file,
 		Desc:     desc,
+		Options:  serviceOptions(desc),
 	}
 	b.index.ServicesByName[fullName] = service
 
@@ -436,6 +449,7 @@ func (b *descriptorIndexBuilder) indexMethod(file *ProtoFile, parent *ProtoServi
 		ClientStreaming: desc.Desc.IsStreamingClient(),
 		ServerStreaming: desc.Desc.IsStreamingServer(),
 		Desc:            desc,
+		Options:         methodOptions(desc),
 	}
 
 	b.methods = append(b.methods, method)
@@ -565,6 +579,20 @@ func messageOptions(message *protogen.Message) *tegopb.MessageOptions {
 func fieldOptions(field *protogen.Field) *tegopb.FieldOptions {
 	if opts := field.Desc.Options(); proto.HasExtension(opts, tegopb.E_Field) {
 		return proto.GetExtension(opts, tegopb.E_Field).(*tegopb.FieldOptions)
+	}
+	return nil
+}
+
+func serviceOptions(service *protogen.Service) *tegopb.ServiceOptions {
+	if opts := service.Desc.Options(); proto.HasExtension(opts, tegopb.E_Service) {
+		return proto.GetExtension(opts, tegopb.E_Service).(*tegopb.ServiceOptions)
+	}
+	return nil
+}
+
+func methodOptions(method *protogen.Method) *tegopb.MethodOptions {
+	if opts := method.Desc.Options(); proto.HasExtension(opts, tegopb.E_Method) {
+		return proto.GetExtension(opts, tegopb.E_Method).(*tegopb.MethodOptions)
 	}
 	return nil
 }

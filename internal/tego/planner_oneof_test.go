@@ -3,7 +3,6 @@ package tego
 import (
 	"testing"
 
-	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -105,9 +104,42 @@ func TestPlannerPlanOneofs(t *testing.T) {
 	})
 }
 
-func omittedPlannerField(field *ProtoField) *ProtoField {
-	options := &tegopb.FieldOptions{}
-	options.SetOmit(true)
-	field.Options = options
-	return field
+func TestPlannerPlanOneofDeclarations(t *testing.T) {
+	t.Run("collects oneof plans", func(t *testing.T) {
+		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
+		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		plannerOneof(event, "value", field("comment", protoreflect.StringKind))
+		attachMessagesToFile(file, event)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		require.Len(t, plan.Oneofs, 1)
+		assert.Equal(t, "TicketEventValue", plan.Oneofs[0].Name)
+		assert.Equal(t, "TicketEventValue", fieldPlanByProtoName(t, plan.Structs[0], "example.v1.TicketEvent.value").Type.Ref.Name)
+		assert.Empty(t, plan.Diagnostics)
+	})
+
+	t.Run("reports oneof interface name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
+		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		plannerOneof(event, "value", field("comment", protoreflect.StringKind))
+		eventValue := plannerMessage("example.v1.TicketEventValue", "TicketEventValue")
+		attachMessagesToFile(file, event, eventValue)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "TicketEventValue"`)
+	})
+
+	t.Run("reports oneof variant name collisions", func(t *testing.T) {
+		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
+		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		plannerOneof(event, "value", field("status", protoreflect.StringKind))
+		eventStatus := plannerMessage("example.v1.TicketEventStatus", "TicketEventStatus")
+		attachMessagesToFile(file, event, eventStatus)
+
+		plan := NewPlanner().planFile(file, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "TicketEventStatus"`)
+	})
 }

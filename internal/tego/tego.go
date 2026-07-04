@@ -13,15 +13,17 @@ type Plan struct {
 
 // FilePlan describes everything Tego will emit for one generated protobuf file.
 type FilePlan struct {
-	ProtoPath   string
-	Output      FileOutputPlan
-	Package     PackageRef
-	Enums       []EnumPlan
-	Oneofs      []OneofPlan
-	Structs     []StructPlan
-	Mappings    []MappingPlan
-	Services    []ServicePlan
-	Diagnostics []Diagnostic
+	ProtoPath             string
+	Output                FileOutputPlan
+	Package               PackageRef
+	Enums                 []EnumPlan
+	Oneofs                []OneofPlan
+	Structs               []StructPlan
+	Mappings              []MappingPlan
+	Services              []ServicePlan
+	RequestInlineHelpers  []ServiceInlineHelperPlan
+	ResponseInlineHelpers []ServiceInlineHelperPlan
+	Diagnostics           []Diagnostic
 }
 
 // FileOutputPlan describes the generated Go file path before and after module stripping.
@@ -406,14 +408,16 @@ type ServicePlan struct {
 
 // ServiceMethodPlan describes one RPC method in generated Tego terms.
 type ServiceMethodPlan struct {
-	ProtoName   protoreflect.FullName
-	ProtoGoName string
-	Name        string
-	Comment     string
-	Procedure   string
-	StreamType  ServiceStreamType
-	Request     ServiceMessagePlan
-	Response    ServiceMessagePlan
+	ProtoName      protoreflect.FullName
+	ProtoGoName    string
+	Name           string
+	Comment        string
+	Procedure      string
+	StreamType     ServiceStreamType
+	Request        ServiceMessagePlan
+	Response       ServiceMessagePlan
+	InlineRequest  *ServiceInlineHelperPlan
+	InlineResponse *ServiceInlineHelperPlan
 }
 
 // ServiceMessagePlan describes an RPC request or response type and its conversions.
@@ -423,6 +427,23 @@ type ServiceMessagePlan struct {
 	Type      TypePlan
 	FromProto MappingValuePlan
 	ToProto   MappingValuePlan
+}
+
+// ServiceInlineHelperPlan describes generated helpers that convert between wrapper request/response
+// structs and inlined facade call shapes.
+type ServiceInlineHelperPlan struct {
+	ProtoName      protoreflect.FullName
+	Type           TypePlan
+	ToInlineName   string
+	FromInlineName string
+	Fields         []ServiceInlineFieldPlan
+}
+
+// ServiceInlineFieldPlan describes one field exposed by an inlined facade method.
+type ServiceInlineFieldPlan struct {
+	Name      string
+	FieldName string
+	Type      TypePlan
 }
 
 // ServiceStreamType classifies the streaming shape of an RPC method.

@@ -72,6 +72,14 @@ func plannedMethodName(method *ProtoMethod) string {
 	return goName(string(method.Name))
 }
 
+func plannedServiceInlineToName(messageName string) string {
+	return messageName + "ToInline"
+}
+
+func plannedServiceInlineFromName(messageName string) string {
+	return messageName + "FromInline"
+}
+
 func plannedFieldName(field *ProtoField) string {
 	if field.Options.HasName() {
 		return field.Options.GetName()

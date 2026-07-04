@@ -20,14 +20,9 @@ const (
 
 func TestGenerate(t *testing.T) {
 	t.Run("renders enums structs types comments and tags", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{generatorTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan))
-		content := generatedResponseContent(t, plugin)
-
-		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
-		require.NoError(t, err)
+		content := generateParsedContent(t, plan)
 
 		assertCommentLinesFit(t, content)
 		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
@@ -35,14 +30,9 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("renders nullable scalar and enum fields through proto presence", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{nullablePresenceTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan))
-		content := generatedResponseContent(t, plugin)
-
-		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
-		require.NoError(t, err)
+		content := generateParsedContent(t, plan)
 
 		assert.Contains(t, content, "if source.HasName() {")
 		assert.Contains(t, content, "name = new(source.GetName())")
@@ -57,28 +47,18 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("renders external tego struct mapping calls with package qualifiers", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{externalTegoMappingTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan))
-		content := generatedResponseContent(t, plugin)
-
-		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
-		require.NoError(t, err)
+		content := generateParsedContent(t, plan)
 
 		assert.Contains(t, content, "target.Owner = external.OwnerFromProto(source.GetOwner())")
 		assert.Contains(t, content, "target.SetOwner(external.OwnerToProto(source.Owner))")
 	})
 
 	t.Run("renders service interfaces and rpc adapters", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan))
-		content := generatedResponseContent(t, plugin)
-
-		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
-		require.NoError(t, err)
+		content := generateParsedContent(t, plan)
 
 		assertCommentLinesFit(t, content)
 		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
@@ -86,35 +66,27 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("skips rpc code when rpc generation is disabled", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan, WithRPCGeneration(RPCOptions{})))
-		content := generatedResponseContent(t, plugin)
+		content := generateParsedContent(t, plan, WithRPCGeneration(RPCOptions{}))
 
-		_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
-		require.NoError(t, err)
 		assert.NotContains(t, content, "type TicketService interface")
 		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
 	})
 
 	t.Run("renders grpc-only rpc output", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan, WithRPCGeneration(RPCOptions{GRPC: true})))
-		content := generatedResponseContent(t, plugin)
+		content := generateParsedContent(t, plan, WithRPCGeneration(RPCOptions{GRPC: true}))
 
 		assert.Contains(t, content, "RegisterTicketServiceGRPCServer")
 		assert.NotContains(t, content, "NewTicketServiceConnectHandler")
 	})
 
 	t.Run("renders connect-only rpc output", func(t *testing.T) {
-		plugin := newGeneratorTestPlugin(t)
 		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
 
-		require.NoError(t, Generate(plugin, plan, WithRPCGeneration(RPCOptions{Connect: true})))
-		content := generatedResponseContent(t, plugin)
+		content := generateParsedContent(t, plan, WithRPCGeneration(RPCOptions{Connect: true}))
 
 		assert.Contains(t, content, "NewTicketServiceConnectHandler")
 		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
@@ -185,6 +157,18 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, err.Error(), "shape slice source element")
 		assert.NotContains(t, err.Error(), "any")
 	})
+}
+
+func generateParsedContent(t *testing.T, plan Plan, opts ...GenerateOption) string {
+	t.Helper()
+
+	plugin := newGeneratorTestPlugin(t)
+	require.NoError(t, Generate(plugin, plan, opts...))
+	content := generatedResponseContent(t, plugin)
+
+	_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
+	require.NoError(t, err)
+	return content
 }
 
 func externalTegoMappingTestFilePlan() FilePlan {

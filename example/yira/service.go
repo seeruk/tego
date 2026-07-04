@@ -46,12 +46,13 @@ func NewInMemoryTicketService() *InMemoryTicketService {
 
 func (s *InMemoryTicketService) ListTickets(
 	_ context.Context,
-	request ListTicketsRequest,
-) (ListTicketsResponse, error) {
+	projectID string,
+	filter TicketFilter,
+	cursor CursorRequest,
+) ([]Ticket, map[TicketStatus][]Ticket, CursorResponse, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	projectID := request.ProjectID
 	if projectID == "" {
 		projectID = DefaultProjectID
 	}
@@ -59,14 +60,14 @@ func (s *InMemoryTicketService) ListTickets(
 	filtered := make([]Ticket, 0, len(s.tickets))
 	for _, id := range s.order {
 		ticket := s.tickets[id]
-		if ticket.ProjectID != projectID || !matchesFilter(ticket, request.Filter) {
+		if ticket.ProjectID != projectID || !matchesFilter(ticket, filter) {
 			continue
 		}
 		filtered = append(filtered, cloneTicket(ticket))
 	}
 
 	start := 0
-	if after := request.Cursor.AfterCursor; after != "" {
+	if after := cursor.AfterCursor; after != "" {
 		for i, ticket := range filtered {
 			if ticket.ID == after {
 				start = i + 1
@@ -75,7 +76,7 @@ func (s *InMemoryTicketService) ListTickets(
 		}
 	}
 
-	limit := int(request.Cursor.Limit)
+	limit := int(cursor.Limit)
 	if limit <= 0 || limit > 20 {
 		limit = 20
 	}
@@ -91,53 +92,49 @@ func (s *InMemoryTicketService) ListTickets(
 		nextCursor = filtered[end-1].ID
 	}
 
-	return ListTicketsResponse{
-		Tickets:         page,
-		TicketsByStatus: ticketsByStatus(page),
-		Cursor: CursorResponse{
-			NextCursor: nextCursor,
-		},
+	return page, ticketsByStatus(page), CursorResponse{
+		NextCursor: nextCursor,
 	}, nil
 }
 
 func (s *InMemoryTicketService) GetTicket(
 	_ context.Context,
-	request GetTicketRequest,
-) (GetTicketResponse, error) {
+	ticketID string,
+) (Ticket, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	ticket, ok := s.tickets[request.TicketID]
+	ticket, ok := s.tickets[ticketID]
 	if !ok {
-		return GetTicketResponse{}, fmt.Errorf("ticket %q not found", request.TicketID)
+		return Ticket{}, fmt.Errorf("ticket %q not found", ticketID)
 	}
-	return GetTicketResponse{Ticket: cloneTicket(ticket)}, nil
+	return cloneTicket(ticket), nil
 }
 
 func (s *InMemoryTicketService) CreateTicket(
 	_ context.Context,
-	request CreateTicketRequest,
-) (CreateTicketResponse, error) {
+	draft TicketDraft,
+) (Ticket, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ticket := s.createTicketLocked(request.Ticket)
-	return CreateTicketResponse{Ticket: cloneTicket(ticket)}, nil
+	ticket := s.createTicketLocked(draft)
+	return cloneTicket(ticket), nil
 }
 
 func (s *InMemoryTicketService) UpdateTicket(
 	_ context.Context,
-	request UpdateTicketRequest,
-) (UpdateTicketResponse, error) {
+	ticketID string,
+	patch TicketPatch,
+) (Ticket, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ticket, ok := s.tickets[request.TicketID]
+	ticket, ok := s.tickets[ticketID]
 	if !ok {
-		return UpdateTicketResponse{}, fmt.Errorf("ticket %q not found", request.TicketID)
+		return Ticket{}, fmt.Errorf("ticket %q not found", ticketID)
 	}
 
-	patch := request.Patch
 	applyPatch(&ticket, patch)
 	s.addEventLocked(&ticket, TicketEvent{
 		Kind:    TicketEventKindUpdated,
@@ -147,27 +144,28 @@ func (s *InMemoryTicketService) UpdateTicket(
 	})
 	s.tickets[ticket.ID] = ticket
 
-	return UpdateTicketResponse{Ticket: cloneTicket(ticket)}, nil
+	return cloneTicket(ticket), nil
 }
 
 func (s *InMemoryTicketService) CloseTicket(
 	_ context.Context,
-	request CloseTicketRequest,
+	ticketID string,
+	resolution string,
 ) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ticket, ok := s.tickets[request.TicketID]
+	ticket, ok := s.tickets[ticketID]
 	if !ok {
-		return fmt.Errorf("ticket %q not found", request.TicketID)
+		return fmt.Errorf("ticket %q not found", ticketID)
 	}
 
 	ticket.Status = TicketStatusClosed
 	s.addEventLocked(&ticket, TicketEvent{
 		Kind:    TicketEventKindClosed,
 		Actor:   s.system,
-		Note:    request.Resolution,
-		Payload: tego.Value(map[string]any{"resolution": request.Resolution}),
+		Note:    resolution,
+		Payload: tego.Value(map[string]any{"resolution": resolution}),
 	})
 	s.tickets[ticket.ID] = ticket
 
@@ -176,10 +174,11 @@ func (s *InMemoryTicketService) CloseTicket(
 
 func (s *InMemoryTicketService) WatchTicketEvents(
 	_ context.Context,
-	request WatchTicketEventsRequest,
+	projectID string,
+	ticketID string,
 ) (iter.Seq2[TicketEvent, error], error) {
 	s.mu.RLock()
-	events := s.eventsFor(request.ProjectID, request.TicketID)
+	events := s.eventsFor(projectID, ticketID)
 	s.mu.RUnlock()
 
 	return func(yield func(TicketEvent, error) bool) {
@@ -194,11 +193,11 @@ func (s *InMemoryTicketService) WatchTicketEvents(
 func (s *InMemoryTicketService) ImportTicketEvents(
 	_ context.Context,
 	events iter.Seq2[TicketEvent, error],
-) (ImportTicketEventsResponse, error) {
+) (int32, error) {
 	var imported int32
 	for event, err := range events {
 		if err != nil {
-			return ImportTicketEventsResponse{}, err
+			return 0, err
 		}
 
 		s.mu.Lock()
@@ -207,7 +206,7 @@ func (s *InMemoryTicketService) ImportTicketEvents(
 		imported++
 	}
 
-	return ImportTicketEventsResponse{ImportedCount: imported}, nil
+	return imported, nil
 }
 
 func (s *InMemoryTicketService) SyncTicketEvents(

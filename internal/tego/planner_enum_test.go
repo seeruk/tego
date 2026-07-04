@@ -186,9 +186,7 @@ func TestPlannerPlanEnum(t *testing.T) {
 
 				_, diagnostics, ok := NewPlanner().planEnum(enum)
 				require.True(t, ok)
-				require.Len(t, diagnostics, 1)
-				assert.True(t, HasFatalDiagnostics(diagnostics))
-				assert.Contains(t, diagnostics[0].Message, "enum value override must match")
+				requireFatalDiagnostic(t, diagnostics, "enum value override must match")
 			})
 		}
 	})
@@ -201,9 +199,7 @@ func TestPlannerPlanEnum(t *testing.T) {
 
 		_, diagnostics, ok := NewPlanner().planEnum(enum)
 		require.True(t, ok)
-		require.Len(t, diagnostics, 1)
-		assert.True(t, HasFatalDiagnostics(diagnostics))
-		assert.Contains(t, diagnostics[0].Message, "unsupported enum underlying type")
+		requireFatalDiagnostic(t, diagnostics, "unsupported enum underlying type")
 	})
 }
 
@@ -259,19 +255,6 @@ func TestPlannerPlanEnumComments(t *testing.T) {
 		open := enumConstantByProtoName(t, plan, "example.v1.STATUS_OPEN")
 		assert.Equal(t, "StatusOpen means work can begin.", open.Comment)
 	})
-}
-
-func enumConstantByProtoName(t *testing.T, enum EnumPlan, name protoreflect.FullName) EnumConstantPlan {
-	t.Helper()
-
-	for _, constant := range enum.Constants {
-		if constant.ProtoName == name {
-			return constant
-		}
-	}
-
-	t.Fatalf("enum constant %q not found", name)
-	return EnumConstantPlan{}
 }
 
 func protoEnum(name protoreflect.FullName, goName string, values ...*ProtoEnumValue) *ProtoEnum {

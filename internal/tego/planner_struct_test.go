@@ -10,14 +10,12 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-const plannerTestPkg = "github.com/seeruk/tego/internal/tego/testdata/plannertest"
-
 func TestPlannerPlanFieldTypes(t *testing.T) {
-	t.Run("flattens slice shapes", func(t *testing.T) {
-		descriptorIndex := buildYiraDescriptorIndex(t)
-		shapeIndex, err := BuildShapeIndex(descriptorIndex)
-		require.NoError(t, err)
+	descriptorIndex := buildYiraDescriptorIndex(t)
+	shapeIndex, err := BuildShapeIndex(descriptorIndex)
+	require.NoError(t, err)
 
+	t.Run("flattens slice shapes", func(t *testing.T) {
 		message := requireMessage(t, descriptorIndex, "yirapb.v1.PersonList")
 		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("watchers", message), shapeIndex)
 
@@ -28,10 +26,6 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 	})
 
 	t.Run("flattens map shapes", func(t *testing.T) {
-		descriptorIndex := buildYiraDescriptorIndex(t)
-		shapeIndex, err := BuildShapeIndex(descriptorIndex)
-		require.NoError(t, err)
-
 		message := requireMessage(t, descriptorIndex, "yirapb.v1.TicketsByStatus")
 		plan, diagnostics := NewPlanner().planSingularFieldType(messageField("tickets_by_status", message), shapeIndex)
 
@@ -77,7 +71,6 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		require.Empty(t, diagnostics)
 		assert.Equal(t, emptyStructType(), empty)
 
-		descriptorIndex := buildYiraDescriptorIndex(t)
 		structMessage := requireMessage(t, descriptorIndex, "google.protobuf.Struct")
 		structPlan, diagnostics := planner.planSingularFieldType(messageField("data", structMessage), shapeIndex)
 		require.Empty(t, diagnostics)
@@ -574,9 +567,7 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 
 				_, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
 
-				require.NotEmpty(t, diagnostics)
-				assert.True(t, HasFatalDiagnostics(diagnostics))
-				assert.Contains(t, diagnostics[0].Message, tt.diagnostic)
+				requireFatalDiagnostic(t, diagnostics, tt.diagnostic)
 			})
 		}
 	})
@@ -715,195 +706,8 @@ func TestFlattenMessageDiagnostics(t *testing.T) {
 
 				diagnostics := flattenMessageDiagnostics(tt.message)
 
-				require.NotEmpty(t, diagnostics)
-				assert.True(t, HasFatalDiagnostics(diagnostics))
-				assert.Contains(t, diagnostics[0].Message, tt.want)
+				requireFatalDiagnostic(t, diagnostics, tt.want)
 			})
 		}
 	})
-}
-
-func structByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) StructPlan {
-	t.Helper()
-
-	for _, structure := range file.Structs {
-		if structure.ProtoName == name {
-			return structure
-		}
-	}
-
-	t.Fatalf("struct %q not found", name)
-	return StructPlan{}
-}
-
-func fieldPlanByProtoName(t *testing.T, structure StructPlan, name protoreflect.FullName) FieldPlan {
-	t.Helper()
-
-	for _, field := range structure.Fields {
-		if field.ProtoName == name {
-			return field
-		}
-	}
-
-	t.Fatalf("field %q not found", name)
-	return FieldPlan{}
-}
-
-func requirePointerElem(t *testing.T, plan TypePlan, kind TypeKind) TypePlan {
-	t.Helper()
-
-	require.Equal(t, TypeKindPointer, plan.Kind)
-	require.NotNil(t, plan.Elem)
-	require.Equal(t, kind, plan.Elem.Kind)
-	return *plan.Elem
-}
-
-func fieldWithPlannerGoType(name protoreflect.Name, goType *tegopb.GoType) *ProtoField {
-	field := field(name, protoreflect.StringKind)
-	field.FullName = protoreflect.FullName("example.v1.Message." + name)
-	options := &tegopb.FieldOptions{}
-	options.SetGoType(goType)
-	field.Options = options
-	return field
-}
-
-func plannerGoType(ref, fromProto, toProto string, asPointer bool) *tegopb.GoType {
-	goType := &tegopb.GoType{}
-	goType.SetRef(ref)
-	goType.SetFromProto(fromProto)
-	goType.SetToProto(toProto)
-	if asPointer {
-		goType.SetAsPointer(true)
-	}
-	return goType
-}
-
-func plannerGoTypeWithArgs(ref string, args map[string]string, fromProto, toProto string, asPointer bool) *tegopb.GoType {
-	goType := plannerGoType(ref, fromProto, toProto, asPointer)
-	typeArgs := make(map[string]*tegopb.GoTypeArg, len(args))
-	for name, typ := range args {
-		arg := &tegopb.GoTypeArg{}
-		arg.SetType(typ)
-		typeArgs[name] = arg
-	}
-	goType.SetTypeArgs(typeArgs)
-	return goType
-}
-
-func messageForCommentTest(protoName protoreflect.Name, goName, comment string) *ProtoMessage {
-	return &ProtoMessage{
-		FullName: protoreflect.FullName("example.v1." + protoName),
-		Name:     protoName,
-		GoName:   goName,
-		Desc: &protogen.Message{
-			Comments: protogen.CommentSet{Leading: protogen.Comments(comment)},
-		},
-		Options: &tegopb.MessageOptions{},
-	}
-}
-
-func fieldForCommentTest(protoName protoreflect.Name, goName, comment string) *ProtoField {
-	return &ProtoField{
-		FullName: protoreflect.FullName("example.v1.Person." + protoName),
-		Name:     protoName,
-		GoName:   goName,
-		Kind:     protoreflect.StringKind,
-		Desc: &protogen.Field{
-			Comments: protogen.CommentSet{Leading: protogen.Comments(comment)},
-		},
-		Options: &tegopb.FieldOptions{},
-	}
-}
-
-func plannerMapShape() (*ProtoMessage, *ProtoMessage) {
-	parent := plannerMessage("example.v1.StringsByName", "StringsByName")
-	entry := plannerMessage("example.v1.StringsByName.Map", "Map")
-	entry.Parent = parent
-	entry.Fields = []*ProtoField{
-		field("key", protoreflect.StringKind),
-		field("value", protoreflect.Int64Kind),
-	}
-	for _, field := range entry.Fields {
-		field.Parent = entry
-	}
-	parent.Messages = []*ProtoMessage{entry}
-	parent.Fields = []*ProtoField{repeatedMessageField("entries", entry)}
-	parent.Fields[0].Parent = parent
-	return parent, entry
-}
-
-func plannerMessage(fullName protoreflect.FullName, name protoreflect.Name) *ProtoMessage {
-	return &ProtoMessage{
-		FullName: fullName,
-		Name:     name,
-		Options:  &tegopb.MessageOptions{},
-	}
-}
-
-func plannerEnum(fullName protoreflect.FullName, name protoreflect.Name, file *ProtoFile) *ProtoEnum {
-	return &ProtoEnum{
-		FullName: fullName,
-		Name:     name,
-		File:     file,
-		Options:  &tegopb.EnumOptions{},
-	}
-}
-
-func testProtoFile(path string, generate bool, goPackage string) *ProtoFile {
-	options := &tegopb.FileOptions{}
-	if goPackage != "" {
-		options.SetGoPackage(goPackage)
-	}
-	return &ProtoFile{
-		Path:     path,
-		Generate: generate,
-		Options:  options,
-	}
-}
-
-func mustPlanFieldType(t *testing.T, field *ProtoField, shapeIndex *ShapeIndex) TypePlan {
-	t.Helper()
-
-	plan, diagnostics := NewPlanner().planSingularFieldType(field, shapeIndex)
-
-	require.Empty(t, diagnostics)
-	return plan
-}
-
-func plannerOneof(parent *ProtoMessage, name protoreflect.Name, fields ...*ProtoField) *ProtoOneof {
-	oneof := &ProtoOneof{
-		FullName: protoreflect.FullName(string(parent.FullName) + "." + string(name)),
-		Name:     name,
-		GoName:   goName(string(name)),
-		Parent:   parent,
-		Fields:   fields,
-	}
-	parent.Oneofs = append(parent.Oneofs, oneof)
-	parent.Fields = append(parent.Fields, fields...)
-	for _, field := range fields {
-		field.FullName = protoreflect.FullName(string(parent.FullName) + "." + string(field.Name))
-		field.Parent = parent
-		field.Oneof = oneof
-	}
-	return oneof
-}
-
-func enumField(name protoreflect.Name, enum *ProtoEnum) *ProtoField {
-	field := field(name, protoreflect.EnumKind)
-	field.Enum = enum
-	return field
-}
-
-func nullableOmittableField(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
-	field := field(name, kind)
-	field.Options = &tegopb.FieldOptions{}
-	field.Options.SetNullable(true)
-	field.Options.SetOmittable(true)
-	return field
-}
-
-func setMessageFieldOptionsOmittable(options *tegopb.MessageOptions, omittable bool) {
-	fields := &tegopb.MessageFieldsOptions{}
-	fields.SetOmittable(omittable)
-	options.SetFields(fields)
 }

@@ -3671,16 +3671,18 @@ const file_proto_yirapb_v1_yira_proto_rawDesc = "" +
 	"\x1bTICKET_PRIORITY_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TICKET_PRIORITY_LOW\x10\x01\x12\x1a\n" +
 	"\x16TICKET_PRIORITY_NORMAL\x10\x02\x12\x18\n" +
-	"\x14TICKET_PRIORITY_HIGH\x10\x032\x80\x05\n" +
+	"\x14TICKET_PRIORITY_HIGH\x10\x032\x90\x05\n" +
 	"\rTicketService\x12L\n" +
-	"\vListTickets\x12\x1d.yirapb.v1.ListTicketsRequest\x1a\x1e.yirapb.v1.ListTicketsResponse\x12F\n" +
-	"\tGetTicket\x12\x1b.yirapb.v1.GetTicketRequest\x1a\x1c.yirapb.v1.GetTicketResponse\x12O\n" +
+	"\vListTickets\x12\x1d.yirapb.v1.ListTicketsRequest\x1a\x1e.yirapb.v1.ListTicketsResponse\x12N\n" +
+	"\tGetTicket\x12\x1b.yirapb.v1.GetTicketRequest\x1a\x1c.yirapb.v1.GetTicketResponse\"\x06҅\n" +
+	"\x02\b\x01\x12O\n" +
 	"\fCreateTicket\x12\x1e.yirapb.v1.CreateTicketRequest\x1a\x1f.yirapb.v1.CreateTicketResponse\x12O\n" +
 	"\fUpdateTicket\x12\x1e.yirapb.v1.UpdateTicketRequest\x1a\x1f.yirapb.v1.UpdateTicketResponse\x12D\n" +
 	"\vCloseTicket\x12\x1d.yirapb.v1.CloseTicketRequest\x1a\x16.google.protobuf.Empty\x12R\n" +
 	"\x11WatchTicketEvents\x12#.yirapb.v1.WatchTicketEventsRequest\x1a\x16.yirapb.v1.TicketEvent0\x01\x12U\n" +
 	"\x12ImportTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a%.yirapb.v1.ImportTicketEventsResponse(\x01\x12F\n" +
-	"\x10SyncTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a\x16.yirapb.v1.TicketEvent(\x010\x01B`҅\n" +
+	"\x10SyncTicketEvents\x12\x16.yirapb.v1.TicketEvent\x1a\x16.yirapb.v1.TicketEvent(\x010\x01\x1a\x06҅\n" +
+	"\x02\b\x01B`҅\n" +
 	"*\n" +
 	"(github.com/seeruk/tego/example/yira;yiraZ0github.com/seeruk/tego/example/yirapbv1;yirapbv1b\beditionsp\xe9\a"
 

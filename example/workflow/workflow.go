@@ -38,46 +38,35 @@ func Run(ctx context.Context, transport string, client yira.TicketService) error
 		},
 	}
 
-	createResponse, err := client.CreateTicket(ctx, yira.CreateTicketRequest{Ticket: draft})
+	ticket, err := client.CreateTicket(ctx, draft)
 	if err != nil {
 		return fmt.Errorf("create ticket: %w", err)
 	}
-	ticket := createResponse.Ticket
 	fmt.Printf("[%s] created %s: %s\n", transport, ticket.ID, ticket.Title)
 
 	patch := yira.TicketPatch{
 		Status:  omittable.Some(yira.TicketStatusInProgress),
 		Version: "example-workflow",
 	}
-	updateResponse, err := client.UpdateTicket(ctx, yira.UpdateTicketRequest{
-		TicketID: ticket.ID,
-		Patch:    patch,
-	})
+	ticket, err = client.UpdateTicket(ctx, ticket.ID, patch)
 	if err != nil {
 		return fmt.Errorf("update ticket: %w", err)
 	}
-	ticket = updateResponse.Ticket
 	fmt.Printf("[%s] updated %s to status %d\n", transport, ticket.ID, ticket.Status)
 
-	listResponse, err := client.ListTickets(ctx, yira.ListTicketsRequest{
-		ProjectID: yira.DefaultProjectID,
-		Cursor:    yira.CursorRequest{Limit: 5},
-	})
+	tickets, _, _, err := client.ListTickets(ctx, yira.DefaultProjectID, yira.TicketFilter{}, yira.CursorRequest{Limit: 5})
 	if err != nil {
 		return fmt.Errorf("list tickets: %w", err)
 	}
-	fmt.Printf("[%s] listed %d tickets\n", transport, len(listResponse.Tickets))
+	fmt.Printf("[%s] listed %d tickets\n", transport, len(tickets))
 
-	getResponse, err := client.GetTicket(ctx, yira.GetTicketRequest{TicketID: ticket.ID})
+	fetched, err := client.GetTicket(ctx, ticket.ID)
 	if err != nil {
 		return fmt.Errorf("get ticket: %w", err)
 	}
-	fmt.Printf("[%s] fetched %s with %d event(s)\n", transport, getResponse.Ticket.ID, len(getResponse.Ticket.Events))
+	fmt.Printf("[%s] fetched %s with %d event(s)\n", transport, fetched.ID, len(fetched.Events))
 
-	watch, err := client.WatchTicketEvents(ctx, yira.WatchTicketEventsRequest{
-		ProjectID: yira.DefaultProjectID,
-		TicketID:  ticket.ID,
-	})
+	watch, err := client.WatchTicketEvents(ctx, yira.DefaultProjectID, ticket.ID)
 	if err != nil {
 		return fmt.Errorf("watch ticket events: %w", err)
 	}
@@ -97,10 +86,7 @@ func Run(ctx context.Context, transport string, client yira.TicketService) error
 		return err
 	}
 
-	if err := client.CloseTicket(ctx, yira.CloseTicketRequest{
-		TicketID:   ticket.ID,
-		Resolution: "Verified through the runnable example.",
-	}); err != nil {
+	if err := client.CloseTicket(ctx, ticket.ID, "Verified through the runnable example."); err != nil {
 		return fmt.Errorf("close ticket: %w", err)
 	}
 	fmt.Printf("[%s] closed %s\n", transport, ticket.ID)
@@ -140,11 +126,11 @@ func importEvents(
 		}
 	}
 
-	response, err := client.ImportTicketEvents(ctx, events)
+	imported, err := client.ImportTicketEvents(ctx, events)
 	if err != nil {
 		return 0, fmt.Errorf("import events: %w", err)
 	}
-	return response.ImportedCount, nil
+	return imported, nil
 }
 
 func syncEvent(

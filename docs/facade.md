@@ -63,29 +63,38 @@ transport methods where they need lower-level access.
 
 ## Facade Options
 
-Tego will introduce method options to customize facade signatures, mainly focused around inlining
-request and response types to produce more Go-like interfaces:
+Tego supports service and method options to customize facade signatures, mainly focused around
+inlining request and response types to produce more Go-like interfaces. Services inline safely
+inlineable method sides by default, even when the service option is omitted:
 
 ```protobuf
-option (tego.method).facade.inline_request = true;  // Request only
-option (tego.method).facade.inline_response = true; // Response only
-option (tego.method).facade.inline = true;          // Both request and response
+option (tego.service).inline_by_default = true;
 ```
 
-These options are only suitable for unary methods. It may be desirable to be quite opinionated about
-this, potentially even automatically having unary requests and responses inlined by default.
+Methods can override the service default. `inline` sets both sides, and side-specific options win
+afterwards:
 
-When inlining is enabled, Tego should generate `ToInline` and `FromInline` facade call-shape
-helpers. Request helpers should carry `context.Context` through so they can be passed directly to
-facade methods:
+```protobuf
+option (tego.method).inline_request = true;  // Request only
+option (tego.method).inline_response = true; // Response only
+option (tego.method).inline = true;          // Both request and response
+option (tego.method).inline = false;         // Neither side
+```
+
+Inlining applies to unary request and response sides, server-streaming request sides, and
+client-streaming response sides. Bidi streaming methods are not inlined. Empty responses keep the
+existing `error`-only facade shape.
+
+When inlining is enabled, Tego generates `ToInline` and `FromInline` facade call-shape helpers.
+Request helpers carry `context.Context` through so they can be passed directly to facade methods:
 
 ```go
 GetTicketRequestToInline(ctx context.Context, request GetTicketRequest) (context.Context, string)
 GetTicketRequestFromInline(ctx context.Context, ticketID string) (context.Context, GetTicketRequest)
 ```
 
-For messages with multiple fields, request helpers should return `context.Context` followed by one
-result per inlined field:
+For messages with multiple fields, request helpers return `context.Context` followed by one result
+per inlined field:
 
 ```go
 ListTicketsRequestToInline(
@@ -105,16 +114,16 @@ ListTicketsRequestFromInline(
 ) (context.Context, ListTicketsRequest)
 ```
 
-Response helpers should accept and return `error`, so the result of a facade call can be passed
-directly into the helper:
+Response helpers accept and return `error`, so the result of a facade call can be passed directly
+into the helper:
 
 ```go
 GetTicketResponseToInline(response GetTicketResponse, err error) (Ticket, error)
 GetTicketResponseFromInline(ticket Ticket, err error) (GetTicketResponse, error)
 ```
 
-If the incoming error is non-nil, response helpers should return the zero value for the response
-shape and pass the error through unchanged.
+If the incoming error is non-nil, response helpers return the zero value for the response shape and
+pass the error through unchanged.
 
 With these helpers, generated adapters and user-owned transport overrides can forward through the
 facade concisely:

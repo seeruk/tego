@@ -10,8 +10,12 @@ option go_package = "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv
 option (tego.file).go_package = "github.com/seeruk/tego/internal/tego/testdata/yira/v1;yirav1";
 
 service TicketService {
+  option (tego.service).inline_by_default = true;
+
   rpc ListTickets(ListTicketsRequest) returns (ListTicketsResponse);
-  rpc GetTicket(GetTicketRequest) returns (GetTicketResponse);
+  rpc GetTicket(GetTicketRequest) returns (GetTicketResponse) {
+    option (tego.method).inline = true;
+  }
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
   rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
   rpc CloseTicket(CloseTicketRequest) returns (google.protobuf.Empty);

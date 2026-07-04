@@ -3,10 +3,12 @@ package tego
 import (
 	"fmt"
 	"path"
+	"reflect"
 	"strings"
 
 	"github.com/seeruk/tego/internal/types"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // Planner is Tego's core planner, responsible for planning what and how Tego will generate Go code.
@@ -95,13 +97,26 @@ func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
 	}
 
 	if p.rpc.Enabled() {
+		structsByProtoName := indexStructsByProtoName(plan.Structs)
 		for _, service := range file.Services {
-			p.planFileService(&plan, service, si)
+			p.planFileService(&plan, service, si, structsByProtoName)
 		}
+		requestInlineHelpers, responseInlineHelpers, diagnostics := plannedServiceInlineHelpers(plan.ProtoPath, plan.Services)
+		plan.RequestInlineHelpers = requestInlineHelpers
+		plan.ResponseInlineHelpers = responseInlineHelpers
+		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 	}
 
 	plan.Diagnostics = append(plan.Diagnostics, plannedNameCollisionDiagnostics(plan, p.rpc)...)
 	return plan
+}
+
+func indexStructsByProtoName(structs []StructPlan) map[protoreflect.FullName]StructPlan {
+	index := make(map[protoreflect.FullName]StructPlan, len(structs))
+	for _, structure := range structs {
+		index[structure.ProtoName] = structure
+	}
+	return index
 }
 
 func (p *Planner) planFileEnum(plan *FilePlan, enum *ProtoEnum) {
@@ -182,81 +197,168 @@ func (p *Planner) planFileOneof(plan *FilePlan, oneof *ProtoOneof, si *ShapeInde
 	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 }
 
-func (p *Planner) planFileService(plan *FilePlan, service *ProtoService, si *ShapeIndex) {
-	servicePlan, diagnostics := p.planService(service, si)
+func (p *Planner) planFileService(
+	plan *FilePlan,
+	service *ProtoService,
+	si *ShapeIndex,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+) {
+	servicePlan, diagnostics := p.planService(service, si, structsByProtoName)
 	plan.Services = append(plan.Services, servicePlan)
 	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 }
 
-func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic {
-	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Services)*8)
+func plannedServiceInlineHelpers(protoPath string, services []ServicePlan) ([]ServiceInlineHelperPlan, []ServiceInlineHelperPlan, []Diagnostic) {
+	seen := make(map[string]serviceInlineHelperUse)
+	var requestHelpers []ServiceInlineHelperPlan
+	var responseHelpers []ServiceInlineHelperPlan
 	var diagnostics []Diagnostic
 
+	for _, service := range services {
+		for _, method := range service.Methods {
+			if method.InlineRequest != nil {
+				added, helperDiagnostics := collectServiceInlineHelper(
+					protoPath,
+					seen,
+					*method.InlineRequest,
+					"request",
+				)
+				diagnostics = append(diagnostics, helperDiagnostics...)
+				if added {
+					requestHelpers = append(requestHelpers, *method.InlineRequest)
+				}
+			}
+			if method.InlineResponse != nil {
+				added, helperDiagnostics := collectServiceInlineHelper(
+					protoPath,
+					seen,
+					*method.InlineResponse,
+					"response",
+				)
+				diagnostics = append(diagnostics, helperDiagnostics...)
+				if added {
+					responseHelpers = append(responseHelpers, *method.InlineResponse)
+				}
+			}
+		}
+	}
+
+	return requestHelpers, responseHelpers, diagnostics
+}
+
+type serviceInlineHelperUse struct {
+	helper ServiceInlineHelperPlan
+	owner  string
+}
+
+func collectServiceInlineHelper(
+	protoPath string,
+	seen map[string]serviceInlineHelperUse,
+	helper ServiceInlineHelperPlan,
+	helperKind string,
+) (bool, []Diagnostic) {
+	use := serviceInlineHelperUse{
+		helper: helper,
+		owner:  inlineHelperOwner(helper, helperKind),
+	}
+
+	for _, name := range []string{helper.ToInlineName, helper.FromInlineName} {
+		known, exists := seen[name]
+		if !exists {
+			continue
+		}
+		if !serviceInlineHelperUsesEqual(known, use) {
+			return false, []Diagnostic{incompatibleServiceInlineHelperDiagnostic(
+				protoPath,
+				name,
+				known,
+				use,
+			)}
+		}
+		return false, nil
+	}
+
+	seen[helper.ToInlineName] = use
+	seen[helper.FromInlineName] = use
+	return true, nil
+}
+
+func serviceInlineHelperUsesEqual(a, b serviceInlineHelperUse) bool {
+	return a.owner == b.owner && serviceInlineHelpersEqual(a.helper, b.helper)
+}
+
+func serviceInlineHelpersEqual(a, b ServiceInlineHelperPlan) bool {
+	return a.ProtoName == b.ProtoName &&
+		a.ToInlineName == b.ToInlineName &&
+		a.FromInlineName == b.FromInlineName &&
+		reflect.DeepEqual(a.Type, b.Type) &&
+		reflect.DeepEqual(a.Fields, b.Fields)
+}
+
+func incompatibleServiceInlineHelperDiagnostic(
+	protoPath string,
+	name string,
+	previous serviceInlineHelperUse,
+	next serviceInlineHelperUse,
+) Diagnostic {
+	return fatalDiagnostic(
+		protoPath,
+		"planned Go name %q is used by incompatible inline helpers for %s and %s",
+		name,
+		previous.owner,
+		next.owner,
+	)
+}
+
+func inlineHelperOwner(helper ServiceInlineHelperPlan, helperKind string) string {
+	return fmt.Sprintf("%s inline %s helper", helper.ProtoName, helperKind)
+}
+
+func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic {
+	inlineHelperCount := len(plan.RequestInlineHelpers) + len(plan.ResponseInlineHelpers)
+	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Services)*8+inlineHelperCount*2)
+	var diagnostics []Diagnostic
+
+	add := func(name, owner string) {
+		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, name, owner)...)
+	}
+	addInlineHelper := func(helper ServiceInlineHelperPlan, helperKind string) {
+		owner := inlineHelperOwner(helper, helperKind)
+		add(helper.ToInlineName, owner)
+		add(helper.FromInlineName, owner)
+	}
+
 	for _, enum := range plan.Enums {
-		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, enum.Name, string(enum.ProtoName))...)
+		add(enum.Name, string(enum.ProtoName))
 	}
 	for _, oneof := range plan.Oneofs {
-		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, oneof.Name, string(oneof.ProtoName))...)
+		add(oneof.Name, string(oneof.ProtoName))
 		for _, variant := range oneof.Variants {
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, variant.Name, string(variant.ProtoName))...)
+			add(variant.Name, string(variant.ProtoName))
 		}
 	}
 	for _, structure := range plan.Structs {
-		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, structure.Name, string(structure.ProtoName))...)
+		add(structure.Name, string(structure.ProtoName))
+	}
+	for _, helper := range plan.RequestInlineHelpers {
+		addInlineHelper(helper, "request")
+	}
+	for _, helper := range plan.ResponseInlineHelpers {
+		addInlineHelper(helper, "response")
 	}
 	for _, service := range plan.Services {
-		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, service.Name, string(service.ProtoName))...)
-		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-			plan,
-			seen,
-			service.UnimplementedName,
-			string(service.ProtoName)+" unimplemented facade",
-		)...)
+		add(service.Name, string(service.ProtoName))
+		add(service.UnimplementedName, string(service.ProtoName)+" unimplemented facade")
 		if rpc.GRPC {
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.GRPCAdapterName,
-				string(service.ProtoName)+" gRPC adapter",
-			)...)
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.GRPCRegisterName,
-				string(service.ProtoName)+" gRPC server registration helper",
-			)...)
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.GRPCNewServerName,
-				string(service.ProtoName)+" gRPC server constructor",
-			)...)
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.GRPCNewClientName,
-				string(service.ProtoName)+" gRPC client constructor",
-			)...)
+			add(service.GRPCAdapterName, string(service.ProtoName)+" gRPC adapter")
+			add(service.GRPCRegisterName, string(service.ProtoName)+" gRPC server registration helper")
+			add(service.GRPCNewServerName, string(service.ProtoName)+" gRPC server constructor")
+			add(service.GRPCNewClientName, string(service.ProtoName)+" gRPC client constructor")
 		}
 		if rpc.Connect {
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.ConnectAdapterName,
-				string(service.ProtoName)+" Connect adapter",
-			)...)
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.ConnectNewHandlerName,
-				string(service.ProtoName)+" Connect handler constructor",
-			)...)
-			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-				plan,
-				seen,
-				service.ConnectNewClientName,
-				string(service.ProtoName)+" Connect client constructor",
-			)...)
+			add(service.ConnectAdapterName, string(service.ProtoName)+" Connect adapter")
+			add(service.ConnectNewHandlerName, string(service.ProtoName)+" Connect handler constructor")
+			add(service.ConnectNewClientName, string(service.ProtoName)+" Connect client constructor")
 		}
 	}
 

@@ -150,12 +150,12 @@ func TestModuleRoot(t *testing.T) {
 func appendPluginParameter(req *pluginpb.CodeGeneratorRequest, param string) {
 	params := req.GetParameter()
 	if params == "" {
-		req.Parameter = &param
+		req.Parameter = new(param)
 		return
 	}
 
 	params += "," + param
-	req.Parameter = &params
+	req.Parameter = new(params)
 }
 
 func generatedPluginResponseContent(t *testing.T, plugin *protogen.Plugin) string {

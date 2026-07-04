@@ -1,10 +1,8 @@
 package tego
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -82,80 +80,104 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 	t.Run("includes service plans", func(t *testing.T) {
 		require.Len(t, file.Services, 1)
 		service := serviceByProtoName(t, file, "yirapb.v1.TicketService")
-
-		assert.Equal(t, "TicketService", service.Name)
-		assert.Equal(t, "UnimplementedTicketService", service.UnimplementedName)
-		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect", service.ConnectRef.ImportPath)
-		assert.Equal(t, "TicketServiceGRPCAdapter", service.GRPCAdapterName)
-		assert.Equal(t, "ticketServiceGRPCServer", service.GRPCServerName)
-		assert.Equal(t, "ticketServiceGRPCClient", service.GRPCClientName)
-		assert.Equal(t, "RegisterTicketServiceGRPCServer", service.GRPCRegisterName)
-		assert.Equal(t, "NewTicketServiceGRPCServer", service.GRPCNewServerName)
-		assert.Equal(t, "NewTicketServiceGRPCClient", service.GRPCNewClientName)
-		assert.Equal(t, "TicketServiceConnectAdapter", service.ConnectAdapterName)
-		assert.Equal(t, "ticketServiceConnectHandler", service.ConnectHandlerName)
-		assert.Equal(t, "ticketServiceConnectClient", service.ConnectClientName)
-		assert.Equal(t, "NewTicketServiceConnectHandler", service.ConnectNewHandlerName)
-		assert.Equal(t, "NewTicketServiceConnectClient", service.ConnectNewClientName)
+		require.Len(t, file.RequestInlineHelpers, 6)
+		require.Len(t, file.ResponseInlineHelpers, 5)
 		require.Len(t, service.Methods, 8)
 
-		listTickets := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ListTickets")
-		assert.Equal(t, "ListTickets", listTickets.Name)
-		assert.Equal(t, "/yirapb.v1.TicketService/ListTickets", listTickets.Procedure)
-		assert.Equal(t, ServiceStreamTypeUnary, listTickets.StreamType)
-		assert.Equal(t, TypeKindStruct, listTickets.Request.Type.Kind)
-		assert.Equal(t, "ListTicketsRequest", listTickets.Request.Type.Ref.Name)
-		assert.Equal(t, TypeKindStruct, listTickets.Response.Type.Kind)
-		assert.Equal(t, "ListTicketsResponse", listTickets.Response.Type.Ref.Name)
-		assert.Equal(t, MappingValueKindStruct, listTickets.Request.FromProto.Kind)
-		assert.Equal(t, MappingValueKindStruct, listTickets.Response.ToProto.Kind)
+		t.Run("names adapters and constructors", func(t *testing.T) {
+			assert.Equal(t, "TicketService", service.Name)
+			assert.Equal(t, "UnimplementedTicketService", service.UnimplementedName)
+			assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect", service.ConnectRef.ImportPath)
+			assert.Equal(t, "TicketServiceGRPCAdapter", service.GRPCAdapterName)
+			assert.Equal(t, "ticketServiceGRPCServer", service.GRPCServerName)
+			assert.Equal(t, "ticketServiceGRPCClient", service.GRPCClientName)
+			assert.Equal(t, "RegisterTicketServiceGRPCServer", service.GRPCRegisterName)
+			assert.Equal(t, "NewTicketServiceGRPCServer", service.GRPCNewServerName)
+			assert.Equal(t, "NewTicketServiceGRPCClient", service.GRPCNewClientName)
+			assert.Equal(t, "TicketServiceConnectAdapter", service.ConnectAdapterName)
+			assert.Equal(t, "ticketServiceConnectHandler", service.ConnectHandlerName)
+			assert.Equal(t, "ticketServiceConnectClient", service.ConnectClientName)
+			assert.Equal(t, "NewTicketServiceConnectHandler", service.ConnectNewHandlerName)
+			assert.Equal(t, "NewTicketServiceConnectClient", service.ConnectNewClientName)
+		})
 
-		closeTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.CloseTicket")
-		assert.Equal(t, TypeKindEmptyStruct, closeTicket.Response.Type.Kind)
-		assert.Equal(t, MappingValueKindEmptyStruct, closeTicket.Response.FromProto.Kind)
-		assert.False(t, closeTicket.Response.ToProto.CanError)
+		t.Run("plans unary inline methods", func(t *testing.T) {
+			listTickets := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ListTickets")
+			assert.Equal(t, "ListTickets", listTickets.Name)
+			assert.Equal(t, "/yirapb.v1.TicketService/ListTickets", listTickets.Procedure)
+			assert.Equal(t, ServiceStreamTypeUnary, listTickets.StreamType)
+			assert.Equal(t, TypeKindStruct, listTickets.Request.Type.Kind)
+			assert.Equal(t, "ListTicketsRequest", listTickets.Request.Type.Ref.Name)
+			assert.Equal(t, TypeKindStruct, listTickets.Response.Type.Kind)
+			assert.Equal(t, "ListTicketsResponse", listTickets.Response.Type.Ref.Name)
+			assert.Equal(t, MappingValueKindStruct, listTickets.Request.FromProto.Kind)
+			assert.Equal(t, MappingValueKindStruct, listTickets.Response.ToProto.Kind)
+			require.NotNil(t, listTickets.InlineRequest)
+			require.NotNil(t, listTickets.InlineResponse)
+			assert.Equal(t, "ListTicketsRequestToInline", listTickets.InlineRequest.ToInlineName)
+			assert.Equal(t, "ListTicketsRequestFromInline", listTickets.InlineRequest.FromInlineName)
+			assert.Equal(t, []string{"projectID", "filter", "cursor"}, inlineFieldNames(listTickets.InlineRequest.Fields))
+			assert.Equal(t, "ListTicketsResponseToInline", listTickets.InlineResponse.ToInlineName)
+			assert.Equal(t, []string{"tickets", "ticketsByStatus", "cursor"}, inlineFieldNames(listTickets.InlineResponse.Fields))
 
-		watchEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.WatchTicketEvents")
-		assert.Equal(t, ServiceStreamTypeServerStreaming, watchEvents.StreamType)
-		assert.Equal(t, TypeKindStruct, watchEvents.Response.Type.Kind)
-		assert.Equal(t, "TicketEvent", watchEvents.Response.Type.Ref.Name)
-		assert.True(t, watchEvents.Response.ToProto.CanError)
+			getTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.GetTicket")
+			require.NotNil(t, getTicket.InlineRequest)
+			require.NotNil(t, getTicket.InlineResponse)
+			assert.Equal(t, "GetTicketRequestToInline", getTicket.InlineRequest.ToInlineName)
+			assert.Equal(t, "GetTicketResponseFromInline", getTicket.InlineResponse.FromInlineName)
+			assert.Equal(t, []string{"ticketID"}, inlineFieldNames(getTicket.InlineRequest.Fields))
+			assert.Equal(t, []string{"ticket"}, inlineFieldNames(getTicket.InlineResponse.Fields))
 
-		importEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ImportTicketEvents")
-		assert.Equal(t, ServiceStreamTypeClientStreaming, importEvents.StreamType)
-		assert.Equal(t, "TicketEvent", importEvents.Request.Type.Ref.Name)
-		assert.Equal(t, "ImportTicketEventsResponse", importEvents.Response.Type.Ref.Name)
+			createTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.CreateTicket")
+			require.NotNil(t, createTicket.InlineRequest)
+			require.NotNil(t, createTicket.InlineResponse)
+			assert.Equal(t, "CreateTicketRequestFromInline", createTicket.InlineRequest.FromInlineName)
+			assert.Equal(t, []string{"ticket"}, inlineFieldNames(createTicket.InlineRequest.Fields))
+			assert.Equal(t, "CreateTicketResponseToInline", createTicket.InlineResponse.ToInlineName)
+			assert.Equal(t, []string{"ticket"}, inlineFieldNames(createTicket.InlineResponse.Fields))
 
-		syncEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.SyncTicketEvents")
-		assert.Equal(t, ServiceStreamTypeBidiStreaming, syncEvents.StreamType)
-		assert.Equal(t, "TicketEvent", syncEvents.Request.Type.Ref.Name)
-		assert.Equal(t, "TicketEvent", syncEvents.Response.Type.Ref.Name)
-	})
+			updateTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.UpdateTicket")
+			require.NotNil(t, updateTicket.InlineRequest)
+			require.NotNil(t, updateTicket.InlineResponse)
+			assert.Equal(t, []string{"ticketID", "patch"}, inlineFieldNames(updateTicket.InlineRequest.Fields))
+			assert.Equal(t, []string{"ticket"}, inlineFieldNames(updateTicket.InlineResponse.Fields))
+		})
 
-	t.Run("derives connect package refs from suffix", func(t *testing.T) {
-		tests := map[string]struct {
-			suffix string
-			want   string
-		}{
-			"custom suffix": {
-				suffix: "connectgo",
-				want:   "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connectgo",
-			},
-			"same package": {
-				want: "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1",
-			},
-		}
+		t.Run("keeps empty responses error-only", func(t *testing.T) {
+			closeTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.CloseTicket")
+			assert.Equal(t, TypeKindEmptyStruct, closeTicket.Response.Type.Kind)
+			assert.Equal(t, MappingValueKindEmptyStruct, closeTicket.Response.FromProto.Kind)
+			assert.False(t, closeTicket.Response.ToProto.CanError)
+			require.NotNil(t, closeTicket.InlineRequest)
+			assert.Nil(t, closeTicket.InlineResponse)
+			assert.Equal(t, []string{"ticketID", "resolution"}, inlineFieldNames(closeTicket.InlineRequest.Fields))
+		})
 
-		for name, tt := range tests {
-			t.Run(name, func(t *testing.T) {
-				options := RPCOptions{Connect: true, ConnectPackageSuffix: tt.suffix}
-				plan, err := NewPlanner(WithRPCPlanning(options)).Plan(descriptorIndex, shapeIndex)
+		t.Run("plans streaming inline sides", func(t *testing.T) {
+			watchEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.WatchTicketEvents")
+			assert.Equal(t, ServiceStreamTypeServerStreaming, watchEvents.StreamType)
+			assert.Equal(t, TypeKindStruct, watchEvents.Response.Type.Kind)
+			assert.Equal(t, "TicketEvent", watchEvents.Response.Type.Ref.Name)
+			assert.True(t, watchEvents.Response.ToProto.CanError)
+			require.NotNil(t, watchEvents.InlineRequest)
+			assert.Nil(t, watchEvents.InlineResponse)
+			assert.Equal(t, []string{"projectID", "ticketID"}, inlineFieldNames(watchEvents.InlineRequest.Fields))
 
-				require.NoError(t, err)
-				service := serviceByProtoName(t, plan.Files[0], "yirapb.v1.TicketService")
-				assert.Equal(t, tt.want, service.ConnectRef.ImportPath)
-			})
-		}
+			importEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ImportTicketEvents")
+			assert.Equal(t, ServiceStreamTypeClientStreaming, importEvents.StreamType)
+			assert.Equal(t, "TicketEvent", importEvents.Request.Type.Ref.Name)
+			assert.Equal(t, "ImportTicketEventsResponse", importEvents.Response.Type.Ref.Name)
+			assert.Nil(t, importEvents.InlineRequest)
+			require.NotNil(t, importEvents.InlineResponse)
+			assert.Equal(t, []string{"importedCount"}, inlineFieldNames(importEvents.InlineResponse.Fields))
+
+			syncEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.SyncTicketEvents")
+			assert.Equal(t, ServiceStreamTypeBidiStreaming, syncEvents.StreamType)
+			assert.Equal(t, "TicketEvent", syncEvents.Request.Type.Ref.Name)
+			assert.Equal(t, "TicketEvent", syncEvents.Response.Type.Ref.Name)
+			assert.Nil(t, syncEvents.InlineRequest)
+			assert.Nil(t, syncEvents.InlineResponse)
+		})
 	})
 
 	t.Run("plans mapping function names and errability", func(t *testing.T) {
@@ -341,45 +363,6 @@ func hasMappingPlan(file FilePlan, name protoreflect.FullName) bool {
 	return false
 }
 
-func enumByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) EnumPlan {
-	t.Helper()
-
-	for _, enum := range file.Enums {
-		if enum.ProtoName == name {
-			return enum
-		}
-	}
-
-	t.Fatalf("enum %q not found", name)
-	return EnumPlan{}
-}
-
-func serviceByProtoName(t *testing.T, file FilePlan, name protoreflect.FullName) ServicePlan {
-	t.Helper()
-
-	for _, service := range file.Services {
-		if service.ProtoName == name {
-			return service
-		}
-	}
-
-	t.Fatalf("service %q not found", name)
-	return ServicePlan{}
-}
-
-func serviceMethodByProtoName(t *testing.T, service ServicePlan, name protoreflect.FullName) ServiceMethodPlan {
-	t.Helper()
-
-	for _, method := range service.Methods {
-		if method.ProtoName == name {
-			return method
-		}
-	}
-
-	t.Fatalf("method %q not found", name)
-	return ServiceMethodPlan{}
-}
-
 func TestPlannerPlanNestedDeclarations(t *testing.T) {
 	t.Run("uses explicit nested declaration names", func(t *testing.T) {
 		file := protoFileWithOutput("nested.proto", "github.com/example/nested;nested", "")
@@ -412,207 +395,7 @@ func TestPlannerPlanNestedDeclarations(t *testing.T) {
 
 		plan := NewPlanner().planFile(file, &ShapeIndex{})
 
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, plan.Diagnostics[len(plan.Diagnostics)-1].Message, `planned Go name "FooBar"`)
-	})
-}
-
-func TestPlannerPlanOneofDeclarations(t *testing.T) {
-	t.Run("collects oneof plans", func(t *testing.T) {
-		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
-		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
-		plannerOneof(event, "value", field("comment", protoreflect.StringKind))
-		attachMessagesToFile(file, event)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.Len(t, plan.Oneofs, 1)
-		assert.Equal(t, "TicketEventValue", plan.Oneofs[0].Name)
-		assert.Equal(t, "TicketEventValue", fieldPlanByProtoName(t, plan.Structs[0], "example.v1.TicketEvent.value").Type.Ref.Name)
-		assert.Empty(t, plan.Diagnostics)
-	})
-
-	t.Run("reports oneof interface name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
-		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
-		plannerOneof(event, "value", field("comment", protoreflect.StringKind))
-		eventValue := plannerMessage("example.v1.TicketEventValue", "TicketEventValue")
-		attachMessagesToFile(file, event, eventValue)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketEventValue"`)
-	})
-
-	t.Run("reports oneof variant name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("oneof.proto", "github.com/example/oneof;oneof", "")
-		event := plannerMessage("example.v1.TicketEvent", "TicketEvent")
-		plannerOneof(event, "value", field("status", protoreflect.StringKind))
-		eventStatus := plannerMessage("example.v1.TicketEventStatus", "TicketEventStatus")
-		attachMessagesToFile(file, event, eventStatus)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketEventStatus"`)
-	})
-}
-
-func TestPlannerPlanServices(t *testing.T) {
-	t.Run("maps stream types", func(t *testing.T) {
-		tests := map[string]struct {
-			client bool
-			server bool
-			want   ServiceStreamType
-		}{
-			"unary":  {want: ServiceStreamTypeUnary},
-			"client": {client: true, want: ServiceStreamTypeClientStreaming},
-			"server": {server: true, want: ServiceStreamTypeServerStreaming},
-			"bidi":   {client: true, server: true, want: ServiceStreamTypeBidiStreaming},
-		}
-
-		for name, tt := range tests {
-			t.Run(name, func(t *testing.T) {
-				method := &ProtoMethod{ClientStreaming: tt.client, ServerStreaming: tt.server}
-
-				assert.Equal(t, tt.want, serviceMethodStreamType(method))
-			})
-		}
-	})
-
-	t.Run("plans covered flatten shape method messages", func(t *testing.T) {
-		file := protoFileWithOutput("shapes.proto", "github.com/example/shapes;shapes", "")
-		labels := plannerMessage("example.v1.Labels", "Labels")
-		labels.GoName = "Labels"
-		labels.Options.SetFlatten(true)
-		value := field("value", protoreflect.StringKind)
-		value.FullName = "example.v1.Labels.value"
-		value.GoName = "Value"
-		value.Parent = labels
-		labels.Fields = []*ProtoField{value}
-		attachMessagesToFile(file, labels)
-		method := plannerMethod("example.v1.LabelService.SetLabels", "SetLabels", labels, labels)
-
-		plan, diagnostics := NewPlanner().planServiceMethod(method, &ShapeIndex{
-			Flattens: map[protoreflect.FullName]*ProtoMessage{labels.FullName: labels},
-		})
-
-		require.Empty(t, diagnostics)
-		assert.Equal(t, TypePlan{Kind: TypeKindScalar, Scalar: ScalarKindString}, plan.Request.Type)
-		assert.Equal(t, MappingValueKindFlatten, plan.Request.FromProto.Kind)
-		assert.Equal(t, MappingValueKindFlatten, plan.Response.ToProto.Kind)
-	})
-
-	t.Run("passes through non covered foreign method messages", func(t *testing.T) {
-		foreignFile := testProtoFile("foreign.proto", false, "")
-		foreign := plannerMessage("foreign.v1.Foreign", "Foreign")
-		foreign.GoName = "Foreign"
-		attachMessagesToFile(foreignFile, foreign)
-		method := plannerMethod("example.v1.ForeignService.UseForeign", "UseForeign", foreign, foreign)
-
-		plan, diagnostics := NewPlanner().planServiceMethod(method, &ShapeIndex{})
-
-		require.Empty(t, diagnostics)
-		assert.Equal(t, TypeKindPointer, plan.Request.Type.Kind)
-		assert.Equal(t, TypeKindExternal, plan.Request.Type.Elem.Kind)
-		assert.Equal(t, "Foreign", plan.Request.Type.Elem.Ref.Name)
-		assert.Equal(t, MappingValueKindDirect, plan.Request.FromProto.Kind)
-		assert.Equal(t, MappingValueKindDirect, plan.Response.ToProto.Kind)
-	})
-
-	t.Run("reports service name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.TicketService", "TicketService")
-		service := plannerService("example.v1.TicketService", "TicketService")
-		attachMessagesToFile(file, message)
-		attachServicesToFile(file, service)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketService"`)
-	})
-
-	t.Run("reports service grpc adapter name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.Custom", "Custom")
-		message.Options.SetName("TicketServiceGRPCAdapter")
-		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
-		service := plannerService("example.v1.TicketService", "TicketService")
-		attachMessagesToFile(file, message)
-		attachServicesToFile(file, service)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketServiceGRPCAdapter"`)
-	})
-
-	t.Run("reports service unimplemented name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.Custom", "Custom")
-		message.Options.SetName("UnimplementedTicketService")
-		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
-		service := plannerService("example.v1.TicketService", "TicketService")
-		attachMessagesToFile(file, message)
-		attachServicesToFile(file, service)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "UnimplementedTicketService"`)
-	})
-
-	t.Run("reports service grpc helper name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.Custom", "Custom")
-		message.Options.SetName("NewTicketServiceGRPCClient")
-		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
-		service := plannerService("example.v1.TicketService", "TicketService")
-		attachMessagesToFile(file, message)
-		attachServicesToFile(file, service)
-
-		plan := NewPlanner().planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "NewTicketServiceGRPCClient"`)
-	})
-
-	t.Run("reports service connect helper name collisions", func(t *testing.T) {
-		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.Custom", "Custom")
-		message.Options.SetName("NewTicketServiceConnectClient")
-		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
-		service := plannerService("example.v1.TicketService", "TicketService")
-		attachMessagesToFile(file, message)
-		attachServicesToFile(file, service)
-
-		plan := NewPlanner(WithRPCPlanning(RPCOptions{Connect: true})).planFile(file, &ShapeIndex{})
-
-		require.NotEmpty(t, plan.Diagnostics)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "NewTicketServiceConnectClient"`)
-	})
-
-	t.Run("skips service planning when rpc is disabled", func(t *testing.T) {
-		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.TicketService", "TicketService")
-		service := plannerService("example.v1.TicketService", "TicketService")
-		attachMessagesToFile(file, message)
-		attachServicesToFile(file, service)
-
-		plan := NewPlanner(WithRPCPlanning(RPCOptions{})).planFile(file, &ShapeIndex{})
-
-		require.Empty(t, plan.Diagnostics)
-		assert.Empty(t, plan.Services)
+		requireFatalDiagnostic(t, plan.Diagnostics, `planned Go name "FooBar"`)
 	})
 }
 
@@ -675,9 +458,7 @@ func TestPlannerPlanFileOutput(t *testing.T) {
 
 				plan := NewPlanner().planFile(file, &ShapeIndex{})
 
-				require.Len(t, plan.Diagnostics, 1)
-				assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-				assert.Contains(t, plan.Diagnostics[0].Message, tt.diagnostic)
+				requireFatalDiagnostic(t, plan.Diagnostics, tt.diagnostic)
 			})
 		}
 	})
@@ -687,9 +468,7 @@ func TestPlannerPlanFileOutput(t *testing.T) {
 
 		plan := NewPlanner(WithModulePath("github.com/seeruk/tego")).planFile(file, &ShapeIndex{})
 
-		require.Len(t, plan.Diagnostics, 1)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, plan.Diagnostics[0].Message, "outside module")
+		requireFatalDiagnostic(t, plan.Diagnostics, "outside module")
 	})
 
 	t.Run("reports module mismatch for explicit output", func(t *testing.T) {
@@ -697,94 +476,6 @@ func TestPlannerPlanFileOutput(t *testing.T) {
 
 		plan := NewPlanner(WithModulePath("github.com/seeruk/tego")).planFile(file, &ShapeIndex{})
 
-		require.Len(t, plan.Diagnostics, 1)
-		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, plan.Diagnostics[0].Message, "outside module")
+		requireFatalDiagnostic(t, plan.Diagnostics, "outside module")
 	})
-}
-
-func protoFileWithOutput(protoPath, goPackage, outputPath string) *ProtoFile {
-	options := &tegopb.FileOptions{}
-	options.SetGoPackage(goPackage)
-	if outputPath != "" {
-		options.SetOutputPath(outputPath)
-	}
-	return &ProtoFile{
-		Path:     protoPath,
-		Generate: true,
-		Options:  options,
-	}
-}
-
-func plannerService(fullName protoreflect.FullName, name protoreflect.Name, methods ...*ProtoMethod) *ProtoService {
-	service := &ProtoService{
-		FullName: fullName,
-		Name:     name,
-		GoName:   string(name),
-		Methods:  methods,
-	}
-	for _, method := range methods {
-		method.Parent = service
-	}
-	return service
-}
-
-func plannerMethod(
-	fullName protoreflect.FullName,
-	name protoreflect.Name,
-	input *ProtoMessage,
-	output *ProtoMessage,
-) *ProtoMethod {
-	return &ProtoMethod{
-		FullName: fullName,
-		Name:     name,
-		GoName:   string(name),
-		Input:    input,
-		Output:   output,
-	}
-}
-
-func attachMessagesToFile(file *ProtoFile, messages ...*ProtoMessage) {
-	file.Messages = messages
-	for _, message := range messages {
-		attachMessageToFile(file, message)
-	}
-}
-
-func attachMessageToFile(file *ProtoFile, message *ProtoMessage) {
-	message.File = file
-	for _, enum := range message.Enums {
-		enum.File = file
-	}
-	for _, oneof := range message.Oneofs {
-		oneof.File = file
-		for _, field := range oneof.Fields {
-			field.File = file
-		}
-	}
-	for _, field := range message.Fields {
-		field.File = file
-	}
-	for _, nested := range message.Messages {
-		attachMessageToFile(file, nested)
-	}
-}
-
-func attachServicesToFile(file *ProtoFile, services ...*ProtoService) {
-	file.Services = services
-	for _, service := range services {
-		service.File = file
-		for _, method := range service.Methods {
-			method.File = file
-		}
-	}
-}
-
-func diagnosticsText(diagnostics []Diagnostic) string {
-	var out strings.Builder
-	for _, diagnostic := range diagnostics {
-		out.WriteString(diagnostic.Message)
-		out.WriteByte('\n')
-	}
-	return out.String()
 }

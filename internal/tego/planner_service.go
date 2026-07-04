@@ -5,9 +5,14 @@ import (
 	"path"
 
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func (p *Planner) planService(service *ProtoService, si *ShapeIndex) (ServicePlan, []Diagnostic) {
+func (p *Planner) planService(
+	service *ProtoService,
+	si *ShapeIndex,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+) (ServicePlan, []Diagnostic) {
 	name := plannedServiceName(service)
 	plan := ServicePlan{
 		ProtoName:             service.FullName,
@@ -37,7 +42,7 @@ func (p *Planner) planService(service *ProtoService, si *ShapeIndex) (ServicePla
 
 	var diagnostics []Diagnostic
 	for _, method := range service.Methods {
-		methodPlan, methodDiagnostics := p.planServiceMethod(method, si)
+		methodPlan, methodDiagnostics := p.planServiceMethod(service, method, si, structsByProtoName)
 		diagnostics = append(diagnostics, methodDiagnostics...)
 		plan.Methods = append(plan.Methods, methodPlan)
 	}
@@ -45,7 +50,12 @@ func (p *Planner) planService(service *ProtoService, si *ShapeIndex) (ServicePla
 	return plan, diagnostics
 }
 
-func (p *Planner) planServiceMethod(method *ProtoMethod, si *ShapeIndex) (ServiceMethodPlan, []Diagnostic) {
+func (p *Planner) planServiceMethod(
+	service *ProtoService,
+	method *ProtoMethod,
+	si *ShapeIndex,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+) (ServiceMethodPlan, []Diagnostic) {
 	name := plannedMethodName(method)
 	plan := ServiceMethodPlan{
 		ProtoName:   method.FullName,
@@ -67,7 +77,241 @@ func (p *Planner) planServiceMethod(method *ProtoMethod, si *ShapeIndex) (Servic
 	plan.Request = request
 	plan.Response = response
 
-	return plan, append(requestDiagnostics, responseDiagnostics...)
+	diagnostics := append(requestDiagnostics, responseDiagnostics...)
+
+	inlining := planServiceInlining(service, method)
+	if inlining.Request.Enabled {
+		inline, inlineDiagnostics := p.planServiceInlineRequest(
+			method.Input,
+			request,
+			inlining.Request.Explicit,
+			plan.StreamType,
+			structsByProtoName,
+			string(method.FullName),
+		)
+		diagnostics = append(diagnostics, inlineDiagnostics...)
+		if inline != nil {
+			plan.InlineRequest = inline
+		}
+	}
+
+	if inlining.Response.Enabled {
+		inline, inlineDiagnostics := p.planServiceInlineResponse(
+			method.Output,
+			response,
+			inlining.Response.Explicit,
+			plan.StreamType,
+			structsByProtoName,
+			string(method.FullName),
+		)
+		diagnostics = append(diagnostics, inlineDiagnostics...)
+		if inline != nil {
+			plan.InlineResponse = inline
+		}
+	}
+
+	return plan, diagnostics
+}
+
+// serviceInliningPlan describes a method's resolved inline options after merging the
+// service-level option with any method-level overrides.
+type serviceInliningPlan struct {
+	Request  serviceInliningDecision
+	Response serviceInliningDecision
+}
+
+// serviceInliningDecision is the effective inline decision for one side of a method.
+// Explicit distinguishes user-requested inlining from service-default inlining, because explicit
+// invalid inlining is fatal while automatic inlining silently skips sides that cannot be inlined.
+type serviceInliningDecision struct {
+	Enabled  bool
+	Explicit bool
+}
+
+// planServiceInlining resolves service defaults and method-level overrides into the
+// request/response inline decisions used by the planner. Method inline applies to both sides first;
+// side-specific method options then override just their side.
+func planServiceInlining(service *ProtoService, method *ProtoMethod) serviceInliningPlan {
+	inlineByDefault := serviceInlineByDefault(service)
+
+	plan := serviceInliningPlan{
+		Request:  serviceInliningDecision{Enabled: inlineByDefault},
+		Response: serviceInliningDecision{Enabled: inlineByDefault},
+	}
+
+	options := method.Options
+	if options == nil {
+		return plan
+	}
+	if options.HasInline() {
+		inline := options.GetInline()
+		plan.Request = serviceInliningDecision{Enabled: inline, Explicit: true}
+		plan.Response = serviceInliningDecision{Enabled: inline, Explicit: true}
+	}
+	if options.HasInlineRequest() {
+		plan.Request = serviceInliningDecision{Enabled: options.GetInlineRequest(), Explicit: true}
+	}
+	if options.HasInlineResponse() {
+		plan.Response = serviceInliningDecision{Enabled: options.GetInlineResponse(), Explicit: true}
+	}
+
+	return plan
+}
+
+func serviceInlineByDefault(service *ProtoService) bool {
+	if service == nil || service.Options == nil {
+		return true
+	}
+	return service.Options.GetInlineByDefault()
+}
+
+func (p *Planner) planServiceInlineRequest(
+	message *ProtoMessage,
+	serviceMessage ServiceMessagePlan,
+	explicit bool,
+	streamType ServiceStreamType,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+	diagnosticPath string,
+) (*ServiceInlineHelperPlan, []Diagnostic) {
+	return p.planServiceInlineSide(
+		message,
+		serviceMessage,
+		"request",
+		serviceInlineRequestSupported(streamType),
+		explicit,
+		streamType,
+		structsByProtoName,
+		diagnosticPath,
+	)
+}
+
+func (p *Planner) planServiceInlineResponse(
+	message *ProtoMessage,
+	serviceMessage ServiceMessagePlan,
+	explicit bool,
+	streamType ServiceStreamType,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+	diagnosticPath string,
+) (*ServiceInlineHelperPlan, []Diagnostic) {
+	return p.planServiceInlineSide(
+		message,
+		serviceMessage,
+		"response",
+		serviceInlineResponseSupported(streamType),
+		explicit,
+		streamType,
+		structsByProtoName,
+		diagnosticPath,
+	)
+}
+
+// planServiceInlineSide plans a helper for one inlineable side. Default inlining is best-effort, so
+// unsupported stream sides or non-inlineable message shapes are skipped unless the method explicitly
+// requested that side.
+func (p *Planner) planServiceInlineSide(
+	message *ProtoMessage,
+	serviceMessage ServiceMessagePlan,
+	side string,
+	supportedForStream bool,
+	explicit bool,
+	streamType ServiceStreamType,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+	diagnosticPath string,
+) (*ServiceInlineHelperPlan, []Diagnostic) {
+	if !supportedForStream {
+		if explicit {
+			return nil, []Diagnostic{fatalDiagnostic(
+				diagnosticPath,
+				"facade inline %s is not supported on %s methods",
+				side,
+				serviceStreamTypeName(streamType),
+			)}
+		}
+		return nil, nil
+	}
+
+	inline, diagnostics := p.planServiceInlineHelper(
+		message,
+		serviceMessage,
+		structsByProtoName,
+		diagnosticPath,
+	)
+	if len(diagnostics) > 0 {
+		if explicit {
+			return nil, diagnostics
+		}
+		return nil, nil
+	}
+	return &inline, nil
+}
+
+func serviceInlineRequestSupported(streamType ServiceStreamType) bool {
+	return streamType == ServiceStreamTypeUnary || streamType == ServiceStreamTypeServerStreaming
+}
+
+func serviceInlineResponseSupported(streamType ServiceStreamType) bool {
+	return streamType == ServiceStreamTypeUnary || streamType == ServiceStreamTypeClientStreaming
+}
+
+func serviceStreamTypeName(streamType ServiceStreamType) string {
+	switch streamType {
+	case ServiceStreamTypeUnary:
+		return "unary"
+	case ServiceStreamTypeClientStreaming:
+		return "client-streaming"
+	case ServiceStreamTypeServerStreaming:
+		return "server-streaming"
+	case ServiceStreamTypeBidiStreaming:
+		return "bidi-streaming"
+	default:
+		return fmt.Sprintf("unknown stream type %d", streamType)
+	}
+}
+
+func (p *Planner) planServiceInlineHelper(
+	message *ProtoMessage,
+	serviceMessage ServiceMessagePlan,
+	structsByProtoName map[protoreflect.FullName]StructPlan,
+	diagnosticPath string,
+) (ServiceInlineHelperPlan, []Diagnostic) {
+	if serviceMessage.Type.Kind != TypeKindStruct {
+		return ServiceInlineHelperPlan{}, []Diagnostic{fatalDiagnostic(
+			diagnosticPath,
+			"facade inline requires an ordinary generated struct-shaped message",
+		)}
+	}
+
+	structure, ok := structsByProtoName[message.FullName]
+	if !ok {
+		return ServiceInlineHelperPlan{}, []Diagnostic{fatalDiagnostic(
+			diagnosticPath,
+			"facade inline requires an ordinary generated struct-shaped message",
+		)}
+	}
+	if len(structure.Fields) == 0 {
+		return ServiceInlineHelperPlan{}, []Diagnostic{fatalDiagnostic(
+			diagnosticPath,
+			"facade inline requires a message with at least one generated field",
+		)}
+	}
+
+	names := newTempNameAllocator("ctx", "err")
+	fields := make([]ServiceInlineFieldPlan, 0, len(structure.Fields))
+	for _, field := range structure.Fields {
+		fields = append(fields, ServiceInlineFieldPlan{
+			Name:      names.name(tempIdentifierBase(field.Name)),
+			FieldName: field.Name,
+			Type:      field.Type,
+		})
+	}
+
+	return ServiceInlineHelperPlan{
+		ProtoName:      message.FullName,
+		Type:           serviceMessage.Type,
+		ToInlineName:   plannedServiceInlineToName(structure.Name),
+		FromInlineName: plannedServiceInlineFromName(structure.Name),
+		Fields:         fields,
+	}, nil
 }
 
 func (p *Planner) planServiceMessage(
@@ -91,220 +335,6 @@ func (p *Planner) planServiceMessage(
 		FromProto: fromProto,
 		ToProto:   toProto,
 	}, diagnostics
-}
-
-func (p *Planner) planMessageMappingValue(
-	message *ProtoMessage,
-	source TypePlan,
-	target TypePlan,
-	si *ShapeIndex,
-	direction mappingDirection,
-) MappingValuePlan {
-	if message == nil {
-		return MappingValuePlan{Kind: MappingValueKindUnsupported, Source: source, Target: target}
-	}
-	if wrapped, ok := p.planDirectShapeMappingValue(message, source, target, si, direction); ok {
-		return wrapped
-	}
-	return p.planMappingValue(source, target, direction)
-}
-
-func (p *Planner) planDirectShapeMappingValue(
-	message *ProtoMessage,
-	source TypePlan,
-	target TypePlan,
-	si *ShapeIndex,
-	direction mappingDirection,
-) (MappingValuePlan, bool) {
-	if si == nil {
-		return MappingValuePlan{}, false
-	}
-
-	if si.Flattens[message.FullName] != nil {
-		return p.planDirectFlattenShapeMappingValue(message, source, target, si, direction)
-	}
-	if si.Nullables[message.FullName] != nil {
-		return p.planDirectNullableShapeMappingValue(message, source, target, direction)
-	}
-	if si.Slices[message.FullName] != nil {
-		return p.planDirectSliceShapeMappingValue(message, source, target, direction)
-	}
-	if si.Maps[message.FullName] != nil {
-		return p.planDirectMapShapeMappingValue(message, source, target, direction)
-	}
-
-	return MappingValuePlan{}, false
-}
-
-func (p *Planner) planDirectFlattenShapeMappingValue(
-	message *ProtoMessage,
-	source TypePlan,
-	target TypePlan,
-	si *ShapeIndex,
-	direction mappingDirection,
-) (MappingValuePlan, bool) {
-	shapeField, ok := flattenShapeField(message)
-	if !ok {
-		return MappingValuePlan{}, false
-	}
-
-	var elemSource, elemTarget TypePlan
-	if direction == mappingDirectionFromProto {
-		elemSource = p.planProtoFieldType(shapeField)
-		elemTarget = target
-	} else {
-		elemSource = source
-		elemTarget = p.planProtoFieldType(shapeField)
-	}
-
-	elem := p.planFieldMappingValue(shapeField, elemSource, elemTarget, si, direction)
-
-	return MappingValuePlan{
-		Kind:     MappingValueKindFlatten,
-		Source:   source,
-		Target:   target,
-		CanError: elem.CanError,
-		Access: MappingAccessPlan{
-			Field: mappingFieldAccess(shapeField),
-		},
-		Elem: &elem,
-	}, true
-}
-
-func (p *Planner) planDirectNullableShapeMappingValue(
-	message *ProtoMessage,
-	source TypePlan,
-	target TypePlan,
-	direction mappingDirection,
-) (MappingValuePlan, bool) {
-	inner := nullableShapeValueField(message)
-	if inner == nil {
-		return MappingValuePlan{}, false
-	}
-
-	innerType := p.planProtoFieldType(inner)
-	var elemSource, elemTarget TypePlan
-	if direction == mappingDirectionFromProto {
-		elemSource = innerType
-		elemTarget = pointerMappingElem(target, direction)
-	} else {
-		elemSource = pointerMappingElem(source, direction)
-		elemTarget = innerType
-	}
-
-	elem := p.planMappingValue(elemSource, elemTarget, direction)
-
-	return MappingValuePlan{
-		Kind:     MappingValueKindNullable,
-		Source:   source,
-		Target:   target,
-		CanError: elem.CanError,
-		Access:   nullableShapeAccess(message, inner),
-		Elem:     &elem,
-	}, true
-}
-
-func (p *Planner) planDirectSliceShapeMappingValue(
-	message *ProtoMessage,
-	source TypePlan,
-	target TypePlan,
-	direction mappingDirection,
-) (MappingValuePlan, bool) {
-	if len(message.Fields) != 1 {
-		return MappingValuePlan{}, false
-	}
-
-	shapeField := message.Fields[0]
-	var elemSource, elemTarget TypePlan
-	if direction == mappingDirectionFromProto {
-		elemSource = p.planProtoSingularFieldType(shapeField)
-		if target.Elem == nil {
-			return MappingValuePlan{}, false
-		}
-		elemTarget = *target.Elem
-	} else {
-		if source.Elem == nil {
-			return MappingValuePlan{}, false
-		}
-		elemSource = *source.Elem
-		elemTarget = p.planProtoSingularFieldType(shapeField)
-	}
-
-	elem := p.planMappingValue(elemSource, elemTarget, direction)
-
-	return MappingValuePlan{
-		Kind:     MappingValueKindSlice,
-		Source:   source,
-		Target:   target,
-		CanError: elem.CanError,
-		Access: MappingAccessPlan{
-			Field:         mappingFieldAccess(shapeField),
-			ProtoType:     protoMessageType(message),
-			ProtoElemType: elemSource,
-		},
-		Elem: &elem,
-	}, true
-}
-
-func (p *Planner) planDirectMapShapeMappingValue(
-	message *ProtoMessage,
-	source TypePlan,
-	target TypePlan,
-	direction mappingDirection,
-) (MappingValuePlan, bool) {
-	if len(message.Fields) != 1 || len(message.Messages) != 1 {
-		return MappingValuePlan{}, false
-	}
-
-	keyField, valueField, ok := mapFields(message.Messages[0])
-	if !ok {
-		return MappingValuePlan{}, false
-	}
-
-	var keySource, keyTarget, valueSource, valueTarget TypePlan
-	if direction == mappingDirectionFromProto {
-		if target.Key == nil || target.Value == nil {
-			return MappingValuePlan{}, false
-		}
-		keySource = p.planProtoFieldType(keyField)
-		keyTarget = *target.Key
-		valueSource = p.planProtoFieldType(valueField)
-		valueTarget = *target.Value
-	} else {
-		if source.Key == nil || source.Value == nil {
-			return MappingValuePlan{}, false
-		}
-		keySource = *source.Key
-		keyTarget = p.planProtoFieldType(keyField)
-		valueSource = *source.Value
-		valueTarget = p.planProtoFieldType(valueField)
-	}
-
-	key := p.planMappingValue(keySource, keyTarget, direction)
-	value := p.planMappingValue(valueSource, valueTarget, direction)
-
-	return MappingValuePlan{
-		Kind:     MappingValueKindMap,
-		Source:   source,
-		Target:   target,
-		CanError: key.CanError || value.CanError,
-		Access: MappingAccessPlan{
-			Field:         mappingFieldAccess(message.Fields[0]),
-			Key:           mappingFieldAccess(keyField),
-			Value:         mappingFieldAccess(valueField),
-			ProtoType:     protoMessageType(message),
-			ProtoElemType: p.planProtoSingularFieldType(message.Fields[0]),
-		},
-		Key:   &key,
-		Value: &value,
-	}, true
-}
-
-func protoMessageType(message *ProtoMessage) TypePlan {
-	return pointerType(TypePlan{
-		Kind: TypeKindExternal,
-		Ref:  protoMessagePlanRef(message),
-	})
 }
 
 func protoServicePlanRef(service *ProtoService) GoTypeRef {

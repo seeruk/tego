@@ -1,16 +1,12 @@
 package tego
 
 import (
-	"os"
 	"testing"
 
 	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/compiler/protogen"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/pluginpb"
 )
 
 func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
@@ -239,6 +235,27 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.False(t, version.Options.GetOmittable())
 	})
 
+	t.Run("resolves service and method options", func(t *testing.T) {
+		service := requireService(t, index, "yirapb.v1.TicketService")
+		require.True(t, service.HasOptions())
+		require.NotNil(t, service.Options)
+		assert.True(t, service.Options.HasInlineByDefault())
+		assert.True(t, service.Options.GetInlineByDefault())
+
+		listTickets := methodByName(t, service, "ListTickets")
+		assert.False(t, listTickets.HasOptions())
+		assert.Nil(t, listTickets.Options)
+
+		getTicket := methodByName(t, service, "GetTicket")
+		require.True(t, getTicket.HasOptions())
+		assert.True(t, getTicket.Options.HasInline())
+		assert.True(t, getTicket.Options.GetInline())
+
+		updateTicket := methodByName(t, service, "UpdateTicket")
+		assert.False(t, updateTicket.HasOptions())
+		assert.Nil(t, updateTicket.Options)
+	})
+
 	t.Run("resolves enum options", func(t *testing.T) {
 		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
 
@@ -263,87 +280,4 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		assert.False(t, open.HasOptions())
 		assert.Nil(t, open.Options)
 	})
-}
-
-func buildYiraDescriptorIndex(t *testing.T) *DescriptorIndex {
-	t.Helper()
-
-	input, err := os.ReadFile("testdata/yira.codegenreq.bin")
-	require.NoError(t, err)
-
-	var req pluginpb.CodeGeneratorRequest
-	require.NoError(t, proto.Unmarshal(input, &req))
-
-	plugin, err := protogen.Options{}.New(&req)
-	require.NoError(t, err)
-
-	index, err := BuildDescriptorIndex(plugin)
-	require.NoError(t, err)
-	return index
-}
-
-func fieldByName(t *testing.T, message *ProtoMessage, name protoreflect.Name) *ProtoField {
-	t.Helper()
-
-	for _, field := range message.Fields {
-		if field.Name == name {
-			return field
-		}
-	}
-
-	t.Fatalf("field %q not found on message %q", name, message.FullName)
-	return nil
-}
-
-func methodByName(t *testing.T, service *ProtoService, name protoreflect.Name) *ProtoMethod {
-	t.Helper()
-
-	for _, method := range service.Methods {
-		if method.Name == name {
-			return method
-		}
-	}
-
-	t.Fatalf("method %q not found on service %q", name, service.FullName)
-	return nil
-}
-
-func requireFile(t *testing.T, index *DescriptorIndex, path string) *ProtoFile {
-	t.Helper()
-
-	file := index.FilesByPath[path]
-	require.NotNil(t, file)
-	return file
-}
-
-func requireMessage(t *testing.T, index *DescriptorIndex, name protoreflect.FullName) *ProtoMessage {
-	t.Helper()
-
-	message := index.MessagesByName[name]
-	require.NotNil(t, message)
-	return message
-}
-
-func requireEnum(t *testing.T, index *DescriptorIndex, name protoreflect.FullName) *ProtoEnum {
-	t.Helper()
-
-	enum := index.EnumsByName[name]
-	require.NotNil(t, enum)
-	return enum
-}
-
-func requireEnumValue(t *testing.T, index *DescriptorIndex, name protoreflect.FullName) *ProtoEnumValue {
-	t.Helper()
-
-	value := index.EnumValuesByName[name]
-	require.NotNil(t, value)
-	return value
-}
-
-func requireService(t *testing.T, index *DescriptorIndex, name protoreflect.FullName) *ProtoService {
-	t.Helper()
-
-	service := index.ServicesByName[name]
-	require.NotNil(t, service)
-	return service
 }

@@ -1297,6 +1297,230 @@ func (b0 FieldOptions_builder) Build() *FieldOptions {
 	return m0
 }
 
+type ServiceOptions struct {
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_InlineByDefault bool                   `protobuf:"varint,1,opt,name=inline_by_default,json=inlineByDefault,def=1"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+// Default values for ServiceOptions fields.
+const (
+	Default_ServiceOptions_InlineByDefault = bool(true)
+)
+
+func (x *ServiceOptions) Reset() {
+	*x = ServiceOptions{}
+	mi := &file_tego_options_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceOptions) ProtoMessage() {}
+
+func (x *ServiceOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_tego_options_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ServiceOptions) GetInlineByDefault() bool {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
+			return x.xxx_hidden_InlineByDefault
+		}
+	}
+	return Default_ServiceOptions_InlineByDefault
+}
+
+func (x *ServiceOptions) SetInlineByDefault(v bool) {
+	x.xxx_hidden_InlineByDefault = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ServiceOptions) HasInlineByDefault() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ServiceOptions) ClearInlineByDefault() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+}
+
+type ServiceOptions_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// inline_by_default controls whether Tego should inline every safely inlineable facade method side
+	// on this service unless a method overrides that side.
+	InlineByDefault *bool
+}
+
+func (b0 ServiceOptions_builder) Build() *ServiceOptions {
+	m0 := &ServiceOptions{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.InlineByDefault != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_InlineByDefault = *b.InlineByDefault
+	}
+	return m0
+}
+
+type MethodOptions struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Inline         bool                   `protobuf:"varint,1,opt,name=inline"`
+	xxx_hidden_InlineRequest  bool                   `protobuf:"varint,2,opt,name=inline_request,json=inlineRequest"`
+	xxx_hidden_InlineResponse bool                   `protobuf:"varint,3,opt,name=inline_response,json=inlineResponse"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *MethodOptions) Reset() {
+	*x = MethodOptions{}
+	mi := &file_tego_options_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MethodOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MethodOptions) ProtoMessage() {}
+
+func (x *MethodOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_tego_options_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MethodOptions) GetInline() bool {
+	if x != nil {
+		return x.xxx_hidden_Inline
+	}
+	return false
+}
+
+func (x *MethodOptions) GetInlineRequest() bool {
+	if x != nil {
+		return x.xxx_hidden_InlineRequest
+	}
+	return false
+}
+
+func (x *MethodOptions) GetInlineResponse() bool {
+	if x != nil {
+		return x.xxx_hidden_InlineResponse
+	}
+	return false
+}
+
+func (x *MethodOptions) SetInline(v bool) {
+	x.xxx_hidden_Inline = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *MethodOptions) SetInlineRequest(v bool) {
+	x.xxx_hidden_InlineRequest = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *MethodOptions) SetInlineResponse(v bool) {
+	x.xxx_hidden_InlineResponse = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *MethodOptions) HasInline() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MethodOptions) HasInlineRequest() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *MethodOptions) HasInlineResponse() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *MethodOptions) ClearInline() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Inline = false
+}
+
+func (x *MethodOptions) ClearInlineRequest() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_InlineRequest = false
+}
+
+func (x *MethodOptions) ClearInlineResponse() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_InlineResponse = false
+}
+
+type MethodOptions_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// inline indicates that both the request and response should be inlined in the generated facade
+	// method signature.
+	Inline *bool
+	// inline_request indicates that the request should be inlined in the generated facade method
+	// signature.
+	InlineRequest *bool
+	// inline_response indicates that the response should be inlined in the generated facade method
+	// signature.
+	InlineResponse *bool
+}
+
+func (b0 MethodOptions_builder) Build() *MethodOptions {
+	m0 := &MethodOptions{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Inline != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_Inline = *b.Inline
+	}
+	if b.InlineRequest != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_InlineRequest = *b.InlineRequest
+	}
+	if b.InlineResponse != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_InlineResponse = *b.InlineResponse
+	}
+	return m0
+}
+
 type GoJsonStructTag struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Value       *string                `protobuf:"bytes,1,opt,name=value"`
@@ -1310,7 +1534,7 @@ type GoJsonStructTag struct {
 
 func (x *GoJsonStructTag) Reset() {
 	*x = GoJsonStructTag{}
-	mi := &file_tego_options_proto_msgTypes[6]
+	mi := &file_tego_options_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1322,7 +1546,7 @@ func (x *GoJsonStructTag) String() string {
 func (*GoJsonStructTag) ProtoMessage() {}
 
 func (x *GoJsonStructTag) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[6]
+	mi := &file_tego_options_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1447,7 +1671,7 @@ type GoStructTag struct {
 
 func (x *GoStructTag) Reset() {
 	*x = GoStructTag{}
-	mi := &file_tego_options_proto_msgTypes[7]
+	mi := &file_tego_options_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1459,7 +1683,7 @@ func (x *GoStructTag) String() string {
 func (*GoStructTag) ProtoMessage() {}
 
 func (x *GoStructTag) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[7]
+	mi := &file_tego_options_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1562,7 +1786,7 @@ type GoType struct {
 
 func (x *GoType) Reset() {
 	*x = GoType{}
-	mi := &file_tego_options_proto_msgTypes[8]
+	mi := &file_tego_options_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1574,7 +1798,7 @@ func (x *GoType) String() string {
 func (*GoType) ProtoMessage() {}
 
 func (x *GoType) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[8]
+	mi := &file_tego_options_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1795,7 +2019,7 @@ type GoTypeArg struct {
 
 func (x *GoTypeArg) Reset() {
 	*x = GoTypeArg{}
-	mi := &file_tego_options_proto_msgTypes[9]
+	mi := &file_tego_options_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1807,7 +2031,7 @@ func (x *GoTypeArg) String() string {
 func (*GoTypeArg) ProtoMessage() {}
 
 func (x *GoTypeArg) ProtoReflect() protoreflect.Message {
-	mi := &file_tego_options_proto_msgTypes[9]
+	mi := &file_tego_options_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1905,6 +2129,22 @@ var file_tego_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		Tag:           "bytes,20570,opt,name=field",
 		Filename:      "tego/options.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.ServiceOptions)(nil),
+		ExtensionType: (*ServiceOptions)(nil),
+		Field:         20570,
+		Name:          "tego.service",
+		Tag:           "bytes,20570,opt,name=service",
+		Filename:      "tego/options.proto",
+	},
+	{
+		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
+		ExtensionType: (*MethodOptions)(nil),
+		Field:         20570,
+		Name:          "tego.method",
+		Tag:           "bytes,20570,opt,name=method",
+		Filename:      "tego/options.proto",
+	},
 }
 
 // Extension fields to descriptorpb.FileOptions.
@@ -1935,6 +2175,18 @@ var (
 var (
 	// optional tego.FieldOptions field = 20570;
 	E_Field = &file_tego_options_proto_extTypes[4]
+)
+
+// Extension fields to descriptorpb.ServiceOptions.
+var (
+	// optional tego.ServiceOptions service = 20570;
+	E_Service = &file_tego_options_proto_extTypes[5]
+)
+
+// Extension fields to descriptorpb.MethodOptions.
+var (
+	// optional tego.MethodOptions method = 20570;
+	E_Method = &file_tego_options_proto_extTypes[6]
 )
 
 var File_tego_options_proto protoreflect.FileDescriptor
@@ -1979,7 +2231,13 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x04tags\x18\x05 \x03(\v2\x11.tego.GoStructTagR\x04tags\x120\n" +
 	"\bjson_tag\x18\x06 \x01(\v2\x15.tego.GoJsonStructTagR\ajsonTag\x12\x1c\n" +
 	"\tomittable\x18\a \x01(\bR\tomittable\x12\x1a\n" +
-	"\bnullable\x18\b \x01(\bR\bnullable\"a\n" +
+	"\bnullable\x18\b \x01(\bR\bnullable\"B\n" +
+	"\x0eServiceOptions\x120\n" +
+	"\x11inline_by_default\x18\x01 \x01(\b:\x04trueR\x0finlineByDefault\"w\n" +
+	"\rMethodOptions\x12\x16\n" +
+	"\x06inline\x18\x01 \x01(\bR\x06inline\x12%\n" +
+	"\x0einline_request\x18\x02 \x01(\bR\rinlineRequest\x12'\n" +
+	"\x0finline_response\x18\x03 \x01(\bR\x0einlineResponse\"a\n" +
 	"\x0fGoJsonStructTag\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x1c\n" +
 	"\tomitempty\x18\x02 \x01(\bR\tomitempty\x12\x1a\n" +
@@ -2013,10 +2271,12 @@ const file_tego_options_proto_rawDesc = "" +
 	"\n" +
 	"enum_value\x12!.google.protobuf.EnumValueOptions\x18ڠ\x01 \x01(\v2\x16.tego.EnumValueOptionsR\tenumValue:Q\n" +
 	"\amessage\x12\x1f.google.protobuf.MessageOptions\x18ڠ\x01 \x01(\v2\x14.tego.MessageOptionsR\amessage:I\n" +
-	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18ڠ\x01 \x01(\v2\x12.tego.FieldOptionsR\x05fieldB&Z$github.com/seeruk/tego/tegopb;tegopbb\beditionsp\xe9\a"
+	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18ڠ\x01 \x01(\v2\x12.tego.FieldOptionsR\x05field:Q\n" +
+	"\aservice\x12\x1f.google.protobuf.ServiceOptions\x18ڠ\x01 \x01(\v2\x14.tego.ServiceOptionsR\aservice:M\n" +
+	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18ڠ\x01 \x01(\v2\x13.tego.MethodOptionsR\x06methodB&Z$github.com/seeruk/tego/tegopb;tegopbb\beditionsp\xe9\a"
 
 var file_tego_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tego_options_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_tego_options_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_tego_options_proto_goTypes = []any{
 	(EnumUnderlyingType)(0),               // 0: tego.EnumUnderlyingType
 	(*FileOptions)(nil),                   // 1: tego.FileOptions
@@ -2025,40 +2285,48 @@ var file_tego_options_proto_goTypes = []any{
 	(*MessageOptions)(nil),                // 4: tego.MessageOptions
 	(*MessageFieldsOptions)(nil),          // 5: tego.MessageFieldsOptions
 	(*FieldOptions)(nil),                  // 6: tego.FieldOptions
-	(*GoJsonStructTag)(nil),               // 7: tego.GoJsonStructTag
-	(*GoStructTag)(nil),                   // 8: tego.GoStructTag
-	(*GoType)(nil),                        // 9: tego.GoType
-	(*GoTypeArg)(nil),                     // 10: tego.GoTypeArg
-	nil,                                   // 11: tego.GoType.TypeArgsEntry
-	(*descriptorpb.FileOptions)(nil),      // 12: google.protobuf.FileOptions
-	(*descriptorpb.EnumOptions)(nil),      // 13: google.protobuf.EnumOptions
-	(*descriptorpb.EnumValueOptions)(nil), // 14: google.protobuf.EnumValueOptions
-	(*descriptorpb.MessageOptions)(nil),   // 15: google.protobuf.MessageOptions
-	(*descriptorpb.FieldOptions)(nil),     // 16: google.protobuf.FieldOptions
+	(*ServiceOptions)(nil),                // 7: tego.ServiceOptions
+	(*MethodOptions)(nil),                 // 8: tego.MethodOptions
+	(*GoJsonStructTag)(nil),               // 9: tego.GoJsonStructTag
+	(*GoStructTag)(nil),                   // 10: tego.GoStructTag
+	(*GoType)(nil),                        // 11: tego.GoType
+	(*GoTypeArg)(nil),                     // 12: tego.GoTypeArg
+	nil,                                   // 13: tego.GoType.TypeArgsEntry
+	(*descriptorpb.FileOptions)(nil),      // 14: google.protobuf.FileOptions
+	(*descriptorpb.EnumOptions)(nil),      // 15: google.protobuf.EnumOptions
+	(*descriptorpb.EnumValueOptions)(nil), // 16: google.protobuf.EnumValueOptions
+	(*descriptorpb.MessageOptions)(nil),   // 17: google.protobuf.MessageOptions
+	(*descriptorpb.FieldOptions)(nil),     // 18: google.protobuf.FieldOptions
+	(*descriptorpb.ServiceOptions)(nil),   // 19: google.protobuf.ServiceOptions
+	(*descriptorpb.MethodOptions)(nil),    // 20: google.protobuf.MethodOptions
 }
 var file_tego_options_proto_depIdxs = []int32{
 	0,  // 0: tego.EnumOptions.underlying_type:type_name -> tego.EnumUnderlyingType
-	9,  // 1: tego.MessageOptions.go_type:type_name -> tego.GoType
+	11, // 1: tego.MessageOptions.go_type:type_name -> tego.GoType
 	5,  // 2: tego.MessageOptions.fields:type_name -> tego.MessageFieldsOptions
-	9,  // 3: tego.FieldOptions.go_type:type_name -> tego.GoType
-	8,  // 4: tego.FieldOptions.tags:type_name -> tego.GoStructTag
-	7,  // 5: tego.FieldOptions.json_tag:type_name -> tego.GoJsonStructTag
-	11, // 6: tego.GoType.type_args:type_name -> tego.GoType.TypeArgsEntry
-	10, // 7: tego.GoType.TypeArgsEntry.value:type_name -> tego.GoTypeArg
-	12, // 8: tego.file:extendee -> google.protobuf.FileOptions
-	13, // 9: tego.enum:extendee -> google.protobuf.EnumOptions
-	14, // 10: tego.enum_value:extendee -> google.protobuf.EnumValueOptions
-	15, // 11: tego.message:extendee -> google.protobuf.MessageOptions
-	16, // 12: tego.field:extendee -> google.protobuf.FieldOptions
-	1,  // 13: tego.file:type_name -> tego.FileOptions
-	2,  // 14: tego.enum:type_name -> tego.EnumOptions
-	3,  // 15: tego.enum_value:type_name -> tego.EnumValueOptions
-	4,  // 16: tego.message:type_name -> tego.MessageOptions
-	6,  // 17: tego.field:type_name -> tego.FieldOptions
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	13, // [13:18] is the sub-list for extension type_name
-	8,  // [8:13] is the sub-list for extension extendee
+	11, // 3: tego.FieldOptions.go_type:type_name -> tego.GoType
+	10, // 4: tego.FieldOptions.tags:type_name -> tego.GoStructTag
+	9,  // 5: tego.FieldOptions.json_tag:type_name -> tego.GoJsonStructTag
+	13, // 6: tego.GoType.type_args:type_name -> tego.GoType.TypeArgsEntry
+	12, // 7: tego.GoType.TypeArgsEntry.value:type_name -> tego.GoTypeArg
+	14, // 8: tego.file:extendee -> google.protobuf.FileOptions
+	15, // 9: tego.enum:extendee -> google.protobuf.EnumOptions
+	16, // 10: tego.enum_value:extendee -> google.protobuf.EnumValueOptions
+	17, // 11: tego.message:extendee -> google.protobuf.MessageOptions
+	18, // 12: tego.field:extendee -> google.protobuf.FieldOptions
+	19, // 13: tego.service:extendee -> google.protobuf.ServiceOptions
+	20, // 14: tego.method:extendee -> google.protobuf.MethodOptions
+	1,  // 15: tego.file:type_name -> tego.FileOptions
+	2,  // 16: tego.enum:type_name -> tego.EnumOptions
+	3,  // 17: tego.enum_value:type_name -> tego.EnumValueOptions
+	4,  // 18: tego.message:type_name -> tego.MessageOptions
+	6,  // 19: tego.field:type_name -> tego.FieldOptions
+	7,  // 20: tego.service:type_name -> tego.ServiceOptions
+	8,  // 21: tego.method:type_name -> tego.MethodOptions
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	15, // [15:22] is the sub-list for extension type_name
+	8,  // [8:15] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
 }
 
@@ -2078,8 +2346,8 @@ func file_tego_options_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tego_options_proto_rawDesc), len(file_tego_options_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
-			NumExtensions: 5,
+			NumMessages:   13,
+			NumExtensions: 7,
 			NumServices:   0,
 		},
 		GoTypes:           file_tego_options_proto_goTypes,

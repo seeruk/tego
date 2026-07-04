@@ -127,6 +127,32 @@ message FieldOptions {
   bool nullable = 8;
 }
 
+extend google.protobuf.ServiceOptions {
+  ServiceOptions service = 20570;
+}
+
+message ServiceOptions {
+  // inline_by_default controls whether Tego should inline every safely inlineable facade method side
+  // on this service unless a method overrides that side.
+  bool inline_by_default = 1 [default = true];
+}
+
+extend google.protobuf.MethodOptions {
+  MethodOptions method = 20570;
+}
+
+message MethodOptions {
+  // inline indicates that both the request and response should be inlined in the generated facade
+  // method signature.
+  bool inline = 1;
+  // inline_request indicates that the request should be inlined in the generated facade method
+  // signature.
+  bool inline_request = 2;
+  // inline_response indicates that the response should be inlined in the generated facade method
+  // signature.
+  bool inline_response = 3;
+}
+
 message GoJsonStructTag {
   string value = 1;
   bool omitempty = 2;

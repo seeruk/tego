@@ -14,10 +14,7 @@ const (
 )
 
 func (p *Planner) planMapping(message *ProtoMessage, structPlan StructPlan, si *ShapeIndex) MappingPlan {
-	protoType := pointerType(TypePlan{
-		Kind: TypeKindExternal,
-		Ref:  protoMessagePlanRef(message),
-	})
+	protoType := protoMessageType(message)
 	structType := TypePlan{
 		Kind: TypeKindStruct,
 		Ref:  plannedStructRef(message),
@@ -95,6 +92,13 @@ func protoOneofsByProtoName(oneofs []*ProtoOneof) map[protoreflect.FullName]*Pro
 	return out
 }
 
+func protoMessageType(message *ProtoMessage) TypePlan {
+	return pointerType(TypePlan{
+		Kind: TypeKindExternal,
+		Ref:  protoMessagePlanRef(message),
+	})
+}
+
 func (p *Planner) planProtoFieldType(field *ProtoField) TypePlan {
 	if field.IsMap() {
 		return TypePlan{
@@ -147,6 +151,213 @@ func (p *Planner) planProtoSingularFieldType(field *ProtoField) TypePlan {
 	default:
 		return TypePlan{}
 	}
+}
+
+func (p *Planner) planMessageMappingValue(
+	message *ProtoMessage,
+	source TypePlan,
+	target TypePlan,
+	si *ShapeIndex,
+	direction mappingDirection,
+) MappingValuePlan {
+	if message == nil {
+		return MappingValuePlan{Kind: MappingValueKindUnsupported, Source: source, Target: target}
+	}
+	if wrapped, ok := p.planShapeMessageMappingValue(message, source, target, si, direction); ok {
+		return wrapped
+	}
+	return p.planMappingValue(source, target, direction)
+}
+
+func (p *Planner) planShapeMessageMappingValue(
+	message *ProtoMessage,
+	source TypePlan,
+	target TypePlan,
+	si *ShapeIndex,
+	direction mappingDirection,
+) (MappingValuePlan, bool) {
+	if si == nil {
+		return MappingValuePlan{}, false
+	}
+
+	if si.Flattens[message.FullName] != nil {
+		return p.planFlattenMessageMappingValue(message, source, target, si, direction)
+	}
+	if si.Nullables[message.FullName] != nil {
+		return p.planNullableMessageMappingValue(message, source, target, direction)
+	}
+	if si.Slices[message.FullName] != nil {
+		return p.planSliceMessageMappingValue(message, source, target, direction)
+	}
+	if si.Maps[message.FullName] != nil {
+		return p.planMapMessageMappingValue(message, source, target, direction)
+	}
+
+	return MappingValuePlan{}, false
+}
+
+func (p *Planner) planFlattenMessageMappingValue(
+	message *ProtoMessage,
+	source TypePlan,
+	target TypePlan,
+	si *ShapeIndex,
+	direction mappingDirection,
+) (MappingValuePlan, bool) {
+	shapeField, ok := flattenShapeField(message)
+	if !ok {
+		return MappingValuePlan{}, false
+	}
+
+	var elemSource, elemTarget TypePlan
+	if direction == mappingDirectionFromProto {
+		elemSource = p.planProtoFieldType(shapeField)
+		elemTarget = target
+	} else {
+		elemSource = source
+		elemTarget = p.planProtoFieldType(shapeField)
+	}
+
+	elem := p.planFieldMappingValue(shapeField, elemSource, elemTarget, si, direction)
+
+	return MappingValuePlan{
+		Kind:     MappingValueKindFlatten,
+		Source:   source,
+		Target:   target,
+		CanError: elem.CanError,
+		Access: MappingAccessPlan{
+			Field: mappingFieldAccess(shapeField),
+		},
+		Elem: &elem,
+	}, true
+}
+
+func (p *Planner) planNullableMessageMappingValue(
+	message *ProtoMessage,
+	source TypePlan,
+	target TypePlan,
+	direction mappingDirection,
+) (MappingValuePlan, bool) {
+	inner := nullableShapeValueField(message)
+	if inner == nil {
+		return MappingValuePlan{}, false
+	}
+
+	innerType := p.planProtoFieldType(inner)
+	var elemSource, elemTarget TypePlan
+	if direction == mappingDirectionFromProto {
+		elemSource = innerType
+		elemTarget = pointerMappingElem(target, direction)
+	} else {
+		elemSource = pointerMappingElem(source, direction)
+		elemTarget = innerType
+	}
+
+	elem := p.planMappingValue(elemSource, elemTarget, direction)
+
+	return MappingValuePlan{
+		Kind:     MappingValueKindNullable,
+		Source:   source,
+		Target:   target,
+		CanError: elem.CanError,
+		Access:   nullableShapeAccess(message, inner),
+		Elem:     &elem,
+	}, true
+}
+
+func (p *Planner) planSliceMessageMappingValue(
+	message *ProtoMessage,
+	source TypePlan,
+	target TypePlan,
+	direction mappingDirection,
+) (MappingValuePlan, bool) {
+	if len(message.Fields) != 1 {
+		return MappingValuePlan{}, false
+	}
+
+	shapeField := message.Fields[0]
+	var elemSource, elemTarget TypePlan
+	if direction == mappingDirectionFromProto {
+		elemSource = p.planProtoSingularFieldType(shapeField)
+		if target.Elem == nil {
+			return MappingValuePlan{}, false
+		}
+		elemTarget = *target.Elem
+	} else {
+		if source.Elem == nil {
+			return MappingValuePlan{}, false
+		}
+		elemSource = *source.Elem
+		elemTarget = p.planProtoSingularFieldType(shapeField)
+	}
+
+	elem := p.planMappingValue(elemSource, elemTarget, direction)
+
+	return MappingValuePlan{
+		Kind:     MappingValueKindSlice,
+		Source:   source,
+		Target:   target,
+		CanError: elem.CanError,
+		Access: MappingAccessPlan{
+			Field:         mappingFieldAccess(shapeField),
+			ProtoType:     protoMessageType(message),
+			ProtoElemType: elemSource,
+		},
+		Elem: &elem,
+	}, true
+}
+
+func (p *Planner) planMapMessageMappingValue(
+	message *ProtoMessage,
+	source TypePlan,
+	target TypePlan,
+	direction mappingDirection,
+) (MappingValuePlan, bool) {
+	if len(message.Fields) != 1 || len(message.Messages) != 1 {
+		return MappingValuePlan{}, false
+	}
+
+	keyField, valueField, ok := mapFields(message.Messages[0])
+	if !ok {
+		return MappingValuePlan{}, false
+	}
+
+	var keySource, keyTarget, valueSource, valueTarget TypePlan
+	if direction == mappingDirectionFromProto {
+		if target.Key == nil || target.Value == nil {
+			return MappingValuePlan{}, false
+		}
+		keySource = p.planProtoFieldType(keyField)
+		keyTarget = *target.Key
+		valueSource = p.planProtoFieldType(valueField)
+		valueTarget = *target.Value
+	} else {
+		if source.Key == nil || source.Value == nil {
+			return MappingValuePlan{}, false
+		}
+		keySource = *source.Key
+		keyTarget = p.planProtoFieldType(keyField)
+		valueSource = *source.Value
+		valueTarget = p.planProtoFieldType(valueField)
+	}
+
+	key := p.planMappingValue(keySource, keyTarget, direction)
+	value := p.planMappingValue(valueSource, valueTarget, direction)
+
+	return MappingValuePlan{
+		Kind:     MappingValueKindMap,
+		Source:   source,
+		Target:   target,
+		CanError: key.CanError || value.CanError,
+		Access: MappingAccessPlan{
+			Field:         mappingFieldAccess(message.Fields[0]),
+			Key:           mappingFieldAccess(keyField),
+			Value:         mappingFieldAccess(valueField),
+			ProtoType:     protoMessageType(message),
+			ProtoElemType: p.planProtoSingularFieldType(message.Fields[0]),
+		},
+		Key:   &key,
+		Value: &value,
+	}, true
 }
 
 func (p *Planner) planFieldMappingValue(

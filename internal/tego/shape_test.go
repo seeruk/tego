@@ -172,35 +172,45 @@ func TestNullableShapeHelpers(t *testing.T) {
 func TestMapShapeHelpers(t *testing.T) {
 	t.Run("map requires repeated map entries with comparable key", func(t *testing.T) {
 		builder := newShapeIndexBuilder()
+		tests := []struct {
+			name    string
+			message *ProtoMessage
+			want    bool
+		}{
+			{name: "string key", message: mapShapeWithKey(field("key", protoreflect.StringKind)), want: true},
+			{name: "enum key", message: mapShapeWithKey(field("key", protoreflect.EnumKind)), want: true},
+			{name: "comparable struct key", message: mapShapeWithKey(messageField("key", comparableStructMessage())), want: true},
+			{name: "nullable oneof key", message: mapShapeWithKey(messageField("key", nullableOneofMessage())), want: true},
+			{name: "nullable non-comparable struct key", message: mapShapeWithKey(nullableMessageField("key", nonComparableStructMessage())), want: true},
+			{name: "comparable field go type key", message: mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", true)), want: true},
+			{name: "pointer field go type key", message: mapShapeWithKey(fieldWithGoTypeAsPointer("key", protoreflect.MessageKind, "Key")), want: true},
+			{name: "comparable message go type key", message: mapShapeWithKey(messageField("key", messageWithGoType("Key", true))), want: true},
+			{name: "pointer message go type key", message: mapShapeWithKey(messageField("key", messageWithGoTypeAsPointer("Key"))), want: true},
+			{name: "flattened string key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.StringKind)))), want: true},
+			{name: "flattened enum key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.EnumKind)))), want: true},
+			{name: "flattened comparable go type key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(fieldWithGoType("value", protoreflect.StringKind, "Key", true)))), want: true},
+			{name: "flattened pointer go type key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(fieldWithGoTypeAsPointer("value", protoreflect.StringKind, "Key")))), want: true},
+			{name: "flattened repeated comparable go type key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedFieldWithGoType("value", protoreflect.StringKind, "Key", true)))), want: true},
+			{name: "bytes key", message: mapShapeWithKey(field("key", protoreflect.BytesKind))},
+			{name: "repeated key", message: mapShapeWithKey(repeatedField("key", protoreflect.StringKind))},
+			{name: "native proto map key", message: mapShapeWithKey(protoMapField("key"))},
+			{name: "slice shape key", message: mapShapeWithKey(messageField("key", sliceShapeMessage()))},
+			{name: "map shape key", message: mapShapeWithKey(messageField("key", mapShapeWithKey(field("key", protoreflect.StringKind))))},
+			{name: "non-comparable struct key", message: mapShapeWithKey(messageField("key", nonComparableStructMessage()))},
+			{name: "non-comparable field go type key", message: mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", false))},
+			{name: "field go type without comparable option", message: mapShapeWithKey(fieldWithGoTypeRef("key", protoreflect.MessageKind, "Key"))},
+			{name: "message go type without comparable option", message: mapShapeWithKey(messageField("key", messageWithGoTypeRef("Key")))},
+			{name: "flattened bytes key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.BytesKind))))},
+			{name: "flattened repeated key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedField("value", protoreflect.StringKind))))},
+			{name: "flattened native proto map key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(protoMapField("value"))))},
+			{name: "flattened repeated non-comparable go type key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedFieldWithGoType("value", protoreflect.StringKind, "Key", false))))},
+		}
 
-		assert.True(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.StringKind))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.EnumKind))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", comparableStructMessage()))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", nullableOneofMessage()))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(nullableMessageField("key", nonComparableStructMessage()))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", true))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(fieldWithGoTypeAsPointer("key", protoreflect.MessageKind, "Key"))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoType("Key", true)))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoTypeAsPointer("Key")))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.StringKind))))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.EnumKind))))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(fieldWithGoType("value", protoreflect.StringKind, "Key", true))))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(fieldWithGoTypeAsPointer("value", protoreflect.StringKind, "Key"))))))
-		assert.True(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedFieldWithGoType("value", protoreflect.StringKind, "Key", true))))))
-
-		assert.False(t, builder.isMapShape(mapShapeWithKey(field("key", protoreflect.BytesKind))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(repeatedField("key", protoreflect.StringKind))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(protoMapField("key"))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", sliceShapeMessage()))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", mapShapeWithKey(field("key", protoreflect.StringKind))))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", nonComparableStructMessage()))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", false))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(fieldWithGoTypeRef("key", protoreflect.MessageKind, "Key"))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", messageWithGoTypeRef("Key")))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.BytesKind))))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedField("value", protoreflect.StringKind))))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(protoMapField("value"))))))
-		assert.False(t, builder.isMapShape(mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedFieldWithGoType("value", protoreflect.StringKind, "Key", false))))))
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				assert.Equal(t, tt.want, builder.isMapShape(tt.message))
+			})
+		}
 	})
 
 	t.Run("map rejects malformed wrappers", func(t *testing.T) {
@@ -285,224 +295,4 @@ func TestShapeIndexPrecedence(t *testing.T) {
 		assert.Contains(t, builder.index.Flattens, message.FullName)
 		assert.NotContains(t, builder.index.Slices, message.FullName)
 	})
-}
-
-func messageWithFields(fields ...*ProtoField) *ProtoMessage {
-	return &ProtoMessage{Fields: fields}
-}
-
-func messageWithOneof(fields ...*ProtoField) *ProtoMessage {
-	oneof := &ProtoOneof{Fields: fields}
-	message := messageWithFields(fields...)
-	message.Oneofs = []*ProtoOneof{oneof}
-	for _, field := range fields {
-		field.Oneof = oneof
-	}
-	return message
-}
-
-func messageWithOneofAndExtraField(oneofFields []*ProtoField, extraFields ...*ProtoField) *ProtoMessage {
-	message := messageWithOneof(oneofFields...)
-	message.Fields = append(message.Fields, extraFields...)
-	return message
-}
-
-func messageWithNestedMessage(message *ProtoMessage) *ProtoMessage {
-	message.Messages = []*ProtoMessage{{}}
-	return message
-}
-
-func messageWithNestedEnum(message *ProtoMessage) *ProtoMessage {
-	message.Enums = []*ProtoEnum{{}}
-	return message
-}
-
-func mapEntryMessageWithOneof(fields ...*ProtoField) *ProtoMessage {
-	message := mapEntryMessage(fields...)
-	message.Oneofs = []*ProtoOneof{{Fields: fields}}
-	return message
-}
-
-func mapShapeWithKey(key *ProtoField) *ProtoMessage {
-	return mapShapeWithEntryFields(key, field("value", protoreflect.StringKind))
-}
-
-func mapShapeWithEntryName(name protoreflect.Name) *ProtoMessage {
-	mapMessage := mapEntryMessage(field("key", protoreflect.StringKind), field("value", protoreflect.StringKind))
-	mapMessage.Name = name
-	return messageWithMapEntry(mapMessage, nil)
-}
-
-func mapShapeWithEntryFields(fields ...*ProtoField) *ProtoMessage {
-	return messageWithMapEntry(mapEntryMessage(fields...), nil)
-}
-
-func mapEntryMessage(fields ...*ProtoField) *ProtoMessage {
-	return &ProtoMessage{
-		Name:   "Map",
-		Fields: fields,
-	}
-}
-
-func messageWithMapEntry(mapMessage *ProtoMessage, entry *ProtoField) *ProtoMessage {
-	if entry == nil {
-		entry = repeatedMessageField("entries", mapMessage)
-	}
-	return &ProtoMessage{
-		Fields:   []*ProtoField{entry},
-		Messages: []*ProtoMessage{mapMessage},
-	}
-}
-
-func shapeIndexTestFile(path string, generate bool, goPackage string, fullName protoreflect.FullName) *ProtoFile {
-	file := testProtoFile(path, generate, goPackage)
-	message := plannerMessage(fullName, protoreflect.Name(fullName.Name()))
-	message.File = file
-	message.Fields = []*ProtoField{repeatedField("values", protoreflect.StringKind)}
-	message.Fields[0].Parent = message
-	file.Messages = []*ProtoMessage{message}
-	return file
-}
-
-func comparableStructMessage() *ProtoMessage {
-	return messageWithFields(
-		field("name", protoreflect.StringKind),
-		field("status", protoreflect.EnumKind),
-	)
-}
-
-func nonComparableStructMessage() *ProtoMessage {
-	return messageWithFields(field("data", protoreflect.BytesKind))
-}
-
-func nullableOneofMessage() *ProtoMessage {
-	return messageWithOneof(field("person", protoreflect.MessageKind), nullValueField("null"))
-}
-
-func sliceShapeMessage() *ProtoMessage {
-	return messageWithFields(repeatedField("values", protoreflect.StringKind))
-}
-
-func flattenShapeMessage(field *ProtoField) *ProtoMessage {
-	options := &tegopb.MessageOptions{}
-	options.SetFlatten(true)
-	return &ProtoMessage{
-		Fields:  []*ProtoField{field},
-		Options: options,
-	}
-}
-
-func messageWithGoType(ref string, comparable bool) *ProtoMessage {
-	options := &tegopb.MessageOptions{}
-	options.SetGoType(goType(ref, comparable))
-	return &ProtoMessage{Options: options}
-}
-
-func messageWithGoTypeRef(ref string) *ProtoMessage {
-	options := &tegopb.MessageOptions{}
-	options.SetGoType(goTypeRef(ref))
-	return &ProtoMessage{Options: options}
-}
-
-func messageWithGoTypeAsPointer(ref string) *ProtoMessage {
-	options := &tegopb.MessageOptions{}
-	options.SetGoType(goTypeAsPointer(ref))
-	return &ProtoMessage{Options: options}
-}
-
-func field(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
-	return &ProtoField{
-		Name: name,
-		Kind: kind,
-	}
-}
-
-func messageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {
-	field := field(name, protoreflect.MessageKind)
-	field.Message = message
-	return field
-}
-
-func repeatedMessageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {
-	field := repeatedField(name, protoreflect.MessageKind)
-	field.Message = message
-	return field
-}
-
-func nullableMessageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {
-	field := messageField(name, message)
-	options := &tegopb.FieldOptions{}
-	options.SetNullable(true)
-	field.Options = options
-	return field
-}
-
-func repeatedField(name protoreflect.Name, kind protoreflect.Kind) *ProtoField {
-	field := field(name, kind)
-	field.Cardinality = protoreflect.Repeated
-	return field
-}
-
-func repeatedFieldWithGoType(name protoreflect.Name, kind protoreflect.Kind, ref string, comparable bool) *ProtoField {
-	field := fieldWithGoType(name, kind, ref, comparable)
-	field.Cardinality = protoreflect.Repeated
-	return field
-}
-
-func protoMapField(name protoreflect.Name) *ProtoField {
-	protoField := repeatedField(name, protoreflect.MessageKind)
-	protoField.MapKey = field("key", protoreflect.StringKind)
-	protoField.MapValue = field("value", protoreflect.StringKind)
-	return protoField
-}
-
-func fieldWithGoType(name protoreflect.Name, kind protoreflect.Kind, ref string, comparable bool) *ProtoField {
-	field := field(name, kind)
-	options := &tegopb.FieldOptions{}
-	options.SetGoType(goType(ref, comparable))
-	field.Options = options
-	return field
-}
-
-func fieldWithGoTypeRef(name protoreflect.Name, kind protoreflect.Kind, ref string) *ProtoField {
-	field := field(name, kind)
-	options := &tegopb.FieldOptions{}
-	options.SetGoType(goTypeRef(ref))
-	field.Options = options
-	return field
-}
-
-func fieldWithGoTypeAsPointer(name protoreflect.Name, kind protoreflect.Kind, ref string) *ProtoField {
-	field := field(name, kind)
-	options := &tegopb.FieldOptions{}
-	options.SetGoType(goTypeAsPointer(ref))
-	field.Options = options
-	return field
-}
-
-func goType(ref string, comparable bool) *tegopb.GoType {
-	goType := &tegopb.GoType{}
-	goType.SetRef(ref)
-	goType.SetComparable(comparable)
-	return goType
-}
-
-func goTypeRef(ref string) *tegopb.GoType {
-	goType := &tegopb.GoType{}
-	goType.SetRef(ref)
-	return goType
-}
-
-func goTypeAsPointer(ref string) *tegopb.GoType {
-	goType := goTypeRef(ref)
-	goType.SetAsPointer(true)
-	return goType
-}
-
-func nullValueField(name protoreflect.Name) *ProtoField {
-	return &ProtoField{
-		Name: name,
-		Kind: protoreflect.EnumKind,
-		Enum: &ProtoEnum{FullName: "google.protobuf.NullValue"},
-	}
 }

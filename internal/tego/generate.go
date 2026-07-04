@@ -104,6 +104,18 @@ func generateFile(g *protogen.GeneratedFile, file FilePlan, options generateOpti
 		}
 	}
 
+	for _, helper := range file.RequestInlineHelpers {
+		if err := generateServiceRequestInlineHelper(g, helper); err != nil {
+			return err
+		}
+	}
+
+	for _, helper := range file.ResponseInlineHelpers {
+		if err := generateServiceResponseInlineHelper(g, helper); err != nil {
+			return err
+		}
+	}
+
 	if options.rpc.Enabled() {
 		for _, service := range file.Services {
 			if err := generateService(g, service, options.rpc); err != nil {

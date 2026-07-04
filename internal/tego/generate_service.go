@@ -2,6 +2,7 @@ package tego
 
 import (
 	"fmt"
+	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
 )
@@ -58,16 +59,39 @@ func generateServiceMethodSignature(g *protogen.GeneratedFile, method ServiceMet
 	contextType := generateContextType(g)
 	switch method.StreamType {
 	case ServiceStreamTypeUnary:
-		if serviceResponseIsEmpty(method) {
-			return fmt.Sprintf("%s(ctx %s, request %s) error", method.Name, contextType, request), nil
+		arguments := "ctx " + contextType + ", request " + request
+		if method.InlineRequest != nil {
+			params, err := generateServiceInlineFieldParameters(g, method.InlineRequest.Fields)
+			if err != nil {
+				return "", err
+			}
+			arguments = "ctx " + contextType + ", " + params
 		}
-		return fmt.Sprintf("%s(ctx %s, request %s) (%s, error)", method.Name, contextType, request, response), nil
+		if serviceResponseIsEmpty(method) {
+			return fmt.Sprintf("%s(%s) error", method.Name, arguments), nil
+		}
+		results := response + ", error"
+		if method.InlineResponse != nil {
+			inlineResults, err := generateServiceInlineFieldTypes(g, method.InlineResponse.Fields)
+			if err != nil {
+				return "", err
+			}
+			results = inlineResults + ", error"
+		}
+		return fmt.Sprintf("%s(%s) (%s)", method.Name, arguments, results), nil
 	case ServiceStreamTypeServerStreaming:
+		arguments := "ctx " + contextType + ", request " + request
+		if method.InlineRequest != nil {
+			params, err := generateServiceInlineFieldParameters(g, method.InlineRequest.Fields)
+			if err != nil {
+				return "", err
+			}
+			arguments = "ctx " + contextType + ", " + params
+		}
 		return fmt.Sprintf(
-			"%s(ctx %s, request %s) (%s, error)",
+			"%s(%s) (%s, error)",
 			method.Name,
-			contextType,
-			request,
+			arguments,
 			generateSeq2Type(g, response),
 		), nil
 	case ServiceStreamTypeClientStreaming:
@@ -75,7 +99,15 @@ func generateServiceMethodSignature(g *protogen.GeneratedFile, method ServiceMet
 		if serviceResponseIsEmpty(method) {
 			return fmt.Sprintf("%s(ctx %s, requests %s) error", method.Name, contextType, requests), nil
 		}
-		return fmt.Sprintf("%s(ctx %s, requests %s) (%s, error)", method.Name, contextType, requests, response), nil
+		results := response + ", error"
+		if method.InlineResponse != nil {
+			inlineResults, err := generateServiceInlineFieldTypes(g, method.InlineResponse.Fields)
+			if err != nil {
+				return "", err
+			}
+			results = inlineResults + ", error"
+		}
+		return fmt.Sprintf("%s(ctx %s, requests %s) (%s)", method.Name, contextType, requests, results), nil
 	case ServiceStreamTypeBidiStreaming:
 		return fmt.Sprintf(
 			"%s(ctx %s, requests %s) (%s, error)",
@@ -115,6 +147,124 @@ func serviceResponseIsEmpty(method ServiceMethodPlan) bool {
 	return method.Response.Type.Kind == TypeKindEmptyStruct
 }
 
+func generateServiceRequestInlineHelper(g *protogen.GeneratedFile, helper ServiceInlineHelperPlan) error {
+	messageType, err := generateType(g, helper.Type)
+	if err != nil {
+		return fmt.Errorf("inline helper type: %w", err)
+	}
+	contextType := generateContextType(g)
+	fieldTypes, err := generateServiceInlineFieldTypes(g, helper.Fields)
+	if err != nil {
+		return err
+	}
+
+	g.P("func ", helper.ToInlineName, "(ctx ", contextType, ", request ", messageType, ") (", contextType, ", ", fieldTypes, ") {")
+	g.P("\treturn ctx, ", serviceInlineStructFieldValues("request", helper.Fields))
+	g.P("}")
+	g.P()
+
+	fieldParameters, err := generateServiceInlineFieldParameters(g, helper.Fields)
+	if err != nil {
+		return err
+	}
+	g.P("func ", helper.FromInlineName, "(ctx ", contextType, ", ", fieldParameters, ") (", contextType, ", ", messageType, ") {")
+	g.P("\treturn ctx, ", messageType, "{", serviceInlineStructLiteralFields(helper.Fields), "}")
+	g.P("}")
+	g.P()
+	return nil
+}
+
+func generateServiceResponseInlineHelper(g *protogen.GeneratedFile, helper ServiceInlineHelperPlan) error {
+	messageType, err := generateType(g, helper.Type)
+	if err != nil {
+		return fmt.Errorf("inline helper type: %w", err)
+	}
+	fieldTypes, err := generateServiceInlineFieldTypes(g, helper.Fields)
+	if err != nil {
+		return err
+	}
+
+	g.P("func ", helper.ToInlineName, "(response ", messageType, ", err error) (", fieldTypes, ", error) {")
+	if err := generateServiceInlineErrorReturn(g, helper.Fields); err != nil {
+		return err
+	}
+	g.P("\treturn ", serviceInlineStructFieldValues("response", helper.Fields), ", nil")
+	g.P("}")
+	g.P()
+
+	fieldParameters, err := generateServiceInlineFieldParameters(g, helper.Fields)
+	if err != nil {
+		return err
+	}
+	g.P("func ", helper.FromInlineName, "(", fieldParameters, ", err error) (", messageType, ", error) {")
+	g.P("\tif err != nil {")
+	g.P("\t\tvar zero ", messageType)
+	g.P("\t\treturn zero, err")
+	g.P("\t}")
+	g.P("\treturn ", messageType, "{", serviceInlineStructLiteralFields(helper.Fields), "}, nil")
+	g.P("}")
+	g.P()
+	return nil
+}
+
+func generateServiceInlineFieldParameters(g *protogen.GeneratedFile, fields []ServiceInlineFieldPlan) (string, error) {
+	parameters := make([]string, 0, len(fields))
+	for _, field := range fields {
+		typ, err := generateType(g, field.Type)
+		if err != nil {
+			return "", fmt.Errorf("inline field %s: %w", field.FieldName, err)
+		}
+		parameters = append(parameters, field.Name+" "+typ)
+	}
+	return strings.Join(parameters, ", "), nil
+}
+
+func generateServiceInlineFieldTypes(g *protogen.GeneratedFile, fields []ServiceInlineFieldPlan) (string, error) {
+	types := make([]string, 0, len(fields))
+	for _, field := range fields {
+		typ, err := generateType(g, field.Type)
+		if err != nil {
+			return "", fmt.Errorf("inline field %s: %w", field.FieldName, err)
+		}
+		types = append(types, typ)
+	}
+	return strings.Join(types, ", "), nil
+}
+
+func serviceInlineStructFieldValues(source string, fields []ServiceInlineFieldPlan) string {
+	values := make([]string, 0, len(fields))
+	for _, field := range fields {
+		values = append(values, source+"."+field.FieldName)
+	}
+	return strings.Join(values, ", ")
+}
+
+func serviceInlineStructLiteralFields(fields []ServiceInlineFieldPlan) string {
+	values := make([]string, 0, len(fields))
+	for _, field := range fields {
+		values = append(values, field.FieldName+": "+field.Name)
+	}
+	return strings.Join(values, ", ")
+}
+
+func generateServiceInlineErrorReturn(g *protogen.GeneratedFile, fields []ServiceInlineFieldPlan) error {
+	g.P("\tif err != nil {")
+	zeros := make([]string, 0, len(fields))
+	names := newTempNameAllocator("err")
+	for _, field := range fields {
+		zero := names.name("zero" + goName(field.FieldName))
+		typ, err := generateType(g, field.Type)
+		if err != nil {
+			return fmt.Errorf("inline field %s: %w", field.FieldName, err)
+		}
+		g.P("\t\tvar ", zero, " ", typ)
+		zeros = append(zeros, zero)
+	}
+	g.P("\t\treturn ", strings.Join(append(zeros, "err"), ", "))
+	g.P("\t}")
+	return nil
+}
+
 func generateUnimplementedService(g *protogen.GeneratedFile, service ServicePlan) error {
 	g.P("type ", service.UnimplementedName, " struct{}")
 	g.P()
@@ -152,6 +302,9 @@ func generateUnimplementedServiceMethodBody(
 			g.P("\treturn ", errExpr)
 			return nil
 		}
+		if method.InlineResponse != nil {
+			return generateServiceInlineZeroReturn(g, method.InlineResponse.Fields, errExpr)
+		}
 		responseType, err := generateType(g, method.Response.Type)
 		if err != nil {
 			return fmt.Errorf("response type: %w", err)
@@ -169,6 +322,26 @@ func generateUnimplementedServiceMethodBody(
 
 func (service ServicePlan) UnimplementedErrorName() string {
 	return "unimplemented" + service.Name + "Error"
+}
+
+func generateServiceInlineZeroReturn(
+	g *protogen.GeneratedFile,
+	fields []ServiceInlineFieldPlan,
+	errExpr string,
+) error {
+	zeros := make([]string, 0, len(fields))
+	names := newTempNameAllocator("err")
+	for _, field := range fields {
+		zero := names.name("zero" + goName(field.FieldName))
+		typ, err := generateType(g, field.Type)
+		if err != nil {
+			return fmt.Errorf("inline field %s: %w", field.FieldName, err)
+		}
+		g.P("\tvar ", zero, " ", typ)
+		zeros = append(zeros, zero)
+	}
+	g.P("\treturn ", strings.Join(append(zeros, errExpr), ", "))
+	return nil
 }
 
 func generateGRPCService(g *protogen.GeneratedFile, service ServicePlan) error {
@@ -339,8 +512,9 @@ func generateGRPCAdapterUnaryMethodBody(
 		return fmt.Errorf("request: %w", err)
 	}
 
+	call := serviceMethodCall(method, "a.service", "ctx", "request")
 	if serviceResponseIsEmpty(method) {
-		ctx.line("if err := a.service." + method.Name + "(ctx, request); err != nil {")
+		ctx.line("if err := " + call + "; err != nil {")
 		ctx.line("return nil, " + generateTegoSymbol(g, "GRPCError") + "(err)")
 		ctx.line("}")
 		responseExpr, err := serviceEmptyStructConverterReturnExpr(g, method.Response.ToProto)
@@ -351,7 +525,11 @@ func generateGRPCAdapterUnaryMethodBody(
 		return nil
 	}
 
-	ctx.line("response, err := a.service." + method.Name + "(ctx, request)")
+	if method.InlineResponse != nil {
+		ctx.line("response, err := " + method.InlineResponse.FromInlineName + "(" + call + ")")
+	} else {
+		ctx.line("response, err := " + call)
+	}
 	ctx.line("if err != nil {")
 	ctx.line("return nil, " + generateTegoSymbol(g, "GRPCError") + "(err)")
 	ctx.line("}")
@@ -372,7 +550,8 @@ func generateGRPCAdapterServerStreamingMethodBody(
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("responses, err := a.service." + method.Name + "(ctx, request)")
+	call := serviceMethodCall(method, "a.service", "ctx", "request")
+	ctx.line("responses, err := " + call)
 	ctx.line("if err != nil {")
 	ctx.line("return " + generateTegoSymbol(g, "GRPCError") + "(err)")
 	ctx.line("}")
@@ -442,7 +621,12 @@ func generateGRPCAdapterClientStreamingMethodBody(
 		return nil
 	}
 
-	ctx.line("response, err := a.service." + method.Name + "(stream.Context(), requests)")
+	call := "a.service." + method.Name + "(stream.Context(), requests)"
+	if method.InlineResponse != nil {
+		ctx.line("response, err := " + method.InlineResponse.FromInlineName + "(" + call + ")")
+	} else {
+		ctx.line("response, err := " + call)
+	}
 	ctx.line("if err != nil {")
 	ctx.line("return " + generateTegoSymbol(g, "GRPCError") + "(err)")
 	ctx.line("}")
@@ -539,6 +723,9 @@ func generateGRPCClientMethod(g *protogen.GeneratedFile, service ServicePlan, me
 func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
+	if method.InlineRequest != nil {
+		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
+	}
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
@@ -557,6 +744,10 @@ func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service Servic
 	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
+	if method.InlineResponse != nil {
+		ctx.line("return " + method.InlineResponse.ToInlineName + "(response, nil)")
+		return nil
+	}
 	ctx.line("return response, nil")
 	_ = service
 	return nil
@@ -568,6 +759,9 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 		return fmt.Errorf("response type: %w", err)
 	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
+	if method.InlineRequest != nil {
+		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
+	}
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
@@ -628,6 +822,10 @@ func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, serv
 	}
 	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto"); err != nil {
 		return fmt.Errorf("response: %w", err)
+	}
+	if method.InlineResponse != nil {
+		ctx.line("return " + method.InlineResponse.ToInlineName + "(response, nil)")
+		return nil
 	}
 	ctx.line("return response, nil")
 	_ = service
@@ -856,8 +1054,9 @@ func generateConnectAdapterUnaryMethodBody(
 		return fmt.Errorf("request: %w", err)
 	}
 
+	call := serviceMethodCall(method, "a.service", "ctx", "request")
 	if serviceResponseIsEmpty(method) {
-		ctx.line("if err := a.service." + method.Name + "(ctx, request); err != nil {")
+		ctx.line("if err := " + call + "; err != nil {")
 		ctx.line("return nil, " + generateTegoSymbol(g, "ConnectError") + "(err)")
 		ctx.line("}")
 		responseExpr, err := serviceEmptyStructConverterReturnExpr(g, method.Response.ToProto)
@@ -868,7 +1067,11 @@ func generateConnectAdapterUnaryMethodBody(
 		return nil
 	}
 
-	ctx.line("response, err := a.service." + method.Name + "(ctx, request)")
+	if method.InlineResponse != nil {
+		ctx.line("response, err := " + method.InlineResponse.FromInlineName + "(" + call + ")")
+	} else {
+		ctx.line("response, err := " + call)
+	}
 	ctx.line("if err != nil {")
 	ctx.line("return nil, " + generateTegoSymbol(g, "ConnectError") + "(err)")
 	ctx.line("}")
@@ -888,7 +1091,8 @@ func generateConnectAdapterServerStreamingMethodBody(
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto.Msg"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("responses, err := a.service." + method.Name + "(ctx, request)")
+	call := serviceMethodCall(method, "a.service", "ctx", "request")
+	ctx.line("responses, err := " + call)
 	ctx.line("if err != nil {")
 	ctx.line("return " + generateTegoSymbol(g, "ConnectError") + "(err)")
 	ctx.line("}")
@@ -953,7 +1157,12 @@ func generateConnectAdapterClientStreamingMethodBody(
 		return nil
 	}
 
-	ctx.line("response, err := a.service." + method.Name + "(ctx, requests)")
+	call := "a.service." + method.Name + "(ctx, requests)"
+	if method.InlineResponse != nil {
+		ctx.line("response, err := " + method.InlineResponse.FromInlineName + "(" + call + ")")
+	} else {
+		ctx.line("response, err := " + call)
+	}
 	ctx.line("if err != nil {")
 	ctx.line("return nil, " + generateTegoSymbol(g, "ConnectError") + "(err)")
 	ctx.line("}")
@@ -1050,6 +1259,9 @@ func generateConnectClientMethod(g *protogen.GeneratedFile, service ServicePlan,
 func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
+	if method.InlineRequest != nil {
+		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
+	}
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
@@ -1068,6 +1280,10 @@ func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service Ser
 	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
+	if method.InlineResponse != nil {
+		ctx.line("return " + method.InlineResponse.ToInlineName + "(response, nil)")
+		return nil
+	}
 	ctx.line("return response, nil")
 	_ = service
 	return nil
@@ -1079,6 +1295,9 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 		return fmt.Errorf("response type: %w", err)
 	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
+	if method.InlineRequest != nil {
+		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
+	}
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
@@ -1132,6 +1351,10 @@ func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, s
 	}
 	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg"); err != nil {
 		return fmt.Errorf("response: %w", err)
+	}
+	if method.InlineResponse != nil {
+		ctx.line("return " + method.InlineResponse.ToInlineName + "(response, nil)")
+		return nil
 	}
 	ctx.line("return response, nil")
 	_ = service
@@ -1201,12 +1424,30 @@ func serviceClientErrorReturn(g *protogen.GeneratedFile, method ServiceMethodPla
 	if serviceResponseIsEmpty(method) {
 		return "err"
 	}
+	if method.InlineResponse != nil {
+		return method.InlineResponse.ToInlineName + "(zero, err)"
+	}
 	switch method.StreamType {
 	case ServiceStreamTypeServerStreaming, ServiceStreamTypeBidiStreaming:
 		return "nil, err"
 	default:
 		return "zero, err"
 	}
+}
+
+func serviceMethodCall(method ServiceMethodPlan, receiver, ctxExpr, requestExpr string) string {
+	if method.InlineRequest != nil {
+		return receiver + "." + method.Name + "(" + method.InlineRequest.ToInlineName + "(" + ctxExpr + ", " + requestExpr + "))"
+	}
+	return receiver + "." + method.Name + "(" + ctxExpr + ", " + requestExpr + ")"
+}
+
+func serviceInlineFieldNames(fields []ServiceInlineFieldPlan) string {
+	names := make([]string, 0, len(fields))
+	for _, field := range fields {
+		names = append(names, field.Name)
+	}
+	return strings.Join(names, ", ")
 }
 
 func serviceSeq2YieldErrorLines(valueType string) []string {
