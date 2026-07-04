@@ -299,6 +299,7 @@ type mappingRenderContext struct {
 	g           *protogen.GeneratedFile
 	canError    bool
 	errorReturn string
+	errorLines  []string
 	tempNames   *tempNameAllocator
 	tempHint    string
 }
@@ -318,10 +319,31 @@ func newMappingRenderContext(
 	}
 }
 
+func newMappingRenderContextWithErrorLines(
+	g *protogen.GeneratedFile,
+	canError bool,
+	errorLines []string,
+	reserved ...string,
+) *mappingRenderContext {
+	ctx := newMappingRenderContext(g, canError, "", reserved...)
+	ctx.errorLines = errorLines
+	return ctx
+}
+
 func (ctx *mappingRenderContext) line(line string) {
 	// protogen formats generated Go files when building the plugin response, so this
 	// renderer only needs to preserve statement ordering and line breaks.
 	ctx.g.P(line)
+}
+
+func (ctx *mappingRenderContext) emitErrorReturn() {
+	if len(ctx.errorLines) > 0 {
+		for _, line := range ctx.errorLines {
+			ctx.line(line)
+		}
+		return
+	}
+	ctx.line("return " + ctx.errorReturn)
 }
 
 func (ctx *mappingRenderContext) tempName(role string) string {
@@ -455,7 +477,7 @@ func (ctx *mappingRenderContext) renderCall(name string, source string, canError
 	tmp := ctx.tempName("mapped")
 	ctx.line(tmp + ", err := " + call)
 	ctx.line("if err != nil {")
-	ctx.line("return " + ctx.errorReturn)
+	ctx.emitErrorReturn()
 	ctx.line("}")
 	return tmp, nil
 }
@@ -754,7 +776,7 @@ func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source s
 		mapped := ctx.tempName("mapped")
 		ctx.line(mapped + ", err := " + structpbNewStruct(ctx.g) + "(" + source + ")")
 		ctx.line("if err != nil {")
-		ctx.line("return " + ctx.errorReturn)
+		ctx.emitErrorReturn()
 		ctx.line("}")
 		ctx.line(tmp + " = " + mapped)
 		ctx.line("}")
@@ -785,7 +807,7 @@ func (ctx *mappingRenderContext) renderDynamicValue(plan MappingValuePlan, sourc
 		tmp := ctx.tempName("value")
 		ctx.line(tmp + ", err := " + structpbNewValue(ctx.g) + "(" + source + ")")
 		ctx.line("if err != nil {")
-		ctx.line("return " + ctx.errorReturn)
+		ctx.emitErrorReturn()
 		ctx.line("}")
 		return tmp, nil
 	}
@@ -821,7 +843,7 @@ func (ctx *mappingRenderContext) renderDynamicList(plan MappingValuePlan, source
 		mapped := ctx.tempName("mapped")
 		ctx.line(mapped + ", err := " + structpbNewList(ctx.g) + "(" + source + ")")
 		ctx.line("if err != nil {")
-		ctx.line("return " + ctx.errorReturn)
+		ctx.emitErrorReturn()
 		ctx.line("}")
 		ctx.line(tmp + " = " + mapped)
 		ctx.line("}")

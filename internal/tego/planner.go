@@ -189,7 +189,7 @@ func (p *Planner) planFileService(plan *FilePlan, service *ProtoService, si *Sha
 }
 
 func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic {
-	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Services)*4)
+	seen := make(map[string]string, len(plan.Enums)+len(plan.Oneofs)+len(plan.Structs)+len(plan.Services)*8)
 	var diagnostics []Diagnostic
 
 	for _, enum := range plan.Enums {
@@ -206,13 +206,13 @@ func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic
 	}
 	for _, service := range plan.Services {
 		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(plan, seen, service.Name, string(service.ProtoName))...)
-		diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
-			plan,
-			seen,
-			service.ClientName,
-			string(service.ProtoName)+" client interface",
-		)...)
 		if rpc.GRPC {
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
+				service.GRPCAdapterName,
+				string(service.ProtoName)+" gRPC adapter",
+			)...)
 			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
 				plan,
 				seen,
@@ -222,11 +222,23 @@ func plannedNameCollisionDiagnostics(plan FilePlan, rpc RPCOptions) []Diagnostic
 			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
 				plan,
 				seen,
+				service.GRPCNewServerName,
+				string(service.ProtoName)+" gRPC server constructor",
+			)...)
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
 				service.GRPCNewClientName,
 				string(service.ProtoName)+" gRPC client constructor",
 			)...)
 		}
 		if rpc.Connect {
+			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
+				plan,
+				seen,
+				service.ConnectAdapterName,
+				string(service.ProtoName)+" Connect adapter",
+			)...)
 			diagnostics = append(diagnostics, plannedNameCollisionDiagnostic(
 				plan,
 				seen,

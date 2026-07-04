@@ -10,13 +10,12 @@ import (
 	yirapbv1connect "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect"
 	types "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types"
 	omittable "github.com/seeruk/tego/omittable"
-	tegoconnect "github.com/seeruk/tego/rpc/tegoconnect"
-	tegogrpc "github.com/seeruk/tego/rpc/tegogrpc"
 	grpc "google.golang.org/grpc"
-	metadata "google.golang.org/grpc/metadata"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	io "io"
+	iter "iter"
 	http "net/http"
 )
 
@@ -197,170 +196,236 @@ type CursorResponse struct {
 }
 
 type TicketService interface {
-	ListTickets(context.Context, *tego.Request[ListTicketsRequest]) (*tego.Response[ListTicketsResponse], error)
-	GetTicket(context.Context, *tego.Request[GetTicketRequest]) (*tego.Response[GetTicketResponse], error)
-	CreateTicket(context.Context, *tego.Request[CreateTicketRequest]) (*tego.Response[CreateTicketResponse], error)
-	UpdateTicket(context.Context, *tego.Request[UpdateTicketRequest]) (*tego.Response[UpdateTicketResponse], error)
-	CloseTicket(context.Context, *tego.Request[CloseTicketRequest]) (*tego.Response[struct{}], error)
-	WatchTicketEvents(context.Context, *tego.Request[WatchTicketEventsRequest], *tego.ServerSendStream[TicketEvent]) error
-	ImportTicketEvents(context.Context, *tego.ServerRecvStream[TicketEvent]) (*tego.Response[ImportTicketEventsResponse], error)
-	SyncTicketEvents(context.Context, *tego.ServerBidiStream[TicketEvent, TicketEvent]) error
-}
-
-// TicketServiceClient is the client interface for TicketService.
-type TicketServiceClient interface {
-	ListTickets(context.Context, *tego.Request[ListTicketsRequest]) (*tego.Response[ListTicketsResponse], error)
-	GetTicket(context.Context, *tego.Request[GetTicketRequest]) (*tego.Response[GetTicketResponse], error)
-	CreateTicket(context.Context, *tego.Request[CreateTicketRequest]) (*tego.Response[CreateTicketResponse], error)
-	UpdateTicket(context.Context, *tego.Request[UpdateTicketRequest]) (*tego.Response[UpdateTicketResponse], error)
-	CloseTicket(context.Context, *tego.Request[CloseTicketRequest]) (*tego.Response[struct{}], error)
-	WatchTicketEvents(context.Context, *tego.Request[WatchTicketEventsRequest]) (*tego.ClientRecvStream[TicketEvent], error)
-	ImportTicketEvents(context.Context, ...tego.CallOption) (*tego.ClientSendStream[TicketEvent, ImportTicketEventsResponse], error)
-	SyncTicketEvents(context.Context, ...tego.CallOption) (*tego.ClientBidiStream[TicketEvent, TicketEvent], error)
+	ListTickets(ctx context.Context, request ListTicketsRequest) (ListTicketsResponse, error)
+	GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error)
+	CreateTicket(ctx context.Context, request CreateTicketRequest) (CreateTicketResponse, error)
+	UpdateTicket(ctx context.Context, request UpdateTicketRequest) (UpdateTicketResponse, error)
+	CloseTicket(ctx context.Context, request CloseTicketRequest) error
+	WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error)
+	ImportTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (ImportTicketEventsResponse, error)
+	SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error)
 }
 
 func RegisterTicketServiceGRPCServer(registrar grpc.ServiceRegistrar, service TicketService) {
-	yirapbv1.RegisterTicketServiceServer(registrar, &ticketServiceGRPCServer{service: service})
+	yirapbv1.RegisterTicketServiceServer(registrar, NewTicketServiceGRPCServer(service))
+}
+
+func NewTicketServiceGRPCServer(service TicketService) yirapbv1.TicketServiceServer {
+	return &ticketServiceGRPCServer{TicketServiceGRPCAdapter: NewTicketServiceGRPCAdapter(service)}
 }
 
 type ticketServiceGRPCServer struct {
 	yirapbv1.UnimplementedTicketServiceServer
+	*TicketServiceGRPCAdapter
+}
+
+type TicketServiceGRPCAdapter struct {
 	service TicketService
 }
 
+func NewTicketServiceGRPCAdapter(service TicketService) *TicketServiceGRPCAdapter {
+	return &TicketServiceGRPCAdapter{service: service}
+}
+
 func (s *ticketServiceGRPCServer) ListTickets(ctx context.Context, requestProto *yirapbv1.ListTicketsRequest) (*yirapbv1.ListTicketsResponse, error) {
-	requestTego, err := ListTicketsRequestFromProto(requestProto)
+	return s.AdaptListTickets(ctx, requestProto)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptListTickets(ctx context.Context, requestProto *yirapbv1.ListTicketsRequest) (*yirapbv1.ListTicketsResponse, error) {
+	request, err := ListTicketsRequestFromProto(requestProto)
 	if err != nil {
 		return nil, err
 	}
-	response, err := s.service.ListTickets(ctx, tegogrpc.NewRequest(ctx, requestTego, tego.Spec{Procedure: yirapbv1.TicketService_ListTickets_FullMethodName, StreamType: tego.StreamTypeUnary}))
+	response, err := a.service.ListTickets(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := ListTicketsResponseToProto(response.Message)
+	responseProto, err := ListTicketsResponseToProto(response)
 	if err != nil {
-		return nil, err
-	}
-	if err := tegogrpc.ApplyResponseMetadata(ctx, response); err != nil {
 		return nil, err
 	}
 	return responseProto, nil
 }
 
 func (s *ticketServiceGRPCServer) GetTicket(ctx context.Context, requestProto *yirapbv1.GetTicketRequest) (*yirapbv1.GetTicketResponse, error) {
-	requestTego := GetTicketRequestFromProto(requestProto)
-	response, err := s.service.GetTicket(ctx, tegogrpc.NewRequest(ctx, requestTego, tego.Spec{Procedure: yirapbv1.TicketService_GetTicket_FullMethodName, StreamType: tego.StreamTypeUnary}))
+	return s.AdaptGetTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestProto *yirapbv1.GetTicketRequest) (*yirapbv1.GetTicketResponse, error) {
+	request := GetTicketRequestFromProto(requestProto)
+	response, err := a.service.GetTicket(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := GetTicketResponseToProto(response.Message)
+	responseProto, err := GetTicketResponseToProto(response)
 	if err != nil {
-		return nil, err
-	}
-	if err := tegogrpc.ApplyResponseMetadata(ctx, response); err != nil {
 		return nil, err
 	}
 	return responseProto, nil
 }
 
 func (s *ticketServiceGRPCServer) CreateTicket(ctx context.Context, requestProto *yirapbv1.CreateTicketRequest) (*yirapbv1.CreateTicketResponse, error) {
-	requestTego, err := CreateTicketRequestFromProto(requestProto)
+	return s.AdaptCreateTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptCreateTicket(ctx context.Context, requestProto *yirapbv1.CreateTicketRequest) (*yirapbv1.CreateTicketResponse, error) {
+	request, err := CreateTicketRequestFromProto(requestProto)
 	if err != nil {
 		return nil, err
 	}
-	response, err := s.service.CreateTicket(ctx, tegogrpc.NewRequest(ctx, requestTego, tego.Spec{Procedure: yirapbv1.TicketService_CreateTicket_FullMethodName, StreamType: tego.StreamTypeUnary}))
+	response, err := a.service.CreateTicket(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := CreateTicketResponseToProto(response.Message)
+	responseProto, err := CreateTicketResponseToProto(response)
 	if err != nil {
-		return nil, err
-	}
-	if err := tegogrpc.ApplyResponseMetadata(ctx, response); err != nil {
 		return nil, err
 	}
 	return responseProto, nil
 }
 
 func (s *ticketServiceGRPCServer) UpdateTicket(ctx context.Context, requestProto *yirapbv1.UpdateTicketRequest) (*yirapbv1.UpdateTicketResponse, error) {
-	requestTego, err := UpdateTicketRequestFromProto(requestProto)
+	return s.AdaptUpdateTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptUpdateTicket(ctx context.Context, requestProto *yirapbv1.UpdateTicketRequest) (*yirapbv1.UpdateTicketResponse, error) {
+	request, err := UpdateTicketRequestFromProto(requestProto)
 	if err != nil {
 		return nil, err
 	}
-	response, err := s.service.UpdateTicket(ctx, tegogrpc.NewRequest(ctx, requestTego, tego.Spec{Procedure: yirapbv1.TicketService_UpdateTicket_FullMethodName, StreamType: tego.StreamTypeUnary}))
+	response, err := a.service.UpdateTicket(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := UpdateTicketResponseToProto(response.Message)
+	responseProto, err := UpdateTicketResponseToProto(response)
 	if err != nil {
-		return nil, err
-	}
-	if err := tegogrpc.ApplyResponseMetadata(ctx, response); err != nil {
 		return nil, err
 	}
 	return responseProto, nil
 }
 
 func (s *ticketServiceGRPCServer) CloseTicket(ctx context.Context, requestProto *yirapbv1.CloseTicketRequest) (*emptypb.Empty, error) {
-	requestTego := CloseTicketRequestFromProto(requestProto)
-	response, err := s.service.CloseTicket(ctx, tegogrpc.NewRequest(ctx, requestTego, tego.Spec{Procedure: yirapbv1.TicketService_CloseTicket_FullMethodName, StreamType: tego.StreamTypeUnary}))
-	if err != nil {
+	return s.AdaptCloseTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptCloseTicket(ctx context.Context, requestProto *yirapbv1.CloseTicketRequest) (*emptypb.Empty, error) {
+	request := CloseTicketRequestFromProto(requestProto)
+	if err := a.service.CloseTicket(ctx, request); err != nil {
 		return nil, err
 	}
-	responseProto := new(emptypb.Empty)
-	if err := tegogrpc.ApplyResponseMetadata(ctx, response); err != nil {
-		return nil, err
-	}
-	return responseProto, nil
+	return new(emptypb.Empty), nil
 }
 
 func (s *ticketServiceGRPCServer) WatchTicketEvents(requestProto *yirapbv1.WatchTicketEventsRequest, stream grpc.ServerStreamingServer[yirapbv1.TicketEvent]) error {
+	return s.AdaptWatchTicketEvents(requestProto, stream)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *yirapbv1.WatchTicketEventsRequest, stream grpc.ServerStreamingServer[yirapbv1.TicketEvent]) error {
 	ctx := stream.Context()
-	requestTego := WatchTicketEventsRequestFromProto(requestProto)
-	responseToProto := func(responseTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(responseTego)
-	}
-	tegoStream := tegogrpc.NewServerSendStream(stream, tego.Spec{Procedure: yirapbv1.TicketService_WatchTicketEvents_FullMethodName, StreamType: tego.StreamTypeServerStreaming}, responseToProto)
-	if err := s.service.WatchTicketEvents(ctx, tegogrpc.NewRequest(ctx, requestTego, tego.Spec{Procedure: yirapbv1.TicketService_WatchTicketEvents_FullMethodName, StreamType: tego.StreamTypeServerStreaming}), tegoStream); err != nil {
+	request := WatchTicketEventsRequestFromProto(requestProto)
+	responses, err := a.service.WatchTicketEvents(ctx, request)
+	if err != nil {
 		return err
 	}
-	stream.SetTrailer(tegogrpc.MDFromMetadata(tegoStream.ResponseTrailer()))
+	if responses == nil {
+		return nil
+	}
+	for response, err := range responses {
+		if err != nil {
+			return err
+		}
+		responseProto, err := TicketEventToProto(response)
+		if err != nil {
+			return err
+		}
+		if err := stream.Send(responseProto); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (s *ticketServiceGRPCServer) ImportTicketEvents(stream grpc.ClientStreamingServer[yirapbv1.TicketEvent, yirapbv1.ImportTicketEventsResponse]) error {
-	requestFromProto := func(requestProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(requestProto), nil
+	return s.AdaptImportTicketEvents(stream)
+}
+
+func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStreamingServer[yirapbv1.TicketEvent, yirapbv1.ImportTicketEventsResponse]) error {
+	var receiveErr error
+	requests := func(yield func(TicketEvent, error) bool) {
+		for {
+			requestProto, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				receiveErr = err
+				var zero TicketEvent
+				yield(zero, err)
+				return
+			}
+			request := TicketEventFromProto(requestProto)
+			if !yield(request, nil) {
+				return
+			}
+		}
 	}
-	tegoStream := tegogrpc.NewServerRecvStream(stream, tego.Spec{Procedure: yirapbv1.TicketService_ImportTicketEvents_FullMethodName, StreamType: tego.StreamTypeClientStreaming}, requestFromProto)
-	response, err := s.service.ImportTicketEvents(stream.Context(), tegoStream)
+	response, err := a.service.ImportTicketEvents(stream.Context(), requests)
 	if err != nil {
 		return err
 	}
-	responseProto := ImportTicketEventsResponseToProto(response.Message)
-	if err := stream.SetHeader(tegogrpc.MDFromMetadata(response.Header())); err != nil {
-		return err
+	if receiveErr != nil {
+		return receiveErr
 	}
-	stream.SetTrailer(tegogrpc.MDFromMetadata(response.Trailer()))
+	responseProto := ImportTicketEventsResponseToProto(response)
 	return stream.SendAndClose(responseProto)
 }
 
 func (s *ticketServiceGRPCServer) SyncTicketEvents(stream grpc.BidiStreamingServer[yirapbv1.TicketEvent, yirapbv1.TicketEvent]) error {
-	requestFromProto := func(requestProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(requestProto), nil
-	}
-	responseToProto := func(responseTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(responseTego)
-	}
-	tegoStream := tegogrpc.NewServerBidiStream(stream, tego.Spec{Procedure: yirapbv1.TicketService_SyncTicketEvents_FullMethodName, StreamType: tego.StreamTypeBidiStreaming}, requestFromProto, responseToProto)
-	if err := s.service.SyncTicketEvents(stream.Context(), tegoStream); err != nil {
-		return err
-	}
-	stream.SetTrailer(tegogrpc.MDFromMetadata(tegoStream.ResponseTrailer()))
-	return nil
+	return s.AdaptSyncTicketEvents(stream)
 }
 
-func NewTicketServiceGRPCClient(client yirapbv1.TicketServiceClient) TicketServiceClient {
+func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreamingServer[yirapbv1.TicketEvent, yirapbv1.TicketEvent]) error {
+	var receiveErr error
+	requests := func(yield func(TicketEvent, error) bool) {
+		for {
+			requestProto, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				receiveErr = err
+				var zero TicketEvent
+				yield(zero, err)
+				return
+			}
+			request := TicketEventFromProto(requestProto)
+			if !yield(request, nil) {
+				return
+			}
+		}
+	}
+	responses, err := a.service.SyncTicketEvents(stream.Context(), requests)
+	if err != nil {
+		return err
+	}
+	if responses != nil {
+		for response, err := range responses {
+			if err != nil {
+				return err
+			}
+			responseProto, err := TicketEventToProto(response)
+			if err != nil {
+				return err
+			}
+			if err := stream.Send(responseProto); err != nil {
+				return err
+			}
+		}
+	}
+	return receiveErr
+}
+
+func NewTicketServiceGRPCClient(client yirapbv1.TicketServiceClient) TicketService {
 	return &ticketServiceGRPCClient{client: client}
 }
 
@@ -368,247 +433,390 @@ type ticketServiceGRPCClient struct {
 	client yirapbv1.TicketServiceClient
 }
 
-func (c *ticketServiceGRPCClient) ListTickets(ctx context.Context, request *tego.Request[ListTicketsRequest]) (*tego.Response[ListTicketsResponse], error) {
-	requestProto, err := ListTicketsRequestToProto(request.Message)
+func (c *ticketServiceGRPCClient) ListTickets(ctx context.Context, request ListTicketsRequest) (ListTicketsResponse, error) {
+	var zero ListTicketsResponse
+	requestProto, err := ListTicketsRequestToProto(request)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	ctx = tegogrpc.NewOutgoingContext(ctx, request.Header())
-	var header, trailer metadata.MD
-	responseProto, err := c.client.ListTickets(ctx, requestProto, grpc.Header(&header), grpc.Trailer(&trailer))
+	responseProto, err := c.client.ListTickets(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := ListTicketsResponseFromProto(responseProto)
+	response, err := ListTicketsResponseFromProto(responseProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegogrpc.NewResponse(responseTego, header, trailer, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceGRPCClient) GetTicket(ctx context.Context, request *tego.Request[GetTicketRequest]) (*tego.Response[GetTicketResponse], error) {
-	requestProto := GetTicketRequestToProto(request.Message)
-	ctx = tegogrpc.NewOutgoingContext(ctx, request.Header())
-	var header, trailer metadata.MD
-	responseProto, err := c.client.GetTicket(ctx, requestProto, grpc.Header(&header), grpc.Trailer(&trailer))
+func (c *ticketServiceGRPCClient) GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
+	var zero GetTicketResponse
+	requestProto := GetTicketRequestToProto(request)
+	responseProto, err := c.client.GetTicket(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := GetTicketResponseFromProto(responseProto)
+	response, err := GetTicketResponseFromProto(responseProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegogrpc.NewResponse(responseTego, header, trailer, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceGRPCClient) CreateTicket(ctx context.Context, request *tego.Request[CreateTicketRequest]) (*tego.Response[CreateTicketResponse], error) {
-	requestProto, err := CreateTicketRequestToProto(request.Message)
+func (c *ticketServiceGRPCClient) CreateTicket(ctx context.Context, request CreateTicketRequest) (CreateTicketResponse, error) {
+	var zero CreateTicketResponse
+	requestProto, err := CreateTicketRequestToProto(request)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	ctx = tegogrpc.NewOutgoingContext(ctx, request.Header())
-	var header, trailer metadata.MD
-	responseProto, err := c.client.CreateTicket(ctx, requestProto, grpc.Header(&header), grpc.Trailer(&trailer))
+	responseProto, err := c.client.CreateTicket(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := CreateTicketResponseFromProto(responseProto)
+	response, err := CreateTicketResponseFromProto(responseProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegogrpc.NewResponse(responseTego, header, trailer, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceGRPCClient) UpdateTicket(ctx context.Context, request *tego.Request[UpdateTicketRequest]) (*tego.Response[UpdateTicketResponse], error) {
-	requestProto, err := UpdateTicketRequestToProto(request.Message)
+func (c *ticketServiceGRPCClient) UpdateTicket(ctx context.Context, request UpdateTicketRequest) (UpdateTicketResponse, error) {
+	var zero UpdateTicketResponse
+	requestProto, err := UpdateTicketRequestToProto(request)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	ctx = tegogrpc.NewOutgoingContext(ctx, request.Header())
-	var header, trailer metadata.MD
-	responseProto, err := c.client.UpdateTicket(ctx, requestProto, grpc.Header(&header), grpc.Trailer(&trailer))
+	responseProto, err := c.client.UpdateTicket(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := UpdateTicketResponseFromProto(responseProto)
+	response, err := UpdateTicketResponseFromProto(responseProto)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegogrpc.NewResponse(responseTego, header, trailer, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceGRPCClient) CloseTicket(ctx context.Context, request *tego.Request[CloseTicketRequest]) (*tego.Response[struct{}], error) {
-	requestProto := CloseTicketRequestToProto(request.Message)
-	ctx = tegogrpc.NewOutgoingContext(ctx, request.Header())
-	var header, trailer metadata.MD
-	responseProto, err := c.client.CloseTicket(ctx, requestProto, grpc.Header(&header), grpc.Trailer(&trailer))
+func (c *ticketServiceGRPCClient) CloseTicket(ctx context.Context, request CloseTicketRequest) error {
+	requestProto := CloseTicketRequestToProto(request)
+	_, err := c.client.CloseTicket(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	responseTego := struct{}{}
-	return tegogrpc.NewResponse(responseTego, header, trailer, responseProto), nil
+	return nil
 }
 
-func (c *ticketServiceGRPCClient) WatchTicketEvents(ctx context.Context, request *tego.Request[WatchTicketEventsRequest]) (*tego.ClientRecvStream[TicketEvent], error) {
-	requestProto := WatchTicketEventsRequestToProto(request.Message)
-	responseFromProto := func(responseProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(responseProto), nil
-	}
-	ctx = tegogrpc.NewOutgoingContext(ctx, request.Header())
+func (c *ticketServiceGRPCClient) WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error) {
+	requestProto := WatchTicketEventsRequestToProto(request)
 	stream, err := c.client.WatchTicketEvents(ctx, requestProto)
 	if err != nil {
 		return nil, err
 	}
-	return tegogrpc.NewClientRecvStream(stream, tego.Spec{Procedure: yirapbv1.TicketService_WatchTicketEvents_FullMethodName, StreamType: tego.StreamTypeServerStreaming}, responseFromProto), nil
+	responses := func(yield func(TicketEvent, error) bool) {
+		for {
+			responseProto, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				var zero TicketEvent
+				yield(zero, err)
+				return
+			}
+			response := TicketEventFromProto(responseProto)
+			if !yield(response, nil) {
+				return
+			}
+		}
+	}
+	return responses, nil
 }
 
-func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, opts ...tego.CallOption) (*tego.ClientSendStream[TicketEvent, ImportTicketEventsResponse], error) {
-	requestToProto := func(requestTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(requestTego)
-	}
-	responseFromProto := func(responseProto *yirapbv1.ImportTicketEventsResponse) (ImportTicketEventsResponse, error) {
-		return ImportTicketEventsResponseFromProto(responseProto), nil
-	}
-	call := tego.NewCall(opts...)
-	requestHeader := call.Header().Clone()
-	ctx = tegogrpc.NewOutgoingContext(ctx, requestHeader)
+func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (ImportTicketEventsResponse, error) {
+	var zero ImportTicketEventsResponse
 	stream, err := c.client.ImportTicketEvents(ctx)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegogrpc.NewClientSendStream(stream, tego.Spec{Procedure: yirapbv1.TicketService_ImportTicketEvents_FullMethodName, StreamType: tego.StreamTypeClientStreaming}, requestToProto, responseFromProto, tego.WithStreamRequestHeader(requestHeader)), nil
+	for request, err := range requests {
+		if err != nil {
+			return zero, err
+		}
+		requestProto, err := TicketEventToProto(request)
+		if err != nil {
+			return zero, err
+		}
+		if err := stream.Send(requestProto); err != nil {
+			return zero, err
+		}
+	}
+	responseProto, err := stream.CloseAndRecv()
+	if err != nil {
+		return zero, err
+	}
+	response := ImportTicketEventsResponseFromProto(responseProto)
+	return response, nil
 }
 
-func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, opts ...tego.CallOption) (*tego.ClientBidiStream[TicketEvent, TicketEvent], error) {
-	requestToProto := func(requestTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(requestTego)
-	}
-	responseFromProto := func(responseProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(responseProto), nil
-	}
-	call := tego.NewCall(opts...)
-	requestHeader := call.Header().Clone()
-	ctx = tegogrpc.NewOutgoingContext(ctx, requestHeader)
+func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error) {
 	stream, err := c.client.SyncTicketEvents(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return tegogrpc.NewClientBidiStream(stream, tego.Spec{Procedure: yirapbv1.TicketService_SyncTicketEvents_FullMethodName, StreamType: tego.StreamTypeBidiStreaming}, requestToProto, responseFromProto, tego.WithStreamRequestHeader(requestHeader)), nil
+	responses := func(yield func(TicketEvent, error) bool) {
+		sendErr := make(chan error, 1)
+		go func() {
+			for request, err := range requests {
+				if err != nil {
+					sendErr <- err
+					return
+				}
+				requestProto2, err := TicketEventToProto(request)
+				if err != nil {
+					sendErr <- err
+					return
+				}
+				requestProto := requestProto2
+				if err := stream.Send(requestProto); err != nil {
+					sendErr <- err
+					return
+				}
+			}
+			sendErr <- stream.CloseSend()
+		}()
+		for {
+			responseProto, err := stream.Recv()
+			if err == io.EOF {
+				if err := <-sendErr; err != nil {
+					var zero TicketEvent
+					yield(zero, err)
+				}
+				return
+			}
+			if err != nil {
+				var zero TicketEvent
+				yield(zero, err)
+				return
+			}
+			response := TicketEventFromProto(responseProto)
+			if !yield(response, nil) {
+				return
+			}
+		}
+	}
+	return responses, nil
 }
 
 func NewTicketServiceConnectHandler(service TicketService, opts ...connect.HandlerOption) (string, http.Handler) {
-	return yirapbv1connect.NewTicketServiceHandler(&ticketServiceConnectHandler{service: service}, opts...)
+	return yirapbv1connect.NewTicketServiceHandler(&ticketServiceConnectHandler{TicketServiceConnectAdapter: NewTicketServiceConnectAdapter(service)}, opts...)
 }
 
 type ticketServiceConnectHandler struct {
+	*TicketServiceConnectAdapter
+}
+
+type TicketServiceConnectAdapter struct {
 	service TicketService
 }
 
+func NewTicketServiceConnectAdapter(service TicketService) *TicketServiceConnectAdapter {
+	return &TicketServiceConnectAdapter{service: service}
+}
+
 func (s *ticketServiceConnectHandler) ListTickets(ctx context.Context, requestProto *connect.Request[yirapbv1.ListTicketsRequest]) (*connect.Response[yirapbv1.ListTicketsResponse], error) {
-	requestTego, err := ListTicketsRequestFromProto(requestProto.Msg)
+	return s.AdaptListTickets(ctx, requestProto)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptListTickets(ctx context.Context, requestProto *connect.Request[yirapbv1.ListTicketsRequest]) (*connect.Response[yirapbv1.ListTicketsResponse], error) {
+	request, err := ListTicketsRequestFromProto(requestProto.Msg)
 	if err != nil {
 		return nil, err
 	}
-	response, err := s.service.ListTickets(ctx, tegoconnect.NewRequest(requestTego, requestProto))
+	response, err := a.service.ListTickets(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := ListTicketsResponseToProto(response.Message)
+	responseProto, err := ListTicketsResponseToProto(response)
 	if err != nil {
 		return nil, err
 	}
-	return tegoconnect.NewNativeResponse(responseProto, response), nil
+	return connect.NewResponse(responseProto), nil
 }
 
 func (s *ticketServiceConnectHandler) GetTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.GetTicketRequest]) (*connect.Response[yirapbv1.GetTicketResponse], error) {
-	requestTego := GetTicketRequestFromProto(requestProto.Msg)
-	response, err := s.service.GetTicket(ctx, tegoconnect.NewRequest(requestTego, requestProto))
+	return s.AdaptGetTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.GetTicketRequest]) (*connect.Response[yirapbv1.GetTicketResponse], error) {
+	request := GetTicketRequestFromProto(requestProto.Msg)
+	response, err := a.service.GetTicket(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := GetTicketResponseToProto(response.Message)
+	responseProto, err := GetTicketResponseToProto(response)
 	if err != nil {
 		return nil, err
 	}
-	return tegoconnect.NewNativeResponse(responseProto, response), nil
+	return connect.NewResponse(responseProto), nil
 }
 
 func (s *ticketServiceConnectHandler) CreateTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.CreateTicketRequest]) (*connect.Response[yirapbv1.CreateTicketResponse], error) {
-	requestTego, err := CreateTicketRequestFromProto(requestProto.Msg)
+	return s.AdaptCreateTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptCreateTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.CreateTicketRequest]) (*connect.Response[yirapbv1.CreateTicketResponse], error) {
+	request, err := CreateTicketRequestFromProto(requestProto.Msg)
 	if err != nil {
 		return nil, err
 	}
-	response, err := s.service.CreateTicket(ctx, tegoconnect.NewRequest(requestTego, requestProto))
+	response, err := a.service.CreateTicket(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := CreateTicketResponseToProto(response.Message)
+	responseProto, err := CreateTicketResponseToProto(response)
 	if err != nil {
 		return nil, err
 	}
-	return tegoconnect.NewNativeResponse(responseProto, response), nil
+	return connect.NewResponse(responseProto), nil
 }
 
 func (s *ticketServiceConnectHandler) UpdateTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.UpdateTicketRequest]) (*connect.Response[yirapbv1.UpdateTicketResponse], error) {
-	requestTego, err := UpdateTicketRequestFromProto(requestProto.Msg)
+	return s.AdaptUpdateTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptUpdateTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.UpdateTicketRequest]) (*connect.Response[yirapbv1.UpdateTicketResponse], error) {
+	request, err := UpdateTicketRequestFromProto(requestProto.Msg)
 	if err != nil {
 		return nil, err
 	}
-	response, err := s.service.UpdateTicket(ctx, tegoconnect.NewRequest(requestTego, requestProto))
+	response, err := a.service.UpdateTicket(ctx, request)
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err := UpdateTicketResponseToProto(response.Message)
+	responseProto, err := UpdateTicketResponseToProto(response)
 	if err != nil {
 		return nil, err
 	}
-	return tegoconnect.NewNativeResponse(responseProto, response), nil
+	return connect.NewResponse(responseProto), nil
 }
 
 func (s *ticketServiceConnectHandler) CloseTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.CloseTicketRequest]) (*connect.Response[emptypb.Empty], error) {
-	requestTego := CloseTicketRequestFromProto(requestProto.Msg)
-	response, err := s.service.CloseTicket(ctx, tegoconnect.NewRequest(requestTego, requestProto))
-	if err != nil {
+	return s.AdaptCloseTicket(ctx, requestProto)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptCloseTicket(ctx context.Context, requestProto *connect.Request[yirapbv1.CloseTicketRequest]) (*connect.Response[emptypb.Empty], error) {
+	request := CloseTicketRequestFromProto(requestProto.Msg)
+	if err := a.service.CloseTicket(ctx, request); err != nil {
 		return nil, err
 	}
-	responseProto := new(emptypb.Empty)
-	return tegoconnect.NewNativeResponse(responseProto, response), nil
+	return connect.NewResponse(new(emptypb.Empty)), nil
 }
 
 func (s *ticketServiceConnectHandler) WatchTicketEvents(ctx context.Context, requestProto *connect.Request[yirapbv1.WatchTicketEventsRequest], stream *connect.ServerStream[yirapbv1.TicketEvent]) error {
-	requestTego := WatchTicketEventsRequestFromProto(requestProto.Msg)
-	responseToProto := func(responseTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(responseTego)
+	return s.AdaptWatchTicketEvents(ctx, requestProto, stream)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context, requestProto *connect.Request[yirapbv1.WatchTicketEventsRequest], stream *connect.ServerStream[yirapbv1.TicketEvent]) error {
+	request := WatchTicketEventsRequestFromProto(requestProto.Msg)
+	responses, err := a.service.WatchTicketEvents(ctx, request)
+	if err != nil {
+		return err
 	}
-	tegoStream := tegoconnect.NewServerSendStream(stream, responseToProto)
-	return s.service.WatchTicketEvents(ctx, tegoconnect.NewRequest(requestTego, requestProto), tegoStream)
+	if responses == nil {
+		return nil
+	}
+	for response, err := range responses {
+		if err != nil {
+			return err
+		}
+		responseProto, err := TicketEventToProto(response)
+		if err != nil {
+			return err
+		}
+		if err := stream.Send(responseProto); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *ticketServiceConnectHandler) ImportTicketEvents(ctx context.Context, stream *connect.ClientStream[yirapbv1.TicketEvent]) (*connect.Response[yirapbv1.ImportTicketEventsResponse], error) {
-	requestFromProto := func(requestProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(requestProto), nil
+	return s.AdaptImportTicketEvents(ctx, stream)
+}
+
+func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Context, stream *connect.ClientStream[yirapbv1.TicketEvent]) (*connect.Response[yirapbv1.ImportTicketEventsResponse], error) {
+	var receiveErr error
+	requests := func(yield func(TicketEvent, error) bool) {
+		for stream.Receive() {
+			request := TicketEventFromProto(stream.Msg())
+			if !yield(request, nil) {
+				return
+			}
+		}
+		if err := stream.Err(); err != nil {
+			receiveErr = err
+			var zero TicketEvent
+			yield(zero, err)
+		}
 	}
-	tegoStream := tegoconnect.NewServerRecvStream(stream, requestFromProto)
-	response, err := s.service.ImportTicketEvents(ctx, tegoStream)
+	response, err := a.service.ImportTicketEvents(ctx, requests)
 	if err != nil {
 		return nil, err
 	}
-	responseProto := ImportTicketEventsResponseToProto(response.Message)
-	return tegoconnect.NewNativeResponse(responseProto, response), nil
+	if receiveErr != nil {
+		return nil, receiveErr
+	}
+	responseProto := ImportTicketEventsResponseToProto(response)
+	return connect.NewResponse(responseProto), nil
 }
 
 func (s *ticketServiceConnectHandler) SyncTicketEvents(ctx context.Context, stream *connect.BidiStream[yirapbv1.TicketEvent, yirapbv1.TicketEvent]) error {
-	requestFromProto := func(requestProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(requestProto), nil
-	}
-	responseToProto := func(responseTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(responseTego)
-	}
-	tegoStream := tegoconnect.NewServerBidiStream(stream, requestFromProto, responseToProto)
-	return s.service.SyncTicketEvents(ctx, tegoStream)
+	return s.AdaptSyncTicketEvents(ctx, stream)
 }
 
-func NewTicketServiceConnectClient(client yirapbv1connect.TicketServiceClient) TicketServiceClient {
+func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context, stream *connect.BidiStream[yirapbv1.TicketEvent, yirapbv1.TicketEvent]) error {
+	var receiveErr error
+	requests := func(yield func(TicketEvent, error) bool) {
+		for {
+			requestProto, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				receiveErr = err
+				var zero TicketEvent
+				yield(zero, err)
+				return
+			}
+			request := TicketEventFromProto(requestProto)
+			if !yield(request, nil) {
+				return
+			}
+		}
+	}
+	responses, err := a.service.SyncTicketEvents(ctx, requests)
+	if err != nil {
+		return err
+	}
+	if responses != nil {
+		for response, err := range responses {
+			if err != nil {
+				return err
+			}
+			responseProto, err := TicketEventToProto(response)
+			if err != nil {
+				return err
+			}
+			if err := stream.Send(responseProto); err != nil {
+				return err
+			}
+		}
+	}
+	return receiveErr
+}
+
+func NewTicketServiceConnectClient(client yirapbv1connect.TicketServiceClient) TicketService {
 	return &ticketServiceConnectClient{client: client}
 }
 
@@ -616,119 +824,174 @@ type ticketServiceConnectClient struct {
 	client yirapbv1connect.TicketServiceClient
 }
 
-func (c *ticketServiceConnectClient) ListTickets(ctx context.Context, request *tego.Request[ListTicketsRequest]) (*tego.Response[ListTicketsResponse], error) {
-	requestProto, err := ListTicketsRequestToProto(request.Message)
+func (c *ticketServiceConnectClient) ListTickets(ctx context.Context, request ListTicketsRequest) (ListTicketsResponse, error) {
+	var zero ListTicketsResponse
+	requestProto, err := ListTicketsRequestToProto(request)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	nativeRequest := tegoconnect.NewNativeRequest(requestProto, request)
-	responseProto, err := c.client.ListTickets(ctx, nativeRequest)
+	responseProto, err := c.client.ListTickets(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := ListTicketsResponseFromProto(responseProto.Msg)
+	response, err := ListTicketsResponseFromProto(responseProto.Msg)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegoconnect.NewResponse(responseTego, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceConnectClient) GetTicket(ctx context.Context, request *tego.Request[GetTicketRequest]) (*tego.Response[GetTicketResponse], error) {
-	requestProto := GetTicketRequestToProto(request.Message)
-	nativeRequest := tegoconnect.NewNativeRequest(requestProto, request)
-	responseProto, err := c.client.GetTicket(ctx, nativeRequest)
+func (c *ticketServiceConnectClient) GetTicket(ctx context.Context, request GetTicketRequest) (GetTicketResponse, error) {
+	var zero GetTicketResponse
+	requestProto := GetTicketRequestToProto(request)
+	responseProto, err := c.client.GetTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := GetTicketResponseFromProto(responseProto.Msg)
+	response, err := GetTicketResponseFromProto(responseProto.Msg)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegoconnect.NewResponse(responseTego, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceConnectClient) CreateTicket(ctx context.Context, request *tego.Request[CreateTicketRequest]) (*tego.Response[CreateTicketResponse], error) {
-	requestProto, err := CreateTicketRequestToProto(request.Message)
+func (c *ticketServiceConnectClient) CreateTicket(ctx context.Context, request CreateTicketRequest) (CreateTicketResponse, error) {
+	var zero CreateTicketResponse
+	requestProto, err := CreateTicketRequestToProto(request)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	nativeRequest := tegoconnect.NewNativeRequest(requestProto, request)
-	responseProto, err := c.client.CreateTicket(ctx, nativeRequest)
+	responseProto, err := c.client.CreateTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := CreateTicketResponseFromProto(responseProto.Msg)
+	response, err := CreateTicketResponseFromProto(responseProto.Msg)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegoconnect.NewResponse(responseTego, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceConnectClient) UpdateTicket(ctx context.Context, request *tego.Request[UpdateTicketRequest]) (*tego.Response[UpdateTicketResponse], error) {
-	requestProto, err := UpdateTicketRequestToProto(request.Message)
+func (c *ticketServiceConnectClient) UpdateTicket(ctx context.Context, request UpdateTicketRequest) (UpdateTicketResponse, error) {
+	var zero UpdateTicketResponse
+	requestProto, err := UpdateTicketRequestToProto(request)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	nativeRequest := tegoconnect.NewNativeRequest(requestProto, request)
-	responseProto, err := c.client.UpdateTicket(ctx, nativeRequest)
+	responseProto, err := c.client.UpdateTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	responseTego, err := UpdateTicketResponseFromProto(responseProto.Msg)
+	response, err := UpdateTicketResponseFromProto(responseProto.Msg)
 	if err != nil {
-		return nil, err
+		return zero, err
 	}
-	return tegoconnect.NewResponse(responseTego, responseProto), nil
+	return response, nil
 }
 
-func (c *ticketServiceConnectClient) CloseTicket(ctx context.Context, request *tego.Request[CloseTicketRequest]) (*tego.Response[struct{}], error) {
-	requestProto := CloseTicketRequestToProto(request.Message)
-	nativeRequest := tegoconnect.NewNativeRequest(requestProto, request)
-	responseProto, err := c.client.CloseTicket(ctx, nativeRequest)
+func (c *ticketServiceConnectClient) CloseTicket(ctx context.Context, request CloseTicketRequest) error {
+	requestProto := CloseTicketRequestToProto(request)
+	_, err := c.client.CloseTicket(ctx, connect.NewRequest(requestProto))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ticketServiceConnectClient) WatchTicketEvents(ctx context.Context, request WatchTicketEventsRequest) (iter.Seq2[TicketEvent, error], error) {
+	requestProto := WatchTicketEventsRequestToProto(request)
+	stream, err := c.client.WatchTicketEvents(ctx, connect.NewRequest(requestProto))
 	if err != nil {
 		return nil, err
 	}
-	responseTego := struct{}{}
-	return tegoconnect.NewResponse(responseTego, responseProto), nil
+	responses := func(yield func(TicketEvent, error) bool) {
+		defer stream.Close()
+		for stream.Receive() {
+			response := TicketEventFromProto(stream.Msg())
+			if !yield(response, nil) {
+				return
+			}
+		}
+		if err := stream.Err(); err != nil {
+			var zero TicketEvent
+			yield(zero, err)
+		}
+	}
+	return responses, nil
 }
 
-func (c *ticketServiceConnectClient) WatchTicketEvents(ctx context.Context, request *tego.Request[WatchTicketEventsRequest]) (*tego.ClientRecvStream[TicketEvent], error) {
-	requestProto := WatchTicketEventsRequestToProto(request.Message)
-	responseFromProto := func(responseProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(responseProto), nil
-	}
-	nativeRequest := tegoconnect.NewNativeRequest(requestProto, request)
-	stream, err := c.client.WatchTicketEvents(ctx, nativeRequest)
-	if err != nil {
-		return nil, err
-	}
-	return tegoconnect.NewClientRecvStream(stream, responseFromProto), nil
-}
-
-func (c *ticketServiceConnectClient) ImportTicketEvents(ctx context.Context, opts ...tego.CallOption) (*tego.ClientSendStream[TicketEvent, ImportTicketEventsResponse], error) {
-	requestToProto := func(requestTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(requestTego)
-	}
-	responseFromProto := func(responseProto *yirapbv1.ImportTicketEventsResponse) (ImportTicketEventsResponse, error) {
-		return ImportTicketEventsResponseFromProto(responseProto), nil
-	}
-	call := tego.NewCall(opts...)
+func (c *ticketServiceConnectClient) ImportTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (ImportTicketEventsResponse, error) {
+	var zero ImportTicketEventsResponse
 	stream := c.client.ImportTicketEvents(ctx)
-	tegoconnect.CopyMetadataToHeader(stream.RequestHeader(), call.Header())
-	return tegoconnect.NewClientSendStream(stream, requestToProto, responseFromProto), nil
+	for request, err := range requests {
+		if err != nil {
+			return zero, err
+		}
+		requestProto, err := TicketEventToProto(request)
+		if err != nil {
+			return zero, err
+		}
+		if err := stream.Send(requestProto); err != nil {
+			return zero, err
+		}
+	}
+	responseProto, err := stream.CloseAndReceive()
+	if err != nil {
+		return zero, err
+	}
+	response := ImportTicketEventsResponseFromProto(responseProto.Msg)
+	return response, nil
 }
 
-func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, opts ...tego.CallOption) (*tego.ClientBidiStream[TicketEvent, TicketEvent], error) {
-	requestToProto := func(requestTego TicketEvent) (*yirapbv1.TicketEvent, error) {
-		return TicketEventToProto(requestTego)
-	}
-	responseFromProto := func(responseProto *yirapbv1.TicketEvent) (TicketEvent, error) {
-		return TicketEventFromProto(responseProto), nil
-	}
-	call := tego.NewCall(opts...)
+func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error) {
 	stream := c.client.SyncTicketEvents(ctx)
-	tegoconnect.CopyMetadataToHeader(stream.RequestHeader(), call.Header())
-	return tegoconnect.NewClientBidiStream(stream, requestToProto, responseFromProto), nil
+	responses := func(yield func(TicketEvent, error) bool) {
+		sendErr := make(chan error, 1)
+		go func() {
+			for request, err := range requests {
+				if err != nil {
+					sendErr <- err
+					return
+				}
+				requestProto2, err := TicketEventToProto(request)
+				if err != nil {
+					sendErr <- err
+					return
+				}
+				requestProto := requestProto2
+				if err := stream.Send(requestProto); err != nil {
+					sendErr <- err
+					return
+				}
+			}
+			sendErr <- stream.CloseRequest()
+		}()
+		for {
+			responseProto, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				var zero TicketEvent
+				yield(zero, err)
+				return
+			}
+			response := TicketEventFromProto(responseProto)
+			if !yield(response, nil) {
+				return
+			}
+		}
+		if err := <-sendErr; err != nil {
+			var zero TicketEvent
+			yield(zero, err)
+			return
+		}
+		if err := stream.CloseResponse(); err != nil {
+			var zero TicketEvent
+			yield(zero, err)
+		}
+	}
+	return responses, nil
 }
 
 func ListTicketsRequestFromProto(source *yirapbv1.ListTicketsRequest) (ListTicketsRequest, error) {

@@ -29,6 +29,6 @@ go run ./example/grpc/client
 
 The gRPC server listens on `localhost:50051`.
 
-Both clients use the generated Tego-native `yira.TicketServiceClient` interface and run the same
+Both clients use the generated facade `yira.TicketService` interface and run the same
 workflow: create, update, list, get, watch events, import events with client streaming, sync one
 event with bidirectional streaming, and close a ticket. 

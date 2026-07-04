@@ -20,12 +20,12 @@ func plannedServiceName(service *ProtoService) string {
 	return goName(string(service.Name))
 }
 
-func plannedServiceClientName(serviceName string) string {
-	return serviceName + "Client"
-}
-
 func plannedServiceGRPCServerName(serviceName string) string {
 	return tempIdentifierBase(serviceName) + "GRPCServer"
+}
+
+func plannedServiceGRPCAdapterName(serviceName string) string {
+	return serviceName + "GRPCAdapter"
 }
 
 func plannedServiceGRPCClientName(serviceName string) string {
@@ -36,12 +36,20 @@ func plannedServiceGRPCRegisterName(serviceName string) string {
 	return "Register" + serviceName + "GRPCServer"
 }
 
+func plannedServiceGRPCNewServerName(serviceName string) string {
+	return "New" + serviceName + "GRPCServer"
+}
+
 func plannedServiceGRPCNewClientName(serviceName string) string {
 	return "New" + serviceName + "GRPCClient"
 }
 
 func plannedServiceConnectHandlerName(serviceName string) string {
 	return tempIdentifierBase(serviceName) + "ConnectHandler"
+}
+
+func plannedServiceConnectAdapterName(serviceName string) string {
+	return serviceName + "ConnectAdapter"
 }
 
 func plannedServiceConnectClientName(serviceName string) string {

@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	connectImportPath     = "connectrpc.com/connect"
-	contextImportPath     = "context"
-	grpcImportPath        = "google.golang.org/grpc"
-	httpImportPath        = "net/http"
-	metadataImportPath    = "google.golang.org/grpc/metadata"
-	tegoconnectImportPath = "github.com/seeruk/tego/rpc/tegoconnect"
-	tegogrpcImportPath    = "github.com/seeruk/tego/rpc/tegogrpc"
+	connectImportPath = "connectrpc.com/connect"
+	contextImportPath = "context"
+	errorsImportPath  = "errors"
+	grpcImportPath    = "google.golang.org/grpc"
+	httpImportPath    = "net/http"
+	ioImportPath      = "io"
+	iterImportPath    = "iter"
 )
 
 func generateService(g *protogen.GeneratedFile, service ServicePlan, rpc RPCOptions) error {
@@ -23,19 +23,6 @@ func generateService(g *protogen.GeneratedFile, service ServicePlan, rpc RPCOpti
 		signature, err := generateServiceMethodSignature(g, method)
 		if err != nil {
 			return fmt.Errorf("service %s method %s: %w", service.ProtoName, method.ProtoName, err)
-		}
-		generateComment(g, "\t", method.Comment)
-		g.P("\t", signature)
-	}
-	g.P("}")
-	g.P()
-
-	generateComment(g, "", service.ClientName+" is the client interface for "+service.Name+".")
-	g.P("type ", service.ClientName, " interface {")
-	for _, method := range service.Methods {
-		signature, err := generateServiceClientMethodSignature(g, method)
-		if err != nil {
-			return fmt.Errorf("service client %s method %s: %w", service.ProtoName, method.ProtoName, err)
 		}
 		generateComment(g, "\t", method.Comment)
 		g.P("\t", signature)
@@ -66,96 +53,31 @@ func generateServiceMethodSignature(g *protogen.GeneratedFile, method ServiceMet
 	contextType := generateContextType(g)
 	switch method.StreamType {
 	case ServiceStreamTypeUnary:
-		return fmt.Sprintf(
-			"%s(%s, *%s[%s]) (*%s[%s], error)",
-			method.Name,
-			contextType,
-			generateTegoType(g, "Request"),
-			request,
-			generateTegoType(g, "Response"),
-			response,
-		), nil
+		if serviceResponseIsEmpty(method) {
+			return fmt.Sprintf("%s(ctx %s, request %s) error", method.Name, contextType, request), nil
+		}
+		return fmt.Sprintf("%s(ctx %s, request %s) (%s, error)", method.Name, contextType, request, response), nil
 	case ServiceStreamTypeServerStreaming:
 		return fmt.Sprintf(
-			"%s(%s, *%s[%s], *%s[%s]) error",
+			"%s(ctx %s, request %s) (%s, error)",
 			method.Name,
 			contextType,
-			generateTegoType(g, "Request"),
 			request,
-			generateTegoType(g, "ServerSendStream"),
-			response,
+			generateSeq2Type(g, response),
 		), nil
 	case ServiceStreamTypeClientStreaming:
-		return fmt.Sprintf(
-			"%s(%s, *%s[%s]) (*%s[%s], error)",
-			method.Name,
-			contextType,
-			generateTegoType(g, "ServerRecvStream"),
-			request,
-			generateTegoType(g, "Response"),
-			response,
-		), nil
+		requests := generateSeq2Type(g, request)
+		if serviceResponseIsEmpty(method) {
+			return fmt.Sprintf("%s(ctx %s, requests %s) error", method.Name, contextType, requests), nil
+		}
+		return fmt.Sprintf("%s(ctx %s, requests %s) (%s, error)", method.Name, contextType, requests, response), nil
 	case ServiceStreamTypeBidiStreaming:
 		return fmt.Sprintf(
-			"%s(%s, *%s[%s, %s]) error",
+			"%s(ctx %s, requests %s) (%s, error)",
 			method.Name,
 			contextType,
-			generateTegoType(g, "ServerBidiStream"),
-			request,
-			response,
-		), nil
-	default:
-		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
-	}
-}
-
-func generateServiceClientMethodSignature(g *protogen.GeneratedFile, method ServiceMethodPlan) (string, error) {
-	request, response, err := generateServiceMethodTypes(g, method)
-	if err != nil {
-		return "", err
-	}
-
-	contextType := generateContextType(g)
-	switch method.StreamType {
-	case ServiceStreamTypeUnary:
-		return fmt.Sprintf(
-			"%s(%s, *%s[%s]) (*%s[%s], error)",
-			method.Name,
-			contextType,
-			generateTegoType(g, "Request"),
-			request,
-			generateTegoType(g, "Response"),
-			response,
-		), nil
-	case ServiceStreamTypeServerStreaming:
-		return fmt.Sprintf(
-			"%s(%s, *%s[%s]) (*%s[%s], error)",
-			method.Name,
-			contextType,
-			generateTegoType(g, "Request"),
-			request,
-			generateTegoType(g, "ClientRecvStream"),
-			response,
-		), nil
-	case ServiceStreamTypeClientStreaming:
-		return fmt.Sprintf(
-			"%s(%s, ...%s) (*%s[%s, %s], error)",
-			method.Name,
-			contextType,
-			generateTegoType(g, "CallOption"),
-			generateTegoType(g, "ClientSendStream"),
-			request,
-			response,
-		), nil
-	case ServiceStreamTypeBidiStreaming:
-		return fmt.Sprintf(
-			"%s(%s, ...%s) (*%s[%s, %s], error)",
-			method.Name,
-			contextType,
-			generateTegoType(g, "CallOption"),
-			generateTegoType(g, "ClientBidiStream"),
-			request,
-			response,
+			generateSeq2Type(g, request),
+			generateSeq2Type(g, response),
 		), nil
 	default:
 		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
@@ -180,29 +102,43 @@ func generateContextType(g *protogen.GeneratedFile) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: contextImportPath, Name: "Context"})
 }
 
-func generateTegoType(g *protogen.GeneratedFile, name string) string {
-	return generateNamedType(g, GoTypeRef{ImportPath: tegoImportPath, Name: name})
+func generateSeq2Type(g *protogen.GeneratedFile, value string) string {
+	return generateNamedType(g, GoTypeRef{ImportPath: iterImportPath, Name: "Seq2"}) + "[" + value + ", error]"
+}
+
+func serviceResponseIsEmpty(method ServiceMethodPlan) bool {
+	return method.Response.Type.Kind == TypeKindEmptyStruct
 }
 
 func generateGRPCService(g *protogen.GeneratedFile, service ServicePlan) error {
 	g.P("func ", service.GRPCRegisterName, "(", "registrar ", generateGRPCType(g, "ServiceRegistrar"), ", service ", service.Name, ") {")
-	g.P("\t", generateProtoServiceSymbol(g, service, "Register", "Server"), "(registrar, &", service.GRPCServerName, "{service: service})")
+	g.P("\t", generateProtoServiceSymbol(g, service, "Register", "Server"), "(registrar, ", service.GRPCNewServerName, "(service))")
+	g.P("}")
+	g.P()
+
+	g.P("func ", service.GRPCNewServerName, "(service ", service.Name, ") ", generateProtoServiceType(g, service, "", "Server"), " {")
+	g.P("\treturn &", service.GRPCServerName, "{", service.GRPCAdapterName, ": ", service.GRPCAdapterNewExpr(), "}")
 	g.P("}")
 	g.P()
 
 	g.P("type ", service.GRPCServerName, " struct {")
 	g.P("\t", generateProtoServiceType(g, service, "Unimplemented", "Server"))
-	g.P("\tservice ", service.Name)
+	g.P("\t*", service.GRPCAdapterName)
 	g.P("}")
 	g.P()
+
+	generateGRPCAdapter(g, service)
 
 	for _, method := range service.Methods {
 		if err := generateGRPCServerMethod(g, service, method); err != nil {
 			return fmt.Errorf("gRPC server method %s: %w", method.ProtoName, err)
 		}
+		if err := generateGRPCAdapterMethod(g, service, method); err != nil {
+			return fmt.Errorf("gRPC adapter method %s: %w", method.ProtoName, err)
+		}
 	}
 
-	g.P("func ", service.GRPCNewClientName, "(client ", generateProtoServiceType(g, service, "", "Client"), ") ", service.ClientName, " {")
+	g.P("func ", service.GRPCNewClientName, "(client ", generateProtoServiceType(g, service, "", "Client"), ") ", service.Name, " {")
 	g.P("\treturn &", service.GRPCClientName, "{client: client}")
 	g.P("}")
 	g.P()
@@ -221,58 +157,56 @@ func generateGRPCService(g *protogen.GeneratedFile, service ServicePlan) error {
 	return nil
 }
 
-func generateConnectService(g *protogen.GeneratedFile, service ServicePlan) error {
-	g.P("func ", service.ConnectNewHandlerName, "(service ", service.Name, ", opts ...", generateConnectType(g, "HandlerOption"), ") (string, ", generateHTTPType(g, "Handler"), ") {")
-	g.P("\treturn ", generateConnectServiceSymbol(g, service, "New", "Handler"), "(&", service.ConnectHandlerName, "{service: service}, opts...)")
-	g.P("}")
-	g.P()
+func (service ServicePlan) GRPCAdapterNewExpr() string {
+	return "New" + service.GRPCAdapterName + "(service)"
+}
 
-	g.P("type ", service.ConnectHandlerName, " struct {")
+func generateGRPCAdapter(g *protogen.GeneratedFile, service ServicePlan) {
+	g.P("type ", service.GRPCAdapterName, " struct {")
 	g.P("\tservice ", service.Name)
 	g.P("}")
 	g.P()
 
-	for _, method := range service.Methods {
-		if err := generateConnectHandlerMethod(g, service, method); err != nil {
-			return fmt.Errorf("connect handler method %s: %w", method.ProtoName, err)
-		}
-	}
-
-	g.P("func ", service.ConnectNewClientName, "(client ", generateConnectServiceType(g, service, "", "Client"), ") ", service.ClientName, " {")
-	g.P("\treturn &", service.ConnectClientName, "{client: client}")
+	g.P("func New", service.GRPCAdapterName, "(service ", service.Name, ") *", service.GRPCAdapterName, " {")
+	g.P("\treturn &", service.GRPCAdapterName, "{service: service}")
 	g.P("}")
 	g.P()
-
-	g.P("type ", service.ConnectClientName, " struct {")
-	g.P("\tclient ", generateConnectServiceType(g, service, "", "Client"))
-	g.P("}")
-	g.P()
-
-	for _, method := range service.Methods {
-		if err := generateConnectClientMethod(g, service, method); err != nil {
-			return fmt.Errorf("connect client method %s: %w", method.ProtoName, err)
-		}
-	}
-
-	return nil
 }
 
 func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateGRPCServerMethodSignature(g, service, method)
+	signature, err := generateGRPCServerMethodSignature(g, method.Name, method)
+	if err != nil {
+		return err
+	}
+
+	arguments, err := generateGRPCServerMethodArguments(method)
 	if err != nil {
 		return err
 	}
 
 	g.P("func (s *", service.GRPCServerName, ") ", signature, " {")
+	g.P("\treturn s.Adapt", method.Name, "(", arguments, ")")
+	g.P("}")
+	g.P()
+	return nil
+}
+
+func generateGRPCAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	signature, err := generateGRPCServerMethodSignature(g, "Adapt"+method.Name, method)
+	if err != nil {
+		return err
+	}
+
+	g.P("func (a *", service.GRPCAdapterName, ") ", signature, " {")
 	switch method.StreamType {
 	case ServiceStreamTypeUnary:
-		err = generateGRPCServerUnaryMethodBody(g, service, method)
+		err = generateGRPCAdapterUnaryMethodBody(g, method)
 	case ServiceStreamTypeServerStreaming:
-		err = generateGRPCServerServerStreamingMethodBody(g, service, method)
+		err = generateGRPCAdapterServerStreamingMethodBody(g, method)
 	case ServiceStreamTypeClientStreaming:
-		err = generateGRPCServerClientStreamingMethodBody(g, service, method)
+		err = generateGRPCAdapterClientStreamingMethodBody(g, method)
 	case ServiceStreamTypeBidiStreaming:
-		err = generateGRPCServerBidiStreamingMethodBody(g, service, method)
+		err = generateGRPCAdapterBidiStreamingMethodBody(g, method)
 	default:
 		err = fmt.Errorf("unsupported stream type %d", method.StreamType)
 	}
@@ -286,7 +220,7 @@ func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, me
 
 func generateGRPCServerMethodSignature(
 	g *protogen.GeneratedFile,
-	service ServicePlan,
+	name string,
 	method ServiceMethodPlan,
 ) (string, error) {
 	contextType := generateContextType(g)
@@ -297,107 +231,209 @@ func generateGRPCServerMethodSignature(
 
 	switch method.StreamType {
 	case ServiceStreamTypeUnary:
-		return fmt.Sprintf("%s(ctx %s, requestProto %s) (%s, error)", method.Name, contextType, requestProto, responseProto), nil
+		return fmt.Sprintf("%s(ctx %s, requestProto %s) (%s, error)", name, contextType, requestProto, responseProto), nil
 	case ServiceStreamTypeServerStreaming:
 		stream, err := generateGRPCStreamType(g, "ServerStreamingServer", method.Response.ProtoType)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(requestProto %s, stream %s) error", method.Name, requestProto, stream), nil
+		return fmt.Sprintf("%s(requestProto %s, stream %s) error", name, requestProto, stream), nil
 	case ServiceStreamTypeClientStreaming:
 		stream, err := generateGRPCStreamType(g, "ClientStreamingServer", method.Request.ProtoType, method.Response.ProtoType)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(stream %s) error", method.Name, stream), nil
+		return fmt.Sprintf("%s(stream %s) error", name, stream), nil
 	case ServiceStreamTypeBidiStreaming:
 		stream, err := generateGRPCStreamType(g, "BidiStreamingServer", method.Request.ProtoType, method.Response.ProtoType)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(stream %s) error", method.Name, stream), nil
+		return fmt.Sprintf("%s(stream %s) error", name, stream), nil
 	default:
 		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
 	}
 }
 
-func generateGRPCServerUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCServerMethodArguments(method ServiceMethodPlan) (string, error) {
+	switch method.StreamType {
+	case ServiceStreamTypeUnary:
+		return "ctx, requestProto", nil
+	case ServiceStreamTypeServerStreaming:
+		return "requestProto, stream", nil
+	case ServiceStreamTypeClientStreaming, ServiceStreamTypeBidiStreaming:
+		return "stream", nil
+	default:
+		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
+	}
+}
+
+func generateGRPCAdapterUnaryMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceMappedAssignment(ctx, "requestTego", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("response, err := s.service." + method.Name + "(ctx, " + generateTegogrpcSymbol(g, "NewRequest") + "(ctx, requestTego, " + generateGRPCServiceSpec(g, service, method) + "))")
+
+	if serviceResponseIsEmpty(method) {
+		ctx.line("if err := a.service." + method.Name + "(ctx, request); err != nil {")
+		ctx.line("return nil, err")
+		ctx.line("}")
+		responseExpr, err := serviceEmptyStructConverterReturnExpr(g, method.Response.ToProto)
+		if err != nil {
+			return fmt.Errorf("response: %w", err)
+		}
+		ctx.line("return " + responseExpr + ", nil")
+		return nil
+	}
+
+	ctx.line("response, err := a.service." + method.Name + "(ctx, request)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response.Message"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("if err := " + generateTegogrpcSymbol(g, "ApplyResponseMetadata") + "(ctx, response); err != nil {")
-	ctx.line("return nil, err")
-	ctx.line("}")
 	ctx.line("return responseProto, nil")
 	return nil
 }
 
-func generateGRPCServerServerStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCAdapterServerStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, "err")
 	ctx.line("ctx := stream.Context()")
-	if err := generateServiceMappedAssignment(ctx, "requestTego", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	if err := generateServiceConverterFunc(g, "responseToProto", method.Response.ToProto, "responseTego", "responseProto"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("tegoStream := " + generateTegogrpcSymbol(g, "NewServerSendStream") + "(stream, " + generateGRPCServiceSpec(g, service, method) + ", responseToProto)")
-	ctx.line("if err := s.service." + method.Name + "(ctx, " + generateTegogrpcSymbol(g, "NewRequest") + "(ctx, requestTego, " + generateGRPCServiceSpec(g, service, method) + "), tegoStream); err != nil {")
+	ctx.line("responses, err := a.service." + method.Name + "(ctx, request)")
+	ctx.line("if err != nil {")
 	ctx.line("return err")
 	ctx.line("}")
-	ctx.line("stream.SetTrailer(" + generateTegogrpcSymbol(g, "MDFromMetadata") + "(tegoStream.ResponseTrailer()))")
+	ctx.line("if responses == nil {")
+	ctx.line("return nil")
+	ctx.line("}")
+	ctx.line("for response, err := range responses {")
+	ctx.line("if err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if err := stream.Send(responseProto); err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	ctx.line("}")
 	ctx.line("return nil")
 	return nil
 }
 
-func generateGRPCServerClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "err")
-	if err := generateServiceConverterFunc(g, "requestFromProto", method.Request.FromProto, "requestProto", "requestTego"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
+func generateGRPCAdapterClientStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+	requestType, err := generateType(g, method.Request.Type)
+	if err != nil {
+		return fmt.Errorf("request type: %w", err)
 	}
-	ctx.line("tegoStream := " + generateTegogrpcSymbol(g, "NewServerRecvStream") + "(stream, " + generateGRPCServiceSpec(g, service, method) + ", requestFromProto)")
-	ctx.line("response, err := s.service." + method.Name + "(stream.Context(), tegoStream)")
+	ctx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2ReceiveErrorLines(requestType), "requestProto")
+	ctx.line("var receiveErr error")
+	ctx.line("requests := func(yield func(" + requestType + ", error) bool) {")
+	ctx.line("for {")
+	ctx.line("requestProto, err := stream.Recv()")
+	ctx.line("if err == " + generateIOSymbol(g, "EOF") + " {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("if err != nil {")
+	ctx.line("receiveErr = err")
+	ctx.line("var zero " + requestType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	ctx.line("if !yield(request, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+
+	ctx = newMappingRenderContext(g, true, "err")
+	if serviceResponseIsEmpty(method) {
+		ctx.line("if err := a.service." + method.Name + "(stream.Context(), requests); err != nil {")
+		ctx.line("return err")
+		ctx.line("}")
+		ctx.line("if receiveErr != nil {")
+		ctx.line("return receiveErr")
+		ctx.line("}")
+		responseExpr, err := serviceEmptyStructConverterReturnExpr(g, method.Response.ToProto)
+		if err != nil {
+			return fmt.Errorf("response: %w", err)
+		}
+		ctx.line("return stream.SendAndClose(" + responseExpr + ")")
+		return nil
+	}
+
+	ctx.line("response, err := a.service." + method.Name + "(stream.Context(), requests)")
 	ctx.line("if err != nil {")
 	ctx.line("return err")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response.Message"); err != nil {
+	ctx.line("if receiveErr != nil {")
+	ctx.line("return receiveErr")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("if err := stream.SetHeader(" + generateTegogrpcSymbol(g, "MDFromMetadata") + "(response.Header())); err != nil {")
-	ctx.line("return err")
-	ctx.line("}")
-	ctx.line("stream.SetTrailer(" + generateTegogrpcSymbol(g, "MDFromMetadata") + "(response.Trailer()))")
 	ctx.line("return stream.SendAndClose(responseProto)")
 	return nil
 }
 
-func generateGRPCServerBidiStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "err")
-	if err := generateServiceConverterFunc(g, "requestFromProto", method.Request.FromProto, "requestProto", "requestTego"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
+func generateGRPCAdapterBidiStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+	requestType, err := generateType(g, method.Request.Type)
+	if err != nil {
+		return fmt.Errorf("request type: %w", err)
 	}
-	if err := generateServiceConverterFunc(g, "responseToProto", method.Response.ToProto, "responseTego", "responseProto"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
+	ctx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2ReceiveErrorLines(requestType), "requestProto")
+	ctx.line("var receiveErr error")
+	ctx.line("requests := func(yield func(" + requestType + ", error) bool) {")
+	ctx.line("for {")
+	ctx.line("requestProto, err := stream.Recv()")
+	ctx.line("if err == " + generateIOSymbol(g, "EOF") + " {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("if err != nil {")
+	ctx.line("receiveErr = err")
+	ctx.line("var zero " + requestType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("tegoStream := " + generateTegogrpcSymbol(g, "NewServerBidiStream") + "(stream, " + generateGRPCServiceSpec(g, service, method) + ", requestFromProto, responseToProto)")
-	ctx.line("if err := s.service." + method.Name + "(stream.Context(), tegoStream); err != nil {")
+	ctx.line("if !yield(request, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+	ctx = newMappingRenderContext(g, true, "err")
+	ctx.line("responses, err := a.service." + method.Name + "(stream.Context(), requests)")
+	ctx.line("if err != nil {")
 	ctx.line("return err")
 	ctx.line("}")
-	ctx.line("stream.SetTrailer(" + generateTegogrpcSymbol(g, "MDFromMetadata") + "(tegoStream.ResponseTrailer()))")
-	ctx.line("return nil")
+	ctx.line("if responses != nil {")
+	ctx.line("for response, err := range responses {")
+	ctx.line("if err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if err := stream.Send(responseProto); err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return receiveErr")
 	return nil
 }
 
 func generateGRPCClientMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateClientMethodSignature(g, method)
+	signature, err := generateServiceMethodSignature(g, method)
 	if err != nil {
 		return err
 	}
@@ -423,116 +459,247 @@ func generateGRPCClientMethod(g *protogen.GeneratedFile, service ServicePlan, me
 	return nil
 }
 
-func generateClientMethodSignature(g *protogen.GeneratedFile, method ServiceMethodPlan) (string, error) {
-	contextType := generateContextType(g)
-	request, response, err := generateServiceMethodTypes(g, method)
-	if err != nil {
-		return "", err
-	}
-
-	switch method.StreamType {
-	case ServiceStreamTypeUnary:
-		return fmt.Sprintf("%s(ctx %s, request *%s[%s]) (*%s[%s], error)", method.Name, contextType, generateTegoType(g, "Request"), request, generateTegoType(g, "Response"), response), nil
-	case ServiceStreamTypeServerStreaming:
-		return fmt.Sprintf("%s(ctx %s, request *%s[%s]) (*%s[%s], error)", method.Name, contextType, generateTegoType(g, "Request"), request, generateTegoType(g, "ClientRecvStream"), response), nil
-	case ServiceStreamTypeClientStreaming:
-		return fmt.Sprintf("%s(ctx %s, opts ...%s) (*%s[%s, %s], error)", method.Name, contextType, generateTegoType(g, "CallOption"), generateTegoType(g, "ClientSendStream"), request, response), nil
-	case ServiceStreamTypeBidiStreaming:
-		return fmt.Sprintf("%s(ctx %s, opts ...%s) (*%s[%s, %s], error)", method.Name, contextType, generateTegoType(g, "CallOption"), generateTegoType(g, "ClientBidiStream"), request, response), nil
-	default:
-		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
-	}
-}
-
 func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request.Message"); err != nil {
+	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
+	generateServiceClientZeroValue(ctx, g, method)
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx = " + generateTegogrpcSymbol(g, "NewOutgoingContext") + "(ctx, request.Header())")
-	ctx.line("var header, trailer " + generateMetadataType(g, "MD"))
-	ctx.line("responseProto, err := c.client." + method.Name + "(ctx, requestProto, " + generateGRPCSymbol(g, "Header") + "(&header), " + generateGRPCSymbol(g, "Trailer") + "(&trailer))")
+	responseProto := "responseProto"
+	if serviceResponseIsEmpty(method) {
+		responseProto = "_"
+	}
+	ctx.line(responseProto + ", err := c.client." + method.Name + "(ctx, requestProto)")
 	ctx.line("if err != nil {")
-	ctx.line("return nil, err")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseTego", method.Response.FromProto, "responseProto"); err != nil {
+	if serviceResponseIsEmpty(method) {
+		ctx.line("return nil")
+		return nil
+	}
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("return " + generateTegogrpcSymbol(g, "NewResponse") + "(responseTego, header, trailer, responseProto), nil")
+	ctx.line("return response, nil")
+	_ = service
 	return nil
 }
 
 func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	responseType, err := generateType(g, method.Response.Type)
+	if err != nil {
+		return fmt.Errorf("response type: %w", err)
+	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request.Message"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	if err := generateServiceConverterFunc(g, "responseFromProto", method.Response.FromProto, "responseProto", "responseTego"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("ctx = " + generateTegogrpcSymbol(g, "NewOutgoingContext") + "(ctx, request.Header())")
 	ctx.line("stream, err := c.client." + method.Name + "(ctx, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
-	ctx.line("return " + generateTegogrpcSymbol(g, "NewClientRecvStream") + "(stream, " + generateGRPCServiceSpec(g, service, method) + ", responseFromProto), nil")
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("for {")
+	ctx.line("responseProto, err := stream.Recv()")
+	ctx.line("if err == " + generateIOSymbol(g, "EOF") + " {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("if err != nil {")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	seqCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
+	if err := generateServiceMappedAssignment(seqCtx, "response", method.Response.FromProto, "responseProto"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if !yield(response, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return responses, nil")
+	_ = service
 	return nil
 }
 
 func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceConverterFunc(g, "requestToProto", method.Request.ToProto, "requestTego", "requestProto"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
-	}
-	if err := generateServiceConverterFunc(g, "responseFromProto", method.Response.FromProto, "responseProto", "responseTego"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("call := " + generateTegoSymbol(g, "NewCall") + "(opts...)")
-	ctx.line("requestHeader := call.Header().Clone()")
-	ctx.line("ctx = " + generateTegogrpcSymbol(g, "NewOutgoingContext") + "(ctx, requestHeader)")
+	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
+	generateServiceClientZeroValue(ctx, g, method)
 	ctx.line("stream, err := c.client." + method.Name + "(ctx)")
 	ctx.line("if err != nil {")
-	ctx.line("return nil, err")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
-	ctx.line("return " + generateTegogrpcSymbol(g, "NewClientSendStream") + "(stream, " + generateGRPCServiceSpec(g, service, method) + ", requestToProto, responseFromProto, " + generateTegoSymbol(g, "WithStreamRequestHeader") + "(requestHeader)), nil")
+	ctx.line("for request, err := range requests {")
+	ctx.line("if err != nil {")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	ctx.line("if err := stream.Send(requestProto); err != nil {")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("responseProto, err := stream.CloseAndRecv()")
+	ctx.line("if err != nil {")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
+	ctx.line("}")
+	if serviceResponseIsEmpty(method) {
+		ctx.line("return nil")
+		return nil
+	}
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("return response, nil")
+	_ = service
 	return nil
 }
 
 func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	_, responseType, err := generateServiceMethodTypes(g, method)
+	if err != nil {
+		return err
+	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceConverterFunc(g, "requestToProto", method.Request.ToProto, "requestTego", "requestProto"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
-	}
-	if err := generateServiceConverterFunc(g, "responseFromProto", method.Response.FromProto, "responseProto", "responseTego"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("call := " + generateTegoSymbol(g, "NewCall") + "(opts...)")
-	ctx.line("requestHeader := call.Header().Clone()")
-	ctx.line("ctx = " + generateTegogrpcSymbol(g, "NewOutgoingContext") + "(ctx, requestHeader)")
 	ctx.line("stream, err := c.client." + method.Name + "(ctx)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
-	ctx.line("return " + generateTegogrpcSymbol(g, "NewClientBidiStream") + "(stream, " + generateGRPCServiceSpec(g, service, method) + ", requestToProto, responseFromProto, " + generateTegoSymbol(g, "WithStreamRequestHeader") + "(requestHeader)), nil")
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("sendErr := make(chan error, 1)")
+	ctx.line("go func() {")
+	ctx.line("for request, err := range requests {")
+	ctx.line("if err != nil {")
+	ctx.line("sendErr <- err")
+	ctx.line("return")
+	ctx.line("}")
+	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines(), "requestProto")
+	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request"); err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	ctx.line("if err := stream.Send(requestProto); err != nil {")
+	ctx.line("sendErr <- err")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("sendErr <- stream.CloseSend()")
+	ctx.line("}()")
+	ctx.line("for {")
+	ctx.line("responseProto, err := stream.Recv()")
+	ctx.line("if err == " + generateIOSymbol(g, "EOF") + " {")
+	ctx.line("if err := <-sendErr; err != nil {")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("}")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("if err != nil {")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	recvCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
+	if err := generateServiceMappedAssignment(recvCtx, "response", method.Response.FromProto, "responseProto"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if !yield(response, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return responses, nil")
+	_ = service
 	return nil
 }
 
+func generateConnectService(g *protogen.GeneratedFile, service ServicePlan) error {
+	g.P("func ", service.ConnectNewHandlerName, "(service ", service.Name, ", opts ...", generateConnectType(g, "HandlerOption"), ") (string, ", generateHTTPType(g, "Handler"), ") {")
+	g.P("\treturn ", generateConnectServiceSymbol(g, service, "New", "Handler"), "(&", service.ConnectHandlerName, "{", service.ConnectAdapterName, ": New", service.ConnectAdapterName, "(service)}, opts...)")
+	g.P("}")
+	g.P()
+
+	g.P("type ", service.ConnectHandlerName, " struct {")
+	g.P("\t*", service.ConnectAdapterName)
+	g.P("}")
+	g.P()
+
+	generateConnectAdapter(g, service)
+
+	for _, method := range service.Methods {
+		if err := generateConnectHandlerMethod(g, service, method); err != nil {
+			return fmt.Errorf("connect handler method %s: %w", method.ProtoName, err)
+		}
+		if err := generateConnectAdapterMethod(g, service, method); err != nil {
+			return fmt.Errorf("connect adapter method %s: %w", method.ProtoName, err)
+		}
+	}
+
+	g.P("func ", service.ConnectNewClientName, "(client ", generateConnectServiceType(g, service, "", "Client"), ") ", service.Name, " {")
+	g.P("\treturn &", service.ConnectClientName, "{client: client}")
+	g.P("}")
+	g.P()
+
+	g.P("type ", service.ConnectClientName, " struct {")
+	g.P("\tclient ", generateConnectServiceType(g, service, "", "Client"))
+	g.P("}")
+	g.P()
+
+	for _, method := range service.Methods {
+		if err := generateConnectClientMethod(g, service, method); err != nil {
+			return fmt.Errorf("connect client method %s: %w", method.ProtoName, err)
+		}
+	}
+
+	return nil
+}
+
+func generateConnectAdapter(g *protogen.GeneratedFile, service ServicePlan) {
+	g.P("type ", service.ConnectAdapterName, " struct {")
+	g.P("\tservice ", service.Name)
+	g.P("}")
+	g.P()
+
+	g.P("func New", service.ConnectAdapterName, "(service ", service.Name, ") *", service.ConnectAdapterName, " {")
+	g.P("\treturn &", service.ConnectAdapterName, "{service: service}")
+	g.P("}")
+	g.P()
+}
+
 func generateConnectHandlerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateConnectHandlerMethodSignature(g, method)
+	signature, err := generateConnectHandlerMethodSignature(g, method.Name, method)
+	if err != nil {
+		return err
+	}
+	arguments, err := generateConnectHandlerMethodArguments(method)
 	if err != nil {
 		return err
 	}
 
 	g.P("func (s *", service.ConnectHandlerName, ") ", signature, " {")
+	g.P("\treturn s.Adapt", method.Name, "(", arguments, ")")
+	g.P("}")
+	g.P()
+	return nil
+}
+
+func generateConnectAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	signature, err := generateConnectHandlerMethodSignature(g, "Adapt"+method.Name, method)
+	if err != nil {
+		return err
+	}
+
+	g.P("func (a *", service.ConnectAdapterName, ") ", signature, " {")
 	switch method.StreamType {
 	case ServiceStreamTypeUnary:
-		err = generateConnectHandlerUnaryMethodBody(g, method)
+		err = generateConnectAdapterUnaryMethodBody(g, method)
 	case ServiceStreamTypeServerStreaming:
-		err = generateConnectHandlerServerStreamingMethodBody(g, method)
+		err = generateConnectAdapterServerStreamingMethodBody(g, method)
 	case ServiceStreamTypeClientStreaming:
-		err = generateConnectHandlerClientStreamingMethodBody(g, method)
+		err = generateConnectAdapterClientStreamingMethodBody(g, method)
 	case ServiceStreamTypeBidiStreaming:
-		err = generateConnectHandlerBidiStreamingMethodBody(g, method)
+		err = generateConnectAdapterBidiStreamingMethodBody(g, method)
 	default:
 		err = fmt.Errorf("unsupported stream type %d", method.StreamType)
 	}
@@ -544,7 +711,7 @@ func generateConnectHandlerMethod(g *protogen.GeneratedFile, service ServicePlan
 	return nil
 }
 
-func generateConnectHandlerMethodSignature(g *protogen.GeneratedFile, method ServiceMethodPlan) (string, error) {
+func generateConnectHandlerMethodSignature(g *protogen.GeneratedFile, name string, method ServiceMethodPlan) (string, error) {
 	contextType := generateContextType(g)
 
 	switch method.StreamType {
@@ -557,7 +724,7 @@ func generateConnectHandlerMethodSignature(g *protogen.GeneratedFile, method Ser
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(ctx %s, requestProto %s) (%s, error)", method.Name, contextType, request, response), nil
+		return fmt.Sprintf("%s(ctx %s, requestProto %s) (%s, error)", name, contextType, request, response), nil
 	case ServiceStreamTypeServerStreaming:
 		request, err := generateConnectMessageType(g, "Request", method.Request.ProtoType)
 		if err != nil {
@@ -567,7 +734,7 @@ func generateConnectHandlerMethodSignature(g *protogen.GeneratedFile, method Ser
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(ctx %s, requestProto %s, stream %s) error", method.Name, contextType, request, stream), nil
+		return fmt.Sprintf("%s(ctx %s, requestProto %s, stream %s) error", name, contextType, request, stream), nil
 	case ServiceStreamTypeClientStreaming:
 		stream, err := generateConnectMessageType(g, "ClientStream", method.Request.ProtoType)
 		if err != nil {
@@ -577,79 +744,191 @@ func generateConnectHandlerMethodSignature(g *protogen.GeneratedFile, method Ser
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(ctx %s, stream %s) (%s, error)", method.Name, contextType, stream, response), nil
+		return fmt.Sprintf("%s(ctx %s, stream %s) (%s, error)", name, contextType, stream, response), nil
 	case ServiceStreamTypeBidiStreaming:
 		stream, err := generateConnectMessageType(g, "BidiStream", method.Request.ProtoType, method.Response.ProtoType)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s(ctx %s, stream %s) error", method.Name, contextType, stream), nil
+		return fmt.Sprintf("%s(ctx %s, stream %s) error", name, contextType, stream), nil
 	default:
 		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
 	}
 }
 
-func generateConnectHandlerUnaryMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+func generateConnectHandlerMethodArguments(method ServiceMethodPlan) (string, error) {
+	switch method.StreamType {
+	case ServiceStreamTypeUnary:
+		return "ctx, requestProto", nil
+	case ServiceStreamTypeServerStreaming:
+		return "ctx, requestProto, stream", nil
+	case ServiceStreamTypeClientStreaming, ServiceStreamTypeBidiStreaming:
+		return "ctx, stream", nil
+	default:
+		return "", fmt.Errorf("unsupported stream type %d", method.StreamType)
+	}
+}
+
+func generateConnectAdapterUnaryMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceMappedAssignment(ctx, "requestTego", method.Request.FromProto, "requestProto.Msg"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto.Msg"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("response, err := s.service." + method.Name + "(ctx, " + generateTegoconnectSymbol(g, "NewRequest") + "(requestTego, requestProto))")
+
+	if serviceResponseIsEmpty(method) {
+		ctx.line("if err := a.service." + method.Name + "(ctx, request); err != nil {")
+		ctx.line("return nil, err")
+		ctx.line("}")
+		responseExpr, err := serviceEmptyStructConverterReturnExpr(g, method.Response.ToProto)
+		if err != nil {
+			return fmt.Errorf("response: %w", err)
+		}
+		ctx.line("return " + generateConnectSymbol(g, "NewResponse") + "(" + responseExpr + "), nil")
+		return nil
+	}
+
+	ctx.line("response, err := a.service." + method.Name + "(ctx, request)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response.Message"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("return " + generateTegoconnectSymbol(g, "NewNativeResponse") + "(responseProto, response), nil")
+	ctx.line("return " + generateConnectSymbol(g, "NewResponse") + "(responseProto), nil")
 	return nil
 }
 
-func generateConnectHandlerServerStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+func generateConnectAdapterServerStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, "err")
-	if err := generateServiceMappedAssignment(ctx, "requestTego", method.Request.FromProto, "requestProto.Msg"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto.Msg"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	if err := generateServiceConverterFunc(g, "responseToProto", method.Response.ToProto, "responseTego", "responseProto"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
+	ctx.line("responses, err := a.service." + method.Name + "(ctx, request)")
+	ctx.line("if err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	ctx.line("if responses == nil {")
+	ctx.line("return nil")
+	ctx.line("}")
+	ctx.line("for response, err := range responses {")
+	ctx.line("if err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("tegoStream := " + generateTegoconnectSymbol(g, "NewServerSendStream") + "(stream, responseToProto)")
-	ctx.line("return s.service." + method.Name + "(ctx, " + generateTegoconnectSymbol(g, "NewRequest") + "(requestTego, requestProto), tegoStream)")
+	ctx.line("if err := stream.Send(responseProto); err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return nil")
 	return nil
 }
 
-func generateConnectHandlerClientStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceConverterFunc(g, "requestFromProto", method.Request.FromProto, "requestProto", "requestTego"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
+func generateConnectAdapterClientStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+	requestType, err := generateType(g, method.Request.Type)
+	if err != nil {
+		return fmt.Errorf("request type: %w", err)
 	}
-	ctx.line("tegoStream := " + generateTegoconnectSymbol(g, "NewServerRecvStream") + "(stream, requestFromProto)")
-	ctx.line("response, err := s.service." + method.Name + "(ctx, tegoStream)")
+	ctx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2ReceiveErrorLines(requestType), "requestProto")
+	ctx.line("var receiveErr error")
+	ctx.line("requests := func(yield func(" + requestType + ", error) bool) {")
+	ctx.line("for stream.Receive() {")
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "stream.Msg()"); err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	ctx.line("if !yield(request, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("if err := stream.Err(); err != nil {")
+	ctx.line("receiveErr = err")
+	ctx.line("var zero " + requestType)
+	ctx.line("yield(zero, err)")
+	ctx.line("}")
+	ctx.line("}")
+
+	ctx = newMappingRenderContext(g, true, "nil, err")
+	if serviceResponseIsEmpty(method) {
+		ctx.line("if err := a.service." + method.Name + "(ctx, requests); err != nil {")
+		ctx.line("return nil, err")
+		ctx.line("}")
+		ctx.line("if receiveErr != nil {")
+		ctx.line("return nil, receiveErr")
+		ctx.line("}")
+		responseExpr, err := serviceEmptyStructConverterReturnExpr(g, method.Response.ToProto)
+		if err != nil {
+			return fmt.Errorf("response: %w", err)
+		}
+		ctx.line("return " + generateConnectSymbol(g, "NewResponse") + "(" + responseExpr + "), nil")
+		return nil
+	}
+
+	ctx.line("response, err := a.service." + method.Name + "(ctx, requests)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response.Message"); err != nil {
+	ctx.line("if receiveErr != nil {")
+	ctx.line("return nil, receiveErr")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("return " + generateTegoconnectSymbol(g, "NewNativeResponse") + "(responseProto, response), nil")
+	ctx.line("return " + generateConnectSymbol(g, "NewResponse") + "(responseProto), nil")
 	return nil
 }
 
-func generateConnectHandlerBidiStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "err")
-	if err := generateServiceConverterFunc(g, "requestFromProto", method.Request.FromProto, "requestProto", "requestTego"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
+func generateConnectAdapterBidiStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+	requestType, err := generateType(g, method.Request.Type)
+	if err != nil {
+		return fmt.Errorf("request type: %w", err)
 	}
-	if err := generateServiceConverterFunc(g, "responseToProto", method.Response.ToProto, "responseTego", "responseProto"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
+	ctx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2ReceiveErrorLines(requestType), "requestProto")
+	ctx.line("var receiveErr error")
+	ctx.line("requests := func(yield func(" + requestType + ", error) bool) {")
+	ctx.line("for {")
+	ctx.line("requestProto, err := stream.Receive()")
+	ctx.line("if err != nil {")
+	ctx.line("if " + generateErrorsSymbol(g, "Is") + "(err, " + generateIOSymbol(g, "EOF") + ") {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("receiveErr = err")
+	ctx.line("var zero " + requestType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("tegoStream := " + generateTegoconnectSymbol(g, "NewServerBidiStream") + "(stream, requestFromProto, responseToProto)")
-	ctx.line("return s.service." + method.Name + "(ctx, tegoStream)")
+	ctx.line("if !yield(request, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+	ctx = newMappingRenderContext(g, true, "err")
+	ctx.line("responses, err := a.service." + method.Name + "(ctx, requests)")
+	ctx.line("if err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	ctx.line("if responses != nil {")
+	ctx.line("for response, err := range responses {")
+	ctx.line("if err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if err := stream.Send(responseProto); err != nil {")
+	ctx.line("return err")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return receiveErr")
 	return nil
 }
 
 func generateConnectClientMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
-	signature, err := generateClientMethodSignature(g, method)
+	signature, err := generateServiceMethodSignature(g, method)
 	if err != nil {
 		return err
 	}
@@ -657,13 +936,13 @@ func generateConnectClientMethod(g *protogen.GeneratedFile, service ServicePlan,
 	g.P("func (c *", service.ConnectClientName, ") ", signature, " {")
 	switch method.StreamType {
 	case ServiceStreamTypeUnary:
-		err = generateConnectClientUnaryMethodBody(g, method)
+		err = generateConnectClientUnaryMethodBody(g, service, method)
 	case ServiceStreamTypeServerStreaming:
-		err = generateConnectClientServerStreamingMethodBody(g, method)
+		err = generateConnectClientServerStreamingMethodBody(g, service, method)
 	case ServiceStreamTypeClientStreaming:
-		err = generateConnectClientClientStreamingMethodBody(g, method)
+		err = generateConnectClientClientStreamingMethodBody(g, service, method)
 	case ServiceStreamTypeBidiStreaming:
-		err = generateConnectClientBidiStreamingMethodBody(g, method)
+		err = generateConnectClientBidiStreamingMethodBody(g, service, method)
 	default:
 		err = fmt.Errorf("unsupported stream type %d", method.StreamType)
 	}
@@ -675,68 +954,203 @@ func generateConnectClientMethod(g *protogen.GeneratedFile, service ServicePlan,
 	return nil
 }
 
-func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request.Message"); err != nil {
+func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
+	generateServiceClientZeroValue(ctx, g, method)
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("nativeRequest := " + generateTegoconnectSymbol(g, "NewNativeRequest") + "(requestProto, request)")
-	ctx.line("responseProto, err := c.client." + method.Name + "(ctx, nativeRequest)")
+	responseProto := "responseProto"
+	if serviceResponseIsEmpty(method) {
+		responseProto = "_"
+	}
+	ctx.line(responseProto + ", err := c.client." + method.Name + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
 	ctx.line("if err != nil {")
-	ctx.line("return nil, err")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseTego", method.Response.FromProto, "responseProto.Msg"); err != nil {
+	if serviceResponseIsEmpty(method) {
+		ctx.line("return nil")
+		return nil
+	}
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("return " + generateTegoconnectSymbol(g, "NewResponse") + "(responseTego, responseProto), nil")
+	ctx.line("return response, nil")
+	_ = service
 	return nil
 }
 
-func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	responseType, err := generateType(g, method.Response.Type)
+	if err != nil {
+		return fmt.Errorf("response type: %w", err)
+	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request.Message"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	if err := generateServiceConverterFunc(g, "responseFromProto", method.Response.FromProto, "responseProto", "responseTego"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("nativeRequest := " + generateTegoconnectSymbol(g, "NewNativeRequest") + "(requestProto, request)")
-	ctx.line("stream, err := c.client." + method.Name + "(ctx, nativeRequest)")
+	ctx.line("stream, err := c.client." + method.Name + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, err")
 	ctx.line("}")
-	ctx.line("return " + generateTegoconnectSymbol(g, "NewClientRecvStream") + "(stream, responseFromProto), nil")
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("defer stream.Close()")
+	ctx.line("for stream.Receive() {")
+	seqCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
+	if err := generateServiceMappedAssignment(seqCtx, "response", method.Response.FromProto, "stream.Msg()"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if !yield(response, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("if err := stream.Err(); err != nil {")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return responses, nil")
+	_ = service
 	return nil
 }
 
-func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
-	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceConverterFunc(g, "requestToProto", method.Request.ToProto, "requestTego", "requestProto"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
-	}
-	if err := generateServiceConverterFunc(g, "responseFromProto", method.Response.FromProto, "responseProto", "responseTego"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("call := " + generateTegoSymbol(g, "NewCall") + "(opts...)")
+func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
+	generateServiceClientZeroValue(ctx, g, method)
 	ctx.line("stream := c.client." + method.Name + "(ctx)")
-	ctx.line(generateTegoconnectSymbol(g, "CopyMetadataToHeader") + "(stream.RequestHeader(), call.Header())")
-	ctx.line("return " + generateTegoconnectSymbol(g, "NewClientSendStream") + "(stream, requestToProto, responseFromProto), nil")
+	ctx.line("for request, err := range requests {")
+	ctx.line("if err != nil {")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
+	ctx.line("}")
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	ctx.line("if err := stream.Send(requestProto); err != nil {")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("responseProto, err := stream.CloseAndReceive()")
+	ctx.line("if err != nil {")
+	ctx.line("return " + serviceClientErrorReturn(g, method))
+	ctx.line("}")
+	if serviceResponseIsEmpty(method) {
+		ctx.line("return nil")
+		return nil
+	}
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("return response, nil")
+	_ = service
 	return nil
 }
 
-func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, method ServiceMethodPlan) error {
+func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+	_, responseType, err := generateServiceMethodTypes(g, method)
+	if err != nil {
+		return err
+	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	if err := generateServiceConverterFunc(g, "requestToProto", method.Request.ToProto, "requestTego", "requestProto"); err != nil {
-		return fmt.Errorf("request converter: %w", err)
-	}
-	if err := generateServiceConverterFunc(g, "responseFromProto", method.Response.FromProto, "responseProto", "responseTego"); err != nil {
-		return fmt.Errorf("response converter: %w", err)
-	}
-	ctx.line("call := " + generateTegoSymbol(g, "NewCall") + "(opts...)")
 	ctx.line("stream := c.client." + method.Name + "(ctx)")
-	ctx.line(generateTegoconnectSymbol(g, "CopyMetadataToHeader") + "(stream.RequestHeader(), call.Header())")
-	ctx.line("return " + generateTegoconnectSymbol(g, "NewClientBidiStream") + "(stream, requestToProto, responseFromProto), nil")
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("sendErr := make(chan error, 1)")
+	ctx.line("go func() {")
+	ctx.line("for request, err := range requests {")
+	ctx.line("if err != nil {")
+	ctx.line("sendErr <- err")
+	ctx.line("return")
+	ctx.line("}")
+	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines(), "requestProto")
+	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request"); err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	ctx.line("if err := stream.Send(requestProto); err != nil {")
+	ctx.line("sendErr <- err")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("sendErr <- stream.CloseRequest()")
+	ctx.line("}()")
+	ctx.line("for {")
+	ctx.line("responseProto, err := stream.Receive()")
+	ctx.line("if err != nil {")
+	ctx.line("if " + generateErrorsSymbol(g, "Is") + "(err, " + generateIOSymbol(g, "EOF") + ") {")
+	ctx.line("break")
+	ctx.line("}")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	recvCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
+	if err := generateServiceMappedAssignment(recvCtx, "response", method.Response.FromProto, "responseProto"); err != nil {
+		return fmt.Errorf("response: %w", err)
+	}
+	ctx.line("if !yield(response, nil) {")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("if err := <-sendErr; err != nil {")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("return")
+	ctx.line("}")
+	ctx.line("if err := stream.CloseResponse(); err != nil {")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, err)")
+	ctx.line("}")
+	ctx.line("}")
+	ctx.line("return responses, nil")
+	_ = service
 	return nil
+}
+
+func serviceClientErrorReturn(g *protogen.GeneratedFile, method ServiceMethodPlan) string {
+	if serviceResponseIsEmpty(method) {
+		return "err"
+	}
+	switch method.StreamType {
+	case ServiceStreamTypeServerStreaming, ServiceStreamTypeBidiStreaming:
+		return "nil, err"
+	default:
+		return "zero, err"
+	}
+}
+
+func serviceSeq2YieldErrorLines(valueType string) []string {
+	return []string{
+		"var zero " + valueType,
+		"yield(zero, err)",
+		"return",
+	}
+}
+
+func serviceSeq2ReceiveErrorLines(valueType string) []string {
+	return []string{
+		"receiveErr = err",
+		"var zero " + valueType,
+		"yield(zero, err)",
+		"return",
+	}
+}
+
+func serviceSeq2SendErrorLines() []string {
+	return []string{
+		"sendErr <- err",
+		"return",
+	}
+}
+
+func generateServiceClientZeroValue(ctx *mappingRenderContext, g *protogen.GeneratedFile, method ServiceMethodPlan) {
+	if serviceResponseIsEmpty(method) {
+		return
+	}
+	switch method.StreamType {
+	case ServiceStreamTypeUnary, ServiceStreamTypeClientStreaming:
+		responseType, err := generateType(g, method.Response.Type)
+		if err == nil {
+			ctx.line("var zero " + responseType)
+		}
+	}
 }
 
 func generateServiceMappedAssignment(
@@ -754,94 +1168,6 @@ func generateServiceMappedAssignment(
 	}
 	ctx.line(name + " := " + expr)
 	return nil
-}
-
-func generateServiceConverterFunc(
-	g *protogen.GeneratedFile,
-	name string,
-	plan MappingValuePlan,
-	sourceName string,
-	targetName string,
-) error {
-	sourceType, err := generateType(g, plan.Source)
-	if err != nil {
-		return fmt.Errorf("source type: %w", err)
-	}
-	targetType, err := generateType(g, plan.Target)
-	if err != nil {
-		return fmt.Errorf("target type: %w", err)
-	}
-
-	g.P(name, " := func(", sourceName, " ", sourceType, ") (", targetType, ", error) {")
-	if expr, returnsError, ok, err := serviceConverterReturnExpr(g, plan, sourceName); err != nil {
-		return err
-	} else if ok {
-		if returnsError {
-			g.P("return ", expr)
-		} else {
-			g.P("return ", expr, ", nil")
-		}
-		g.P("}")
-		return nil
-	}
-
-	ctx := newMappingRenderContext(g, true, targetName+", err", sourceName)
-	expr, err := ctx.renderValueWithTempNameHint(targetName, plan, sourceName)
-	if err != nil {
-		return err
-	}
-	g.P("return ", expr, ", nil")
-	g.P("}")
-	return nil
-}
-
-func serviceConverterReturnExpr(
-	g *protogen.GeneratedFile,
-	plan MappingValuePlan,
-	source string,
-) (expr string, returnsError bool, ok bool, err error) {
-	switch plan.Kind {
-	case MappingValueKindDirect:
-		return source, false, true, nil
-	case MappingValueKindScalarCast, MappingValueKindEnum:
-		target, err := generateType(g, plan.Target)
-		if err != nil {
-			return "", false, false, err
-		}
-		return target + "(" + source + ")", false, true, nil
-	case MappingValueKindStruct:
-		if plan.Struct == nil {
-			return "", false, false, fmt.Errorf("struct mapping is missing a ref")
-		}
-		name := plan.Struct.Name
-		if plan.Struct.Ref.Name != "" {
-			name = generateSymbol(g, plan.Struct.Ref)
-		}
-		return name + "(" + source + ")", plan.CanError, true, nil
-	case MappingValueKindCustom:
-		if plan.Custom == nil {
-			return "", false, false, fmt.Errorf("custom mapping is missing conversion refs")
-		}
-		expr := serviceCustomConverterReturnExpr(g, plan, source)
-		return expr, plan.CanError, true, nil
-	case MappingValueKindEmptyStruct:
-		expr, err := serviceEmptyStructConverterReturnExpr(g, plan)
-		return expr, false, err == nil, err
-	default:
-		return "", false, false, nil
-	}
-}
-
-func serviceCustomConverterReturnExpr(g *protogen.GeneratedFile, plan MappingValuePlan, source string) string {
-	ref := plan.Custom.FromProto
-	if top, ok := topCustomType(plan.Source); ok && top.ToProto.Name != "" {
-		ref = plan.Custom.ToProto
-	}
-
-	if ref.Receiver != "" {
-		return source + "." + ref.Name + "()"
-	}
-	return generateSymbol(g, ref) + "(" + source + ")"
 }
 
 func serviceEmptyStructConverterReturnExpr(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
@@ -899,35 +1225,6 @@ func protoMessageTypeArg(plan TypePlan) (GoTypeRef, error) {
 	return GoTypeRef{}, fmt.Errorf("RPC proto type argument must be a proto message pointer")
 }
 
-func generateGRPCServiceSpec(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) string {
-	return generateTegoType(g, "Spec") + "{Procedure: " + generateGRPCFullMethodNameSymbol(g, service, method) + ", StreamType: " + generateTegoStreamType(g, method.StreamType) + "}"
-}
-
-func generateGRPCFullMethodNameSymbol(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) string {
-	methodGoName := method.ProtoGoName
-	if methodGoName == "" {
-		methodGoName = method.Name
-	}
-
-	return generateSymbol(g, GoSymbolRef{
-		ImportPath: service.ProtoRef.ImportPath,
-		Name:       service.ProtoRef.Name + "_" + methodGoName + "_FullMethodName",
-	})
-}
-
-func generateTegoStreamType(g *protogen.GeneratedFile, streamType ServiceStreamType) string {
-	switch streamType {
-	case ServiceStreamTypeClientStreaming:
-		return generateTegoSymbol(g, "StreamTypeClientStreaming")
-	case ServiceStreamTypeServerStreaming:
-		return generateTegoSymbol(g, "StreamTypeServerStreaming")
-	case ServiceStreamTypeBidiStreaming:
-		return generateTegoSymbol(g, "StreamTypeBidiStreaming")
-	default:
-		return generateTegoSymbol(g, "StreamTypeUnary")
-	}
-}
-
 func generateProtoServiceType(g *protogen.GeneratedFile, service ServicePlan, prefix, suffix string) string {
 	ref := service.ProtoRef
 	ref.Name = prefix + ref.Name + suffix
@@ -962,26 +1259,18 @@ func generateConnectType(g *protogen.GeneratedFile, name string) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: connectImportPath, Name: name})
 }
 
+func generateConnectSymbol(g *protogen.GeneratedFile, name string) string {
+	return generateSymbol(g, GoSymbolRef{ImportPath: connectImportPath, Name: name})
+}
+
+func generateErrorsSymbol(g *protogen.GeneratedFile, name string) string {
+	return generateSymbol(g, GoSymbolRef{ImportPath: errorsImportPath, Name: name})
+}
+
 func generateHTTPType(g *protogen.GeneratedFile, name string) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: httpImportPath, Name: name})
 }
 
-func generateGRPCSymbol(g *protogen.GeneratedFile, name string) string {
-	return generateSymbol(g, GoSymbolRef{ImportPath: grpcImportPath, Name: name})
-}
-
-func generateMetadataType(g *protogen.GeneratedFile, name string) string {
-	return generateNamedType(g, GoTypeRef{ImportPath: metadataImportPath, Name: name})
-}
-
-func generateTegoSymbol(g *protogen.GeneratedFile, name string) string {
-	return generateSymbol(g, GoSymbolRef{ImportPath: tegoImportPath, Name: name})
-}
-
-func generateTegogrpcSymbol(g *protogen.GeneratedFile, name string) string {
-	return generateSymbol(g, GoSymbolRef{ImportPath: tegogrpcImportPath, Name: name})
-}
-
-func generateTegoconnectSymbol(g *protogen.GeneratedFile, name string) string {
-	return generateSymbol(g, GoSymbolRef{ImportPath: tegoconnectImportPath, Name: name})
+func generateIOSymbol(g *protogen.GeneratedFile, name string) string {
+	return generateSymbol(g, GoSymbolRef{ImportPath: ioImportPath, Name: name})
 }

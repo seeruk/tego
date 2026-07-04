@@ -84,12 +84,14 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 		service := serviceByProtoName(t, file, "yirapb.v1.TicketService")
 
 		assert.Equal(t, "TicketService", service.Name)
-		assert.Equal(t, "TicketServiceClient", service.ClientName)
 		assert.Equal(t, "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect", service.ConnectRef.ImportPath)
+		assert.Equal(t, "TicketServiceGRPCAdapter", service.GRPCAdapterName)
 		assert.Equal(t, "ticketServiceGRPCServer", service.GRPCServerName)
 		assert.Equal(t, "ticketServiceGRPCClient", service.GRPCClientName)
 		assert.Equal(t, "RegisterTicketServiceGRPCServer", service.GRPCRegisterName)
+		assert.Equal(t, "NewTicketServiceGRPCServer", service.GRPCNewServerName)
 		assert.Equal(t, "NewTicketServiceGRPCClient", service.GRPCNewClientName)
+		assert.Equal(t, "TicketServiceConnectAdapter", service.ConnectAdapterName)
 		assert.Equal(t, "ticketServiceConnectHandler", service.ConnectHandlerName)
 		assert.Equal(t, "ticketServiceConnectClient", service.ConnectClientName)
 		assert.Equal(t, "NewTicketServiceConnectHandler", service.ConnectNewHandlerName)
@@ -535,9 +537,11 @@ func TestPlannerPlanServices(t *testing.T) {
 		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketService"`)
 	})
 
-	t.Run("reports service client name collisions", func(t *testing.T) {
+	t.Run("reports service grpc adapter name collisions", func(t *testing.T) {
 		file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
-		message := plannerMessage("example.v1.TicketServiceClient", "TicketServiceClient")
+		message := plannerMessage("example.v1.Custom", "Custom")
+		message.Options.SetName("TicketServiceGRPCAdapter")
+		message.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
 		service := plannerService("example.v1.TicketService", "TicketService")
 		attachMessagesToFile(file, message)
 		attachServicesToFile(file, service)
@@ -546,7 +550,7 @@ func TestPlannerPlanServices(t *testing.T) {
 
 		require.NotEmpty(t, plan.Diagnostics)
 		assert.True(t, HasFatalDiagnostics(plan.Diagnostics))
-		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketServiceClient"`)
+		assert.Contains(t, diagnosticsText(plan.Diagnostics), `planned Go name "TicketServiceGRPCAdapter"`)
 	})
 
 	t.Run("reports service grpc helper name collisions", func(t *testing.T) {

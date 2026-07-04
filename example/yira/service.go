@@ -3,7 +3,7 @@ package yira
 import (
 	"context"
 	"fmt"
-	"io"
+	"iter"
 	"sort"
 	"sync"
 	"time"
@@ -46,12 +46,12 @@ func NewInMemoryTicketService() *InMemoryTicketService {
 
 func (s *InMemoryTicketService) ListTickets(
 	_ context.Context,
-	request *tego.Request[ListTicketsRequest],
-) (*tego.Response[ListTicketsResponse], error) {
+	request ListTicketsRequest,
+) (ListTicketsResponse, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	projectID := request.Message.ProjectID
+	projectID := request.ProjectID
 	if projectID == "" {
 		projectID = DefaultProjectID
 	}
@@ -59,14 +59,14 @@ func (s *InMemoryTicketService) ListTickets(
 	filtered := make([]Ticket, 0, len(s.tickets))
 	for _, id := range s.order {
 		ticket := s.tickets[id]
-		if ticket.ProjectID != projectID || !matchesFilter(ticket, request.Message.Filter) {
+		if ticket.ProjectID != projectID || !matchesFilter(ticket, request.Filter) {
 			continue
 		}
 		filtered = append(filtered, cloneTicket(ticket))
 	}
 
 	start := 0
-	if after := request.Message.Cursor.AfterCursor; after != "" {
+	if after := request.Cursor.AfterCursor; after != "" {
 		for i, ticket := range filtered {
 			if ticket.ID == after {
 				start = i + 1
@@ -75,7 +75,7 @@ func (s *InMemoryTicketService) ListTickets(
 		}
 	}
 
-	limit := int(request.Message.Cursor.Limit)
+	limit := int(request.Cursor.Limit)
 	if limit <= 0 || limit > 20 {
 		limit = 20
 	}
@@ -91,53 +91,53 @@ func (s *InMemoryTicketService) ListTickets(
 		nextCursor = filtered[end-1].ID
 	}
 
-	return tego.NewResponse(ListTicketsResponse{
+	return ListTicketsResponse{
 		Tickets:         page,
 		TicketsByStatus: ticketsByStatus(page),
 		Cursor: CursorResponse{
 			NextCursor: nextCursor,
 		},
-	}), nil
+	}, nil
 }
 
 func (s *InMemoryTicketService) GetTicket(
 	_ context.Context,
-	request *tego.Request[GetTicketRequest],
-) (*tego.Response[GetTicketResponse], error) {
+	request GetTicketRequest,
+) (GetTicketResponse, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	ticket, ok := s.tickets[request.Message.TicketID]
+	ticket, ok := s.tickets[request.TicketID]
 	if !ok {
-		return nil, fmt.Errorf("ticket %q not found", request.Message.TicketID)
+		return GetTicketResponse{}, fmt.Errorf("ticket %q not found", request.TicketID)
 	}
-	return tego.NewResponse(GetTicketResponse{Ticket: cloneTicket(ticket)}), nil
+	return GetTicketResponse{Ticket: cloneTicket(ticket)}, nil
 }
 
 func (s *InMemoryTicketService) CreateTicket(
 	_ context.Context,
-	request *tego.Request[CreateTicketRequest],
-) (*tego.Response[CreateTicketResponse], error) {
+	request CreateTicketRequest,
+) (CreateTicketResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ticket := s.createTicketLocked(request.Message.Ticket)
-	return tego.NewResponse(CreateTicketResponse{Ticket: cloneTicket(ticket)}), nil
+	ticket := s.createTicketLocked(request.Ticket)
+	return CreateTicketResponse{Ticket: cloneTicket(ticket)}, nil
 }
 
 func (s *InMemoryTicketService) UpdateTicket(
 	_ context.Context,
-	request *tego.Request[UpdateTicketRequest],
-) (*tego.Response[UpdateTicketResponse], error) {
+	request UpdateTicketRequest,
+) (UpdateTicketResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ticket, ok := s.tickets[request.Message.TicketID]
+	ticket, ok := s.tickets[request.TicketID]
 	if !ok {
-		return nil, fmt.Errorf("ticket %q not found", request.Message.TicketID)
+		return UpdateTicketResponse{}, fmt.Errorf("ticket %q not found", request.TicketID)
 	}
 
-	patch := request.Message.Patch
+	patch := request.Patch
 	applyPatch(&ticket, patch)
 	s.addEventLocked(&ticket, TicketEvent{
 		Kind:    TicketEventKindUpdated,
@@ -147,62 +147,58 @@ func (s *InMemoryTicketService) UpdateTicket(
 	})
 	s.tickets[ticket.ID] = ticket
 
-	return tego.NewResponse(UpdateTicketResponse{Ticket: cloneTicket(ticket)}), nil
+	return UpdateTicketResponse{Ticket: cloneTicket(ticket)}, nil
 }
 
 func (s *InMemoryTicketService) CloseTicket(
 	_ context.Context,
-	request *tego.Request[CloseTicketRequest],
-) (*tego.Response[struct{}], error) {
+	request CloseTicketRequest,
+) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ticket, ok := s.tickets[request.Message.TicketID]
+	ticket, ok := s.tickets[request.TicketID]
 	if !ok {
-		return nil, fmt.Errorf("ticket %q not found", request.Message.TicketID)
+		return fmt.Errorf("ticket %q not found", request.TicketID)
 	}
 
 	ticket.Status = TicketStatusClosed
 	s.addEventLocked(&ticket, TicketEvent{
 		Kind:    TicketEventKindClosed,
 		Actor:   s.system,
-		Note:    request.Message.Resolution,
-		Payload: tego.Value(map[string]any{"resolution": request.Message.Resolution}),
+		Note:    request.Resolution,
+		Payload: tego.Value(map[string]any{"resolution": request.Resolution}),
 	})
 	s.tickets[ticket.ID] = ticket
 
-	return tego.NewResponse(struct{}{}), nil
+	return nil
 }
 
 func (s *InMemoryTicketService) WatchTicketEvents(
 	_ context.Context,
-	request *tego.Request[WatchTicketEventsRequest],
-	stream *tego.ServerSendStream[TicketEvent],
-) error {
+	request WatchTicketEventsRequest,
+) (iter.Seq2[TicketEvent, error], error) {
 	s.mu.RLock()
-	events := s.eventsFor(request.Message.ProjectID, request.Message.TicketID)
+	events := s.eventsFor(request.ProjectID, request.TicketID)
 	s.mu.RUnlock()
 
-	for _, event := range events {
-		if err := stream.Send(event); err != nil {
-			return err
+	return func(yield func(TicketEvent, error) bool) {
+		for _, event := range events {
+			if !yield(event, nil) {
+				return
+			}
 		}
-	}
-	return nil
+	}, nil
 }
 
 func (s *InMemoryTicketService) ImportTicketEvents(
 	_ context.Context,
-	stream *tego.ServerRecvStream[TicketEvent],
-) (*tego.Response[ImportTicketEventsResponse], error) {
+	events iter.Seq2[TicketEvent, error],
+) (ImportTicketEventsResponse, error) {
 	var imported int32
-	for {
-		event, err := stream.Receive()
+	for event, err := range events {
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
+			return ImportTicketEventsResponse{}, err
 		}
 
 		s.mu.Lock()
@@ -211,30 +207,30 @@ func (s *InMemoryTicketService) ImportTicketEvents(
 		imported++
 	}
 
-	return tego.NewResponse(ImportTicketEventsResponse{ImportedCount: imported}), nil
+	return ImportTicketEventsResponse{ImportedCount: imported}, nil
 }
 
 func (s *InMemoryTicketService) SyncTicketEvents(
 	_ context.Context,
-	stream *tego.ServerBidiStream[TicketEvent, TicketEvent],
-) error {
-	for {
-		event, err := stream.Receive()
-		if err != nil {
-			if err == io.EOF {
-				return nil
+	events iter.Seq2[TicketEvent, error],
+) (iter.Seq2[TicketEvent, error], error) {
+	return func(yield func(TicketEvent, error) bool) {
+		for event, err := range events {
+			if err != nil {
+				var zero TicketEvent
+				yield(zero, err)
+				return
 			}
-			return err
-		}
 
-		s.mu.Lock()
-		event = s.addLooseEventLocked(event)
-		s.mu.Unlock()
+			s.mu.Lock()
+			event = s.addLooseEventLocked(event)
+			s.mu.Unlock()
 
-		if err := stream.Send(event); err != nil {
-			return err
+			if !yield(event, nil) {
+				return
+			}
 		}
-	}
+	}, nil
 }
 
 func (s *InMemoryTicketService) seed(fake *gofakeit.Faker) {
