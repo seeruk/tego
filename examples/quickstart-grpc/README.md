@@ -1,22 +1,25 @@
 # Quickstart gRPC
 
 This example is a small gRPC service example, showcasing a unary `GreeterService`, a Tego facade
-implementation, and a generated Tego facade client.
+implementation, and a generated Tego facade client. It uses the shared generated quickstart package
+in `../quickstart`, so the gRPC and Connect quickstarts can stay directly comparable without
+duplicating the same proto schema.
 
 Tego generates the `GreeterService` facade, an unimplemented embeddable service, a gRPC
 adapter/server registration helper, and a facade client constructor.
 
 Good files to start with:
 
-- `proto/hello/v1/greeter.proto`
-- `hello/greeter.tego.go`
+- `../quickstart/proto/hello/v1/hello.proto`
+- `../quickstart/hello/hello.tego.go`
 - `cmd/server/main.go`
 - `cmd/client/main.go`
 
-From this example folder, regenerate with:
+Regenerate the shared quickstart package from `../quickstart`:
 
 ```sh
-buf generate
+cd ../quickstart
+buf generate --config ../../buf.dev.yaml --template buf.gen.yaml ../.. --path proto/hello/v1/hello.proto
 ```
 
 Run the server and client in separate terminals:

@@ -1,0 +1,30 @@
+# Local development config for examples and internal fixtures. The root buf.yaml is kept focused on
+# the publishable Tego options module.
+version: v2
+
+modules:
+- path: examples/quickstart/proto
+- path: examples/shapes
+- path: examples/options
+- path: examples/custom-types
+- path: examples/presence-patch
+- path: examples/streaming-grpc
+- path: examples/transport-override
+- path: examples/kitchen-sink
+- path: proto
+  name: buf.build/seeruk-oss/tego
+- path: internal/tego/testdata/proto
+
+lint:
+  use:
+  - STANDARD
+  except:
+  - PACKAGE_DIRECTORY_MATCH
+  - PACKAGE_VERSION_SUFFIX
+  - RPC_REQUEST_RESPONSE_UNIQUE
+  - RPC_REQUEST_STANDARD_NAME
+  - RPC_RESPONSE_STANDARD_NAME
+
+breaking:
+  use:
+  - FILE

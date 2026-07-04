@@ -21,5 +21,7 @@ without deciphering a large demo app.
    the generated adapter.
 9. [kitchen-sink](kitchen-sink): a reference-style type coverage example.
 
-Each example has its own `buf.gen.yaml`, `README.md`, proto source, and generated output. The
-runnable ones also include a little handwritten Go under `cmd/`.
+Most examples keep their own `buf.gen.yaml`, proto source, and generated output in one folder. The
+gRPC and Connect quickstarts deliberately share the same generated protobuf/Tego package in
+`quickstart`, with separate handwritten clients and servers in `quickstart-grpc` and
+`quickstart-connect`. The runnable examples include a little handwritten Go under `cmd/`.

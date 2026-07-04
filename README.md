@@ -30,12 +30,22 @@ option go_package = "github.com/acme/project/hellopbv1;hellopbv1";
 option (tego.file).go_package = "github.com/acme/project/hello;hello";
 ```
 
-And add Tego to `buf.gen.yaml` alongside `protoc-gen-go`:
+And add Tego to `buf.gen.yaml` alongside the usual Go protobuf plugins:
 
 ```yaml
 version: v2
 
 plugins:
+- local: protoc-gen-go
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/acme/project
+- local: protoc-gen-go-grpc
+  out: .
+  opt:
+  - paths=import
+  - module=github.com/acme/project
 - local: protoc-gen-tego
   out: .
   opt:
@@ -52,6 +62,9 @@ buf generate
 
 Use `rpc=grpc` for gRPC, `rpc=connect` for Connect, `rpc=none` for just types and mapping
 functions, or omit `rpc` to generate both gRPC and Connect adapters.
+
+For Connect, swap `protoc-gen-go-grpc` for `protoc-gen-connect-go` and use `rpc=connect`. For
+`rpc=none`, you only need `protoc-gen-go` and `protoc-gen-tego`.
 
 If you are using `protoc` directly, you can still use Tego, but you need to make
 `tego/options.proto` available on your proto include path.

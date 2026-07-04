@@ -22,5 +22,5 @@ Good files to start with:
 From this example folder, regenerate with:
 
 ```sh
-buf generate
+buf generate --config ../../buf.dev.yaml --template buf.gen.yaml ../.. --path proto/custom/v1/custom.proto
 ```
