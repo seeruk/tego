@@ -132,9 +132,9 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 		return target, err
 	}
 	target.Description = description2
-	watcherIDs := make([]string, 0, len(source.GetWatcherIds()))
-	for _, watcherIDsItem := range source.GetWatcherIds() {
-		watcherIDs = append(watcherIDs, watcherIDsItem)
+	watcherIDs := make([]string, len(source.GetWatcherIds()))
+	for watcherIDsIndex, watcherIDsItem := range source.GetWatcherIds() {
+		watcherIDs[watcherIDsIndex] = watcherIDsItem
 	}
 	target.WatcherIDs = watcherIDs
 	metadata := make(map[string]string, len(source.GetMetadata()))
@@ -211,9 +211,9 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 		return nil, err
 	}
 	target.SetDescription(description3)
-	watcherIDs := make([]string, 0, len(source.WatcherIDs))
-	for _, watcherIDsItem := range source.WatcherIDs {
-		watcherIDs = append(watcherIDs, watcherIDsItem)
+	watcherIDs := make([]string, len(source.WatcherIDs))
+	for watcherIDsIndex, watcherIDsItem := range source.WatcherIDs {
+		watcherIDs[watcherIDsIndex] = watcherIDsItem
 	}
 	target.SetWatcherIds(watcherIDs)
 	metadata := make(map[string]string, len(source.Metadata))

@@ -1307,28 +1307,32 @@ func ListTicketsResponseFromProto(source *yirapbv1.ListTicketsResponse) (ListTic
 	if source == nil {
 		return target, nil
 	}
-	tickets := make([]Ticket, 0, len(source.GetTickets()))
-	for _, ticketsItem := range source.GetTickets() {
+	tickets := make([]Ticket, len(source.GetTickets()))
+	for ticketsIndex, ticketsItem := range source.GetTickets() {
 		ticketsItemTego, err := TicketFromProto(ticketsItem)
 		if err != nil {
 			return target, err
 		}
-		tickets = append(tickets, ticketsItemTego)
+		tickets[ticketsIndex] = ticketsItemTego
 	}
 	target.Tickets = tickets
-	ticketsByStatus := make(map[TicketStatus][]Ticket)
+	var ticketsByStatus map[TicketStatus][]Ticket
 	if source.GetTicketsByStatus() != nil {
-		for _, ticketsByStatusEntry := range source.GetTicketsByStatus().GetEntries() {
-			ticketsByStatusValue := make([]Ticket, 0, len(ticketsByStatusEntry.GetValue()))
-			for _, ticketsByStatusValueItem := range ticketsByStatusEntry.GetValue() {
+		ticketsByStatusEntries := source.GetTicketsByStatus().GetEntries()
+		ticketsByStatus = make(map[TicketStatus][]Ticket, len(ticketsByStatusEntries))
+		for _, ticketsByStatusEntry := range ticketsByStatusEntries {
+			ticketsByStatusValue := make([]Ticket, len(ticketsByStatusEntry.GetValue()))
+			for ticketsByStatusValueIndex, ticketsByStatusValueItem := range ticketsByStatusEntry.GetValue() {
 				ticketsByStatusValueItemTego, err := TicketFromProto(ticketsByStatusValueItem)
 				if err != nil {
 					return target, err
 				}
-				ticketsByStatusValue = append(ticketsByStatusValue, ticketsByStatusValueItemTego)
+				ticketsByStatusValue[ticketsByStatusValueIndex] = ticketsByStatusValueItemTego
 			}
 			ticketsByStatus[TicketStatus(ticketsByStatusEntry.GetKey())] = ticketsByStatusValue
 		}
+	} else {
+		ticketsByStatus = make(map[TicketStatus][]Ticket)
 	}
 	target.TicketsByStatus = ticketsByStatus
 	target.Cursor = CursorResponseFromProto(source.GetCursor())
@@ -1337,25 +1341,25 @@ func ListTicketsResponseFromProto(source *yirapbv1.ListTicketsResponse) (ListTic
 
 func ListTicketsResponseToProto(source ListTicketsResponse) (*yirapbv1.ListTicketsResponse, error) {
 	target := new(yirapbv1.ListTicketsResponse)
-	tickets := make([]*yirapbv1.Ticket, 0, len(source.Tickets))
-	for _, ticketsItem := range source.Tickets {
+	tickets := make([]*yirapbv1.Ticket, len(source.Tickets))
+	for ticketsIndex, ticketsItem := range source.Tickets {
 		ticketsItemProto, err := TicketToProto(ticketsItem)
 		if err != nil {
 			return nil, err
 		}
-		tickets = append(tickets, ticketsItemProto)
+		tickets[ticketsIndex] = ticketsItemProto
 	}
 	target.SetTickets(tickets)
 	ticketsByStatusEntries := make([]*yirapbv1.TicketsByStatus_Map, 0, len(source.TicketsByStatus))
 	for ticketsByStatusKey, ticketsByStatusValue := range source.TicketsByStatus {
 		ticketsByStatusEntry := new(yirapbv1.TicketsByStatus_Map)
-		ticketsByStatusValueProto := make([]*yirapbv1.Ticket, 0, len(ticketsByStatusValue))
-		for _, ticketsByStatusValueItem := range ticketsByStatusValue {
+		ticketsByStatusValueProto := make([]*yirapbv1.Ticket, len(ticketsByStatusValue))
+		for ticketsByStatusValueProtoIndex, ticketsByStatusValueItem := range ticketsByStatusValue {
 			ticketsByStatusValueItemProto, err := TicketToProto(ticketsByStatusValueItem)
 			if err != nil {
 				return nil, err
 			}
-			ticketsByStatusValueProto = append(ticketsByStatusValueProto, ticketsByStatusValueItemProto)
+			ticketsByStatusValueProto[ticketsByStatusValueProtoIndex] = ticketsByStatusValueItemProto
 		}
 		ticketsByStatusEntry.SetKey(yirapbv1.TicketStatus(ticketsByStatusKey))
 		ticketsByStatusEntry.SetValue(ticketsByStatusValueProto)
@@ -1719,9 +1723,9 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 	if source.GetWatchers() != nil {
 		watchersSourceItems = source.GetWatchers().GetPeople()
 	}
-	watchers := make([]Person, 0, len(watchersSourceItems))
-	for _, watchersItem := range watchersSourceItems {
-		watchers = append(watchers, PersonFromProto(watchersItem))
+	watchers := make([]Person, len(watchersSourceItems))
+	for watchersIndex, watchersItem := range watchersSourceItems {
+		watchers[watchersIndex] = PersonFromProto(watchersItem)
 	}
 	target.Watchers = watchers
 	var labels types.Set[types.Label]
@@ -1754,9 +1758,9 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 	case yirapbv1.Ticket_IntegrationSource_case:
 		target.Source = TicketIntegrationSource{IntegrationSource: source.GetIntegrationSource()}
 	}
-	events := make([]TicketEvent, 0, len(source.GetEvents()))
-	for _, eventsItem := range source.GetEvents() {
-		events = append(events, TicketEventFromProto(eventsItem))
+	events := make([]TicketEvent, len(source.GetEvents()))
+	for eventsIndex, eventsItem := range source.GetEvents() {
+		events[eventsIndex] = TicketEventFromProto(eventsItem)
 	}
 	target.Events = events
 	return target, nil
@@ -1780,9 +1784,9 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 	}
 	target.SetAssignee(assignee)
 	target.SetReporter(PersonToProto(source.Reporter))
-	watchers := make([]*yirapbv1.Person, 0, len(source.Watchers))
-	for _, watchersItem := range source.Watchers {
-		watchers = append(watchers, PersonToProto(watchersItem))
+	watchers := make([]*yirapbv1.Person, len(source.Watchers))
+	for watchersIndex, watchersItem := range source.Watchers {
+		watchers[watchersIndex] = PersonToProto(watchersItem)
 	}
 	watchers2 := new(yirapbv1.PersonList)
 	watchers2.SetPeople(watchers)
@@ -1828,13 +1832,13 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
-	events := make([]*yirapbv1.TicketEvent, 0, len(source.Events))
-	for _, eventsItem := range source.Events {
+	events := make([]*yirapbv1.TicketEvent, len(source.Events))
+	for eventsIndex, eventsItem := range source.Events {
 		eventsItemProto, err := TicketEventToProto(eventsItem)
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, eventsItemProto)
+		events[eventsIndex] = eventsItemProto
 	}
 	target.SetEvents(events)
 	return target, nil
@@ -2057,9 +2061,9 @@ func TicketFilterFromProto(source *yirapbv1.TicketFilter) (TicketFilter, error) 
 	if source == nil {
 		return target, nil
 	}
-	statuses := make([]TicketStatus, 0, len(source.GetStatuses()))
-	for _, statusesItem := range source.GetStatuses() {
-		statuses = append(statuses, TicketStatus(statusesItem))
+	statuses := make([]TicketStatus, len(source.GetStatuses()))
+	for statusesIndex, statusesItem := range source.GetStatuses() {
+		statuses[statusesIndex] = TicketStatus(statusesItem)
 	}
 	target.Statuses = statuses
 	var assignee *Person
@@ -2081,9 +2085,9 @@ func TicketFilterFromProto(source *yirapbv1.TicketFilter) (TicketFilter, error) 
 
 func TicketFilterToProto(source TicketFilter) (*yirapbv1.TicketFilter, error) {
 	target := new(yirapbv1.TicketFilter)
-	statuses := make([]yirapbv1.TicketStatus, 0, len(source.Statuses))
-	for _, statusesItem := range source.Statuses {
-		statuses = append(statuses, yirapbv1.TicketStatus(statusesItem))
+	statuses := make([]yirapbv1.TicketStatus, len(source.Statuses))
+	for statusesIndex, statusesItem := range source.Statuses {
+		statuses[statusesIndex] = yirapbv1.TicketStatus(statusesItem)
 	}
 	target.SetStatuses(statuses)
 	var assignee *yirapbv1.NullablePerson

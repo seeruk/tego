@@ -53,11 +53,15 @@ func ProjectFromProto(source *shapespbv1.Project) Project {
 		slug = source.GetSlug().GetValue()
 	}
 	target.Slug = slug
-	members := make(map[string]Person)
+	var members map[string]Person
 	if source.GetMembers() != nil {
-		for _, membersEntry := range source.GetMembers().GetEntries() {
+		membersEntries := source.GetMembers().GetEntries()
+		members = make(map[string]Person, len(membersEntries))
+		for _, membersEntry := range membersEntries {
 			members[membersEntry.GetKey()] = PersonFromProto(membersEntry.GetValue())
 		}
+	} else {
+		members = make(map[string]Person)
 	}
 	target.Members = members
 	var owner *Person
@@ -69,18 +73,18 @@ func ProjectFromProto(source *shapespbv1.Project) Project {
 	if source.GetReviewers() != nil {
 		reviewersSourceItems = source.GetReviewers().GetPeople()
 	}
-	reviewers := make([]Person, 0, len(reviewersSourceItems))
-	for _, reviewersItem := range reviewersSourceItems {
-		reviewers = append(reviewers, PersonFromProto(reviewersItem))
+	reviewers := make([]Person, len(reviewersSourceItems))
+	for reviewersIndex, reviewersItem := range reviewersSourceItems {
+		reviewers[reviewersIndex] = PersonFromProto(reviewersItem)
 	}
 	target.Reviewers = reviewers
-	aliases := make([]string, 0, len(source.GetAliases()))
-	for _, aliasesItem := range source.GetAliases() {
+	aliases := make([]string, len(source.GetAliases()))
+	for aliasesIndex, aliasesItem := range source.GetAliases() {
 		var aliasesItemTego string
 		if aliasesItem != nil {
 			aliasesItemTego = aliasesItem.GetValue()
 		}
-		aliases = append(aliases, aliasesItemTego)
+		aliases[aliasesIndex] = aliasesItemTego
 	}
 	target.Aliases = aliases
 	localizedSlugs := make(map[string]string, len(source.GetLocalizedSlugs()))
@@ -92,13 +96,13 @@ func ProjectFromProto(source *shapespbv1.Project) Project {
 		localizedSlugs[localizedSlugsKey] = localizedSlugsValueTego
 	}
 	target.LocalizedSlugs = localizedSlugs
-	previousOwners := make([]*Person, 0, len(source.GetPreviousOwners()))
-	for _, previousOwnersItem := range source.GetPreviousOwners() {
+	previousOwners := make([]*Person, len(source.GetPreviousOwners()))
+	for previousOwnersIndex, previousOwnersItem := range source.GetPreviousOwners() {
 		var previousOwnersItemTego *Person
 		if previousOwnersItem != nil && previousOwnersItem.WhichValue() == shapespbv1.NullablePerson_Person_case {
 			previousOwnersItemTego = new(PersonFromProto(previousOwnersItem.GetPerson()))
 		}
-		previousOwners = append(previousOwners, previousOwnersItemTego)
+		previousOwners[previousOwnersIndex] = previousOwnersItemTego
 	}
 	target.PreviousOwners = previousOwners
 	contactsByRole := make(map[string]*Person, len(source.GetContactsByRole()))
@@ -137,18 +141,18 @@ func ProjectToProto(source Project) *shapespbv1.Project {
 		owner.SetNull(structpb.NullValue_NULL_VALUE)
 	}
 	target.SetOwner(owner)
-	reviewers := make([]*shapespbv1.Person, 0, len(source.Reviewers))
-	for _, reviewersItem := range source.Reviewers {
-		reviewers = append(reviewers, PersonToProto(reviewersItem))
+	reviewers := make([]*shapespbv1.Person, len(source.Reviewers))
+	for reviewersIndex, reviewersItem := range source.Reviewers {
+		reviewers[reviewersIndex] = PersonToProto(reviewersItem)
 	}
 	reviewers2 := new(shapespbv1.PersonList)
 	reviewers2.SetPeople(reviewers)
 	target.SetReviewers(reviewers2)
-	aliases := make([]*shapespbv1.ProjectSlug, 0, len(source.Aliases))
-	for _, aliasesItem := range source.Aliases {
+	aliases := make([]*shapespbv1.ProjectSlug, len(source.Aliases))
+	for aliasesIndex, aliasesItem := range source.Aliases {
 		aliasesItemProto := new(shapespbv1.ProjectSlug)
 		aliasesItemProto.SetValue(aliasesItem)
-		aliases = append(aliases, aliasesItemProto)
+		aliases[aliasesIndex] = aliasesItemProto
 	}
 	target.SetAliases(aliases)
 	localizedSlugs := make(map[string]*shapespbv1.ProjectSlug, len(source.LocalizedSlugs))
@@ -158,8 +162,8 @@ func ProjectToProto(source Project) *shapespbv1.Project {
 		localizedSlugs[localizedSlugsKey] = localizedSlugsValueProto
 	}
 	target.SetLocalizedSlugs(localizedSlugs)
-	previousOwners := make([]*shapespbv1.NullablePerson, 0, len(source.PreviousOwners))
-	for _, previousOwnersItem := range source.PreviousOwners {
+	previousOwners := make([]*shapespbv1.NullablePerson, len(source.PreviousOwners))
+	for previousOwnersIndex, previousOwnersItem := range source.PreviousOwners {
 		var previousOwnersItemProto *shapespbv1.NullablePerson
 		if previousOwnersItem != nil {
 			previousOwnersItemProto = new(shapespbv1.NullablePerson)
@@ -168,7 +172,7 @@ func ProjectToProto(source Project) *shapespbv1.Project {
 			previousOwnersItemProto = new(shapespbv1.NullablePerson)
 			previousOwnersItemProto.SetNull(structpb.NullValue_NULL_VALUE)
 		}
-		previousOwners = append(previousOwners, previousOwnersItemProto)
+		previousOwners[previousOwnersIndex] = previousOwnersItemProto
 	}
 	target.SetPreviousOwners(previousOwners)
 	contactsByRole := make(map[string]*shapespbv1.NullablePerson, len(source.ContactsByRole))

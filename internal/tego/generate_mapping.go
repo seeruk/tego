@@ -671,20 +671,20 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 		return "", err
 	}
 	tmp := ctx.tempName("items")
+	index := ctx.tempPartName("index")
 	item := ctx.collectionItemName(source)
+	ctx.line(tmp + " := make(" + targetType + ", len(" + source + "))")
 	if mappingConsumesSource(elem) {
-		ctx.line(tmp + " := make(" + targetType + ", 0, len(" + source + "))")
-		ctx.line("for _, " + item + " := range " + source + " {")
+		ctx.line("for " + index + ", " + item + " := range " + source + " {")
 	} else {
 		item = "_"
-		ctx.line(tmp + " := make(" + targetType + ", 0, len(" + source + "))")
-		ctx.line("for range " + source + " {")
+		ctx.line("for " + index + " := range " + source + " {")
 	}
 	mapped, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(item, elem), elem, item)
 	if err != nil {
 		return "", err
 	}
-	ctx.line(tmp + " = append(" + tmp + ", " + mapped + ")")
+	ctx.line(tmp + "[" + index + "] = " + mapped)
 	ctx.line("}")
 	return tmp, nil
 }
@@ -1054,10 +1054,13 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 			return "", err
 		}
 		tmp := ctx.tempName("items")
+		entries := ctx.tempPartName("entries")
 		entry := ctx.tempPartName("entry")
-		ctx.line(tmp + " := make(" + targetType + ")")
+		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
-		ctx.line("for _, " + entry + " := range " + source + "." + plan.Access.Field.Getter + "() {")
+		ctx.line(entries + " := " + source + "." + plan.Access.Field.Getter + "()")
+		ctx.line(tmp + " = make(" + targetType + ", len(" + entries + "))")
+		ctx.line("for _, " + entry + " := range " + entries + " {")
 		mappedKey, err := ctx.renderValueWithTempNameHintSuffix("Key", *plan.Key, entry+"."+plan.Access.Key.Getter+"()")
 		if err != nil {
 			return "", err
@@ -1068,6 +1071,8 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 		}
 		ctx.line(tmp + "[" + mappedKey + "] = " + mappedValue)
 		ctx.line("}")
+		ctx.line("} else {")
+		ctx.line(tmp + " = make(" + targetType + ")")
 		ctx.line("}")
 		return tmp, nil
 	}
