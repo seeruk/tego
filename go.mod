@@ -6,6 +6,7 @@ require (
 	connectrpc.com/connect v1.20.0
 	github.com/danielgtaylor/casing v1.0.0
 	github.com/sebdah/goldie/v2 v2.8.0
+	github.com/seeruk/go-containers v0.1.0
 	golang.org/x/tools v0.47.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11

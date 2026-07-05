@@ -168,7 +168,7 @@ and IDs can be real types instead of strings with good intentions. See
 
 ### Presence and Patches
 
-For patch-style messages, Tego can generate `omittable.Of[T]` so callers can differentiate between
+For patch-style messages, Tego can generate `omittable.Value[T]` so callers can differentiate between
 not set, set to null/nil, and set to a value, as needed.
 
 ```protobuf
@@ -183,8 +183,8 @@ message UpdateProfileRequest {
 
 ```go
 type UpdateProfileRequest struct {
-	DisplayName omittable.Of[string]
-	Bio         omittable.Of[*string]
+	DisplayName omittable.Value[string]
+	Bio         omittable.Value[*string]
 	ActorID     string
 }
 ```

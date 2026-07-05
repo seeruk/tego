@@ -3,9 +3,9 @@ package generated
 
 import (
 	errors "errors"
+	omittable "github.com/seeruk/go-containers/omittable"
 	generatedpb "github.com/seeruk/tego/internal/tego/testdata/generatedpb"
 	plannertest "github.com/seeruk/tego/internal/tego/testdata/plannertest"
-	omittable "github.com/seeruk/tego/omittable"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -76,11 +76,11 @@ type Person struct {
 	Box            plannertest.Box[*[]*plannertest.CustomString]
 	LabelSets      []plannertest.Set[plannertest.CustomString]
 	LabelsByName   map[string]plannertest.Set[plannertest.CustomString]
-	OptionalLabels omittable.Of[plannertest.Set[plannertest.CustomString]]
+	OptionalLabels omittable.Value[plannertest.Set[plannertest.CustomString]]
 	Friends        []*Person
 	Metadata       map[string]string
 	Owners         map[string]Person
-	OptionalName   omittable.Of[string]
+	OptionalName   omittable.Value[string]
 }
 
 func PersonFromProto(source *generatedpb.Person) (Person, error) {
@@ -143,9 +143,9 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 	}
 	target.Metadata = metadata
 	if source.HasOptionalName() {
-		target.OptionalName = omittable.Some(source.GetOptionalName())
+		target.OptionalName = omittable.Of(source.GetOptionalName())
 	} else {
-		target.OptionalName = omittable.None[string]()
+		target.OptionalName = omittable.Empty[string]()
 	}
 	return target, nil
 }
@@ -221,8 +221,8 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 		metadata[metadataKey] = metadataValue
 	}
 	target.SetMetadata(metadata)
-	if source.OptionalName.Valid {
-		target.SetOptionalName(source.OptionalName.Value)
+	if source.OptionalName.IsPresent() {
+		target.SetOptionalName(source.OptionalName.Get())
 	}
 	return target, nil
 }

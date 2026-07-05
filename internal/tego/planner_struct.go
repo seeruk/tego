@@ -137,7 +137,7 @@ func (p *Planner) planFieldType(field *ProtoField, si *ShapeIndex) (TypePlan, []
 
 	diagnostics = append(diagnostics, nullableOmittableDiagnostics(field, si)...)
 
-	// Keep nullable inside omittable, so nullable + omittable plans as omittable.Of[*T].
+	// Keep nullable inside omittable, so nullable + omittable plans as omittable.Value[*T].
 	if field.Options.GetNullable() {
 		plan = pointerType(plan)
 	}
@@ -160,7 +160,7 @@ func nullableOmittableDiagnostics(field *ProtoField, si *ShapeIndex) []Diagnosti
 	return []Diagnostic{warningDiagnostic(
 		string(field.FullName),
 		"nullable field option cannot preserve null when combined with omittable unless "+
-			"the field uses a nullable shape; omittable.Some(nil) will not round-trip as explicit null",
+			"the field uses a nullable shape; omittable.Of(nil) will not round-trip as explicit null",
 	)}
 }
 

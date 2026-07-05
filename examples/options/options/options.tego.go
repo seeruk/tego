@@ -2,9 +2,9 @@
 package options
 
 import (
+	omittable "github.com/seeruk/go-containers/omittable"
 	tego "github.com/seeruk/tego"
 	optionspbv1 "github.com/seeruk/tego/examples/options/optionspbv1"
-	omittable "github.com/seeruk/tego/omittable"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -35,10 +35,10 @@ type UserAccount struct {
 }
 
 type AccountPatch struct {
-	DisplayName omittable.Of[string]
-	Email       omittable.Of[*string]
-	Role        omittable.Of[AccessRole]
-	Metadata    omittable.Of[tego.Struct]
+	DisplayName omittable.Value[string]
+	Email       omittable.Value[*string]
+	Role        omittable.Value[AccessRole]
+	Metadata    omittable.Value[tego.Struct]
 	ActorID     string
 }
 
@@ -117,32 +117,32 @@ func AccountPatchFromProto(source *optionspbv1.AccountPatch) AccountPatch {
 		return target
 	}
 	if source.HasDisplayName() {
-		target.DisplayName = omittable.Some(source.GetDisplayName())
+		target.DisplayName = omittable.Of(source.GetDisplayName())
 	} else {
-		target.DisplayName = omittable.None[string]()
+		target.DisplayName = omittable.Empty[string]()
 	}
 	if source.HasEmail() {
 		var email *string
 		if source.GetEmail() != nil && source.GetEmail().WhichValue() == optionspbv1.NullableString_Text_case {
 			email = new(source.GetEmail().GetText())
 		}
-		target.Email = omittable.Some(email)
+		target.Email = omittable.Of(email)
 	} else {
-		target.Email = omittable.None[*string]()
+		target.Email = omittable.Empty[*string]()
 	}
 	if source.HasRole() {
-		target.Role = omittable.Some(AccessRole(source.GetRole()))
+		target.Role = omittable.Of(AccessRole(source.GetRole()))
 	} else {
-		target.Role = omittable.None[AccessRole]()
+		target.Role = omittable.Empty[AccessRole]()
 	}
 	if source.HasMetadata() {
 		var metadata tego.Struct
 		if source.GetMetadata() != nil {
 			metadata = source.GetMetadata().AsMap()
 		}
-		target.Metadata = omittable.Some(metadata)
+		target.Metadata = omittable.Of(metadata)
 	} else {
-		target.Metadata = omittable.None[tego.Struct]()
+		target.Metadata = omittable.Empty[tego.Struct]()
 	}
 	target.ActorID = source.GetActorId()
 	return target
@@ -150,27 +150,27 @@ func AccountPatchFromProto(source *optionspbv1.AccountPatch) AccountPatch {
 
 func AccountPatchToProto(source AccountPatch) (*optionspbv1.AccountPatch, error) {
 	target := new(optionspbv1.AccountPatch)
-	if source.DisplayName.Valid {
-		target.SetDisplayName(source.DisplayName.Value)
+	if source.DisplayName.IsPresent() {
+		target.SetDisplayName(source.DisplayName.Get())
 	}
-	if source.Email.Valid {
+	if source.Email.IsPresent() {
 		var email *optionspbv1.NullableString
-		if source.Email.Value != nil {
+		if source.Email.Get() != nil {
 			email = new(optionspbv1.NullableString)
-			email.SetText(*source.Email.Value)
+			email.SetText(*source.Email.Get())
 		} else {
 			email = new(optionspbv1.NullableString)
 			email.SetNull(structpb.NullValue_NULL_VALUE)
 		}
 		target.SetEmail(email)
 	}
-	if source.Role.Valid {
-		target.SetRole(optionspbv1.Role(source.Role.Value))
+	if source.Role.IsPresent() {
+		target.SetRole(optionspbv1.Role(source.Role.Get()))
 	}
-	if source.Metadata.Valid {
+	if source.Metadata.IsPresent() {
 		var metadata *structpb.Struct
-		if source.Metadata.Value != nil {
-			metadata2, err := structpb.NewStruct(source.Metadata.Value)
+		if source.Metadata.Get() != nil {
+			metadata2, err := structpb.NewStruct(source.Metadata.Get())
 			if err != nil {
 				return nil, err
 			}

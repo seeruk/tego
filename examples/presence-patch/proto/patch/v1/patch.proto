@@ -23,7 +23,7 @@ message NullableString {
 // database column if a value is set, but allow it to be null). To achieve this though, the value
 // must be wrapped in a nullable-shape wrapper in Protobuf, otherwise there's no way to distinguish
 // between "not set" and "set to null" at the Protobuf level. This will still translate cleanly to
-// an omittable.Of[*T] in your Tego Go output.
+// an omittable.Value[*T] in your Tego Go output.
 message UpdateProfileRequest {
   option (tego.message).fields.omittable = true;
 

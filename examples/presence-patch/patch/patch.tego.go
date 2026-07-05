@@ -2,9 +2,9 @@
 package patch
 
 import (
+	omittable "github.com/seeruk/go-containers/omittable"
 	tego "github.com/seeruk/tego"
 	patchpbv1 "github.com/seeruk/tego/examples/presence-patch/patchpbv1"
-	omittable "github.com/seeruk/tego/omittable"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -17,11 +17,11 @@ import (
 // database column if a value is set, but allow it to be null). To achieve this though, the value
 // must be wrapped in a nullable-shape wrapper in Protobuf, otherwise there's no way to distinguish
 // between "not set" and "set to null" at the Protobuf level. This will still translate cleanly to
-// an omittable.Of[*T] in your Tego Go output.
+// an omittable.Value[*T] in your Tego Go output.
 type UpdateProfileRequest struct {
-	DisplayName omittable.Of[string]
-	Bio         omittable.Of[*string]
-	Preferences omittable.Of[tego.Struct]
+	DisplayName omittable.Value[string]
+	Bio         omittable.Value[*string]
+	Preferences omittable.Value[tego.Struct]
 	ActorID     string
 }
 
@@ -31,27 +31,27 @@ func UpdateProfileRequestFromProto(source *patchpbv1.UpdateProfileRequest) Updat
 		return target
 	}
 	if source.HasDisplayName() {
-		target.DisplayName = omittable.Some(source.GetDisplayName())
+		target.DisplayName = omittable.Of(source.GetDisplayName())
 	} else {
-		target.DisplayName = omittable.None[string]()
+		target.DisplayName = omittable.Empty[string]()
 	}
 	if source.HasBio() {
 		var bio *string
 		if source.GetBio() != nil && source.GetBio().WhichValue() == patchpbv1.NullableString_Text_case {
 			bio = new(source.GetBio().GetText())
 		}
-		target.Bio = omittable.Some(bio)
+		target.Bio = omittable.Of(bio)
 	} else {
-		target.Bio = omittable.None[*string]()
+		target.Bio = omittable.Empty[*string]()
 	}
 	if source.HasPreferences() {
 		var preferences tego.Struct
 		if source.GetPreferences() != nil {
 			preferences = source.GetPreferences().AsMap()
 		}
-		target.Preferences = omittable.Some(preferences)
+		target.Preferences = omittable.Of(preferences)
 	} else {
-		target.Preferences = omittable.None[tego.Struct]()
+		target.Preferences = omittable.Empty[tego.Struct]()
 	}
 	target.ActorID = source.GetActorId()
 	return target
@@ -59,24 +59,24 @@ func UpdateProfileRequestFromProto(source *patchpbv1.UpdateProfileRequest) Updat
 
 func UpdateProfileRequestToProto(source UpdateProfileRequest) (*patchpbv1.UpdateProfileRequest, error) {
 	target := new(patchpbv1.UpdateProfileRequest)
-	if source.DisplayName.Valid {
-		target.SetDisplayName(source.DisplayName.Value)
+	if source.DisplayName.IsPresent() {
+		target.SetDisplayName(source.DisplayName.Get())
 	}
-	if source.Bio.Valid {
+	if source.Bio.IsPresent() {
 		var bio *patchpbv1.NullableString
-		if source.Bio.Value != nil {
+		if source.Bio.Get() != nil {
 			bio = new(patchpbv1.NullableString)
-			bio.SetText(*source.Bio.Value)
+			bio.SetText(*source.Bio.Get())
 		} else {
 			bio = new(patchpbv1.NullableString)
 			bio.SetNull(structpb.NullValue_NULL_VALUE)
 		}
 		target.SetBio(bio)
 	}
-	if source.Preferences.Valid {
+	if source.Preferences.IsPresent() {
 		var preferences *structpb.Struct
-		if source.Preferences.Value != nil {
-			preferences2, err := structpb.NewStruct(source.Preferences.Value)
+		if source.Preferences.Get() != nil {
+			preferences2, err := structpb.NewStruct(source.Preferences.Get())
 			if err != nil {
 				return nil, err
 			}

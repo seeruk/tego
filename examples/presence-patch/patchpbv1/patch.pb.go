@@ -194,7 +194,7 @@ func (*nullableString_Null) isNullableString_Value() {}
 // database column if a value is set, but allow it to be null). To achieve this though, the value
 // must be wrapped in a nullable-shape wrapper in Protobuf, otherwise there's no way to distinguish
 // between "not set" and "set to null" at the Protobuf level. This will still translate cleanly to
-// an omittable.Of[*T] in your Tego Go output.
+// an omittable.Value[*T] in your Tego Go output.
 type UpdateProfileRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_DisplayName *string                `protobuf:"bytes,1,opt,name=display_name,json=displayName"`

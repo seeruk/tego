@@ -6,11 +6,11 @@ import (
 	context "context"
 	errors "errors"
 	fmt "fmt"
+	omittable "github.com/seeruk/go-containers/omittable"
 	tego "github.com/seeruk/tego"
 	yirapbv1 "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1"
 	yirapbv1connect "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect"
 	types "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types"
-	omittable "github.com/seeruk/tego/omittable"
 	grpc "google.golang.org/grpc"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -173,14 +173,14 @@ type TicketDraft struct {
 }
 
 type TicketPatch struct {
-	Title       omittable.Of[string]
-	Description omittable.Of[string]
-	Status      omittable.Of[TicketStatus]
-	Priority    omittable.Of[TicketPriority]
-	Assignee    omittable.Of[*Person]
-	DueDate     omittable.Of[types.Date]
-	Labels      omittable.Of[types.Set[types.Label]]
-	Metadata    omittable.Of[tego.Struct]
+	Title       omittable.Value[string]
+	Description omittable.Value[string]
+	Status      omittable.Value[TicketStatus]
+	Priority    omittable.Value[TicketPriority]
+	Assignee    omittable.Value[*Person]
+	DueDate     omittable.Value[types.Date]
+	Labels      omittable.Value[types.Set[types.Label]]
+	Metadata    omittable.Value[tego.Struct]
 	Version     string
 }
 
@@ -1923,33 +1923,33 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 		return target, nil
 	}
 	if source.HasTitle() {
-		target.Title = omittable.Some(source.GetTitle())
+		target.Title = omittable.Of(source.GetTitle())
 	} else {
-		target.Title = omittable.None[string]()
+		target.Title = omittable.Empty[string]()
 	}
 	if source.HasDescription() {
-		target.Description = omittable.Some(source.GetDescription())
+		target.Description = omittable.Of(source.GetDescription())
 	} else {
-		target.Description = omittable.None[string]()
+		target.Description = omittable.Empty[string]()
 	}
 	if source.HasStatus() {
-		target.Status = omittable.Some(TicketStatus(source.GetStatus()))
+		target.Status = omittable.Of(TicketStatus(source.GetStatus()))
 	} else {
-		target.Status = omittable.None[TicketStatus]()
+		target.Status = omittable.Empty[TicketStatus]()
 	}
 	if source.HasPriority() {
-		target.Priority = omittable.Some(TicketPriority(source.GetPriority()))
+		target.Priority = omittable.Of(TicketPriority(source.GetPriority()))
 	} else {
-		target.Priority = omittable.None[TicketPriority]()
+		target.Priority = omittable.Empty[TicketPriority]()
 	}
 	if source.HasAssignee() {
 		var assignee *Person
 		if source.GetAssignee() != nil && source.GetAssignee().WhichValue() == yirapbv1.NullablePerson_Person_case {
 			assignee = new(PersonFromProto(source.GetAssignee().GetPerson()))
 		}
-		target.Assignee = omittable.Some(assignee)
+		target.Assignee = omittable.Of(assignee)
 	} else {
-		target.Assignee = omittable.None[*Person]()
+		target.Assignee = omittable.Empty[*Person]()
 	}
 	if source.HasDueDate() {
 		var dueDate types.Date
@@ -1960,9 +1960,9 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 			}
 			dueDate = dueDateValue
 		}
-		target.DueDate = omittable.Some(dueDate)
+		target.DueDate = omittable.Of(dueDate)
 	} else {
-		target.DueDate = omittable.None[types.Date]()
+		target.DueDate = omittable.Empty[types.Date]()
 	}
 	if source.HasLabels() {
 		var labels types.Set[types.Label]
@@ -1973,18 +1973,18 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 			}
 			labels = labelsValues
 		}
-		target.Labels = omittable.Some(labels)
+		target.Labels = omittable.Of(labels)
 	} else {
-		target.Labels = omittable.None[types.Set[types.Label]]()
+		target.Labels = omittable.Empty[types.Set[types.Label]]()
 	}
 	if source.HasMetadata() {
 		var metadata tego.Struct
 		if source.GetMetadata() != nil {
 			metadata = source.GetMetadata().AsMap()
 		}
-		target.Metadata = omittable.Some(metadata)
+		target.Metadata = omittable.Of(metadata)
 	} else {
-		target.Metadata = omittable.None[tego.Struct]()
+		target.Metadata = omittable.Empty[tego.Struct]()
 	}
 	target.Version = source.GetVersion()
 	return target, nil
@@ -1992,51 +1992,51 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 
 func TicketPatchToProto(source TicketPatch) (*yirapbv1.TicketPatch, error) {
 	target := new(yirapbv1.TicketPatch)
-	if source.Title.Valid {
-		target.SetTitle(source.Title.Value)
+	if source.Title.IsPresent() {
+		target.SetTitle(source.Title.Get())
 	}
-	if source.Description.Valid {
-		target.SetDescription(source.Description.Value)
+	if source.Description.IsPresent() {
+		target.SetDescription(source.Description.Get())
 	}
-	if source.Status.Valid {
-		target.SetStatus(yirapbv1.TicketStatus(source.Status.Value))
+	if source.Status.IsPresent() {
+		target.SetStatus(yirapbv1.TicketStatus(source.Status.Get()))
 	}
-	if source.Priority.Valid {
-		target.SetPriority(yirapbv1.TicketPriority(source.Priority.Value))
+	if source.Priority.IsPresent() {
+		target.SetPriority(yirapbv1.TicketPriority(source.Priority.Get()))
 	}
-	if source.Assignee.Valid {
+	if source.Assignee.IsPresent() {
 		var assignee *yirapbv1.NullablePerson
-		if source.Assignee.Value != nil {
+		if source.Assignee.Get() != nil {
 			assignee = new(yirapbv1.NullablePerson)
-			assignee.SetPerson(PersonToProto(*source.Assignee.Value))
+			assignee.SetPerson(PersonToProto(*source.Assignee.Get()))
 		} else {
 			assignee = new(yirapbv1.NullablePerson)
 			assignee.SetNull(structpb.NullValue_NULL_VALUE)
 		}
 		target.SetAssignee(assignee)
 	}
-	if source.DueDate.Valid {
+	if source.DueDate.IsPresent() {
 		dueDate := new(yirapbv1.DueDate)
-		dueDateValue, err := types.DateToProto(source.DueDate.Value)
+		dueDateValue, err := types.DateToProto(source.DueDate.Get())
 		if err != nil {
 			return nil, err
 		}
 		dueDate.SetValue(dueDateValue)
 		target.SetDueDate(dueDate)
 	}
-	if source.Labels.Valid {
+	if source.Labels.IsPresent() {
 		labels := new(yirapbv1.Labels)
-		labelsValues, err := types.LabelSetToProto(source.Labels.Value)
+		labelsValues, err := types.LabelSetToProto(source.Labels.Get())
 		if err != nil {
 			return nil, err
 		}
 		labels.SetValues(labelsValues)
 		target.SetLabels(labels)
 	}
-	if source.Metadata.Valid {
+	if source.Metadata.IsPresent() {
 		var metadata *structpb.Struct
-		if source.Metadata.Value != nil {
-			metadata2, err := structpb.NewStruct(source.Metadata.Value)
+		if source.Metadata.Get() != nil {
+			metadata2, err := structpb.NewStruct(source.Metadata.Get())
 			if err != nil {
 				return nil, err
 			}

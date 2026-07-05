@@ -264,8 +264,8 @@ func generateFromProtoOmittableField(ctx *mappingRenderContext, field FieldMappi
 		return err
 	}
 
-	some := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "Some"})
-	none := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "None"})
+	some := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "Of"})
+	none := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "Empty"})
 
 	presence := "source." + field.Proto.Has + "()"
 	if field.Proto.Has == "" {
@@ -288,8 +288,8 @@ func generateToProtoOmittableField(ctx *mappingRenderContext, field FieldMapping
 		return fmt.Errorf("omittable mapping is missing an element")
 	}
 
-	ctx.line("if source." + field.Name + ".Valid {")
-	expr, err := ctx.renderValue(*field.ToProto.Elem, "source."+field.Name+".Value")
+	ctx.line("if source." + field.Name + ".IsPresent() {")
+	expr, err := ctx.renderValue(*field.ToProto.Elem, "source."+field.Name+".Get()")
 	if err != nil {
 		return err
 	}
