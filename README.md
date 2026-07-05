@@ -254,8 +254,8 @@ path, handler := books.NewBookServiceConnectHandler(
 ```
 
 See [examples/error-mapping](examples/error-mapping) for sentinel errors with `errors.Is` and
-structured errors with `errors.As`. Generated facade clients can use the same option to map native
-transport errors back to domain errors before returning them to your code.
+structured errors with `errors.AsType`. Generated facade clients can use the same option to map 
+native transport errors back to domain errors before returning them to your code.
 
 ## Examples
 
