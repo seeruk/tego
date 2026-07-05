@@ -9,17 +9,18 @@ without deciphering a large demo app.
 1. [quickstart-grpc](quickstart-grpc): unary gRPC service using the facade interface and facade
    client.
 2. [quickstart-connect](quickstart-connect): the same shape using Connect.
-3. [shapes](shapes): generated Go shapes for slices, maps, nullable values, flattening, and
+3. [error-mapping](error-mapping): mapping ordinary Go domain errors to gRPC and Connect errors.
+4. [shapes](shapes): generated Go shapes for slices, maps, nullable values, flattening, and
    composition.
-4. [options](options): naming, comments, tags, omit, nullable, omittable, enums, and service/method
+5. [options](options): naming, comments, tags, omit, nullable, omittable, enums, and service/method
    option syntax.
-5. [custom-types](custom-types): custom Go types and conversion functions.
-6. [presence-patch](presence-patch): patch inputs that distinguish leave unchanged, set value, and
+6. [custom-types](custom-types): custom Go types and conversion functions.
+7. [presence-patch](presence-patch): patch inputs that distinguish leave unchanged, set value, and
    clear value.
-7. [streaming-grpc](streaming-grpc): server, client, and bidi streaming through facade iterators.
-8. [transport-override](transport-override): overriding one native gRPC method while delegating to
+8. [streaming-grpc](streaming-grpc): server, client, and bidi streaming through facade iterators.
+9. [transport-override](transport-override): overriding one native gRPC method while delegating to
    the generated adapter.
-9. [kitchen-sink](kitchen-sink): a reference-style type coverage example.
+10. [kitchen-sink](kitchen-sink): a reference-style type coverage example.
 
 Most examples keep their own `buf.gen.yaml`, proto source, and generated output in one folder. The
 gRPC and Connect quickstarts deliberately share the same generated protobuf/Tego package in

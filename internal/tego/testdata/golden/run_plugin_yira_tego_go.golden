@@ -403,12 +403,18 @@ func unimplementedTicketServiceError(method string) error {
 	return fmt.Errorf("TicketService.%s: %w", method, tego.ErrUnimplemented)
 }
 
-func RegisterTicketServiceGRPCServer(registrar grpc.ServiceRegistrar, service TicketService) {
-	yirapbv1.RegisterTicketServiceServer(registrar, NewTicketServiceGRPCServer(service))
+func RegisterTicketServiceGRPCServer(registrar grpc.ServiceRegistrar, service TicketService, opts ...tego.GRPCServerOption) {
+	yirapbv1.RegisterTicketServiceServer(registrar, NewTicketServiceGRPCServer(service, opts...))
 }
 
-func NewTicketServiceGRPCServer(service TicketService) yirapbv1.TicketServiceServer {
-	return &ticketServiceGRPCServer{TicketServiceGRPCAdapter: NewTicketServiceGRPCAdapter(service)}
+func NewTicketServiceGRPCServer(service TicketService, opts ...tego.GRPCServerOption) yirapbv1.TicketServiceServer {
+	return NewTicketServiceGRPCServerWithAdapter(NewTicketServiceGRPCAdapter(service), opts...)
+}
+
+func NewTicketServiceGRPCServerWithAdapter(adapter *TicketServiceGRPCAdapter, opts ...tego.GRPCServerOption) yirapbv1.TicketServiceServer {
+	options := tego.NewGRPCServerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return &ticketServiceGRPCServer{TicketServiceGRPCAdapter: adapter}
 }
 
 type ticketServiceGRPCServer struct {
@@ -417,11 +423,23 @@ type ticketServiceGRPCServer struct {
 }
 
 type TicketServiceGRPCAdapter struct {
-	service TicketService
+	service     TicketService
+	errorMapper tego.ErrorMapper
 }
 
-func NewTicketServiceGRPCAdapter(service TicketService) *TicketServiceGRPCAdapter {
-	return &TicketServiceGRPCAdapter{service: service}
+func NewTicketServiceGRPCAdapter(service TicketService, opts ...tego.GRPCAdapterOption) *TicketServiceGRPCAdapter {
+	options := tego.NewGRPCAdapterOptions(opts...)
+	return &TicketServiceGRPCAdapter{service: service, errorMapper: options.ErrorMapper(tego.GRPCError)}
+}
+
+func (a *TicketServiceGRPCAdapter) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if a.errorMapper == nil {
+		return tego.GRPCError(err)
+	}
+	return a.errorMapper(err)
 }
 
 func (s *ticketServiceGRPCServer) ListTickets(ctx context.Context, requestProto *yirapbv1.ListTicketsRequest) (*yirapbv1.ListTicketsResponse, error) {
@@ -435,7 +453,7 @@ func (a *TicketServiceGRPCAdapter) AdaptListTickets(ctx context.Context, request
 	}
 	response, err := ListTicketsResponseFromInline(a.service.ListTickets(ListTicketsRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := ListTicketsResponseToProto(response)
 	if err != nil {
@@ -452,7 +470,7 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestPr
 	request := GetTicketRequestFromProto(requestProto)
 	response, err := GetTicketResponseFromInline(a.service.GetTicket(GetTicketRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := GetTicketResponseToProto(response)
 	if err != nil {
@@ -472,7 +490,7 @@ func (a *TicketServiceGRPCAdapter) AdaptCreateTicket(ctx context.Context, reques
 	}
 	response, err := CreateTicketResponseFromInline(a.service.CreateTicket(CreateTicketRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := CreateTicketResponseToProto(response)
 	if err != nil {
@@ -492,7 +510,7 @@ func (a *TicketServiceGRPCAdapter) AdaptUpdateTicket(ctx context.Context, reques
 	}
 	response, err := UpdateTicketResponseFromInline(a.service.UpdateTicket(UpdateTicketRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := UpdateTicketResponseToProto(response)
 	if err != nil {
@@ -509,7 +527,7 @@ func (a *TicketServiceGRPCAdapter) AdaptCloseTicket(ctx context.Context, request
 	request := CloseTicketRequestFromProto(requestProto)
 	response, err := a.service.CloseTicket(CloseTicketRequestToInline(ctx, request))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto := CloseTicketResponseToProto(response)
 	return responseProto, nil
@@ -524,14 +542,14 @@ func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *yirapbv1
 	request := WatchTicketEventsRequestFromProto(requestProto)
 	responses, err := a.service.WatchTicketEvents(WatchTicketEventsRequestToInline(ctx, request))
 	if err != nil {
-		return tego.GRPCError(err)
+		return a.mapError(err)
 	}
 	if responses == nil {
 		return nil
 	}
 	for response, err := range responses {
 		if err != nil {
-			return tego.GRPCError(err)
+			return a.mapError(err)
 		}
 		responseProto, err := WatchTicketEventsResponseToProto(response)
 		if err != nil {
@@ -570,7 +588,7 @@ func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStr
 	}
 	response, err := ImportTicketEventsResponseFromInline(a.service.ImportTicketEvents(stream.Context(), requests))
 	if err != nil {
-		return tego.GRPCError(err)
+		return a.mapError(err)
 	}
 	if receiveErr != nil {
 		return receiveErr
@@ -605,12 +623,12 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 	}
 	responses, err := a.service.SyncTicketEvents(stream.Context(), requests)
 	if err != nil {
-		return tego.GRPCError(err)
+		return a.mapError(err)
 	}
 	if responses != nil {
 		for response, err := range responses {
 			if err != nil {
-				return tego.GRPCError(err)
+				return a.mapError(err)
 			}
 			responseProto, err := SyncTicketEventsResponseToProto(response)
 			if err != nil {
@@ -624,12 +642,24 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 	return receiveErr
 }
 
-func NewTicketServiceGRPCClient(client yirapbv1.TicketServiceClient) TicketService {
-	return &ticketServiceGRPCClient{client: client}
+func NewTicketServiceGRPCClient(client yirapbv1.TicketServiceClient, opts ...tego.GRPCClientOption) TicketService {
+	options := tego.NewGRPCClientOptions(opts...)
+	return &ticketServiceGRPCClient{client: client, errorMapper: options.ErrorMapper(nil)}
 }
 
 type ticketServiceGRPCClient struct {
-	client yirapbv1.TicketServiceClient
+	client      yirapbv1.TicketServiceClient
+	errorMapper tego.ErrorMapper
+}
+
+func (c *ticketServiceGRPCClient) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
 }
 
 func (c *ticketServiceGRPCClient) ListTickets(ctx context.Context, projectID string, filter TicketFilter, cursor CursorRequest) ([]Ticket, map[TicketStatus][]Ticket, CursorResponse, error) {
@@ -641,7 +671,7 @@ func (c *ticketServiceGRPCClient) ListTickets(ctx context.Context, projectID str
 	}
 	responseProto, err := c.client.ListTickets(ctx, requestProto)
 	if err != nil {
-		return ListTicketsResponseToInline(zero, err)
+		return ListTicketsResponseToInline(zero, c.mapError(err))
 	}
 	response, err := ListTicketsResponseFromProto(responseProto)
 	if err != nil {
@@ -656,7 +686,7 @@ func (c *ticketServiceGRPCClient) GetTicket(ctx context.Context, ticketID string
 	requestProto := GetTicketRequestToProto(request)
 	responseProto, err := c.client.GetTicket(ctx, requestProto)
 	if err != nil {
-		return GetTicketResponseToInline(zero, err)
+		return GetTicketResponseToInline(zero, c.mapError(err))
 	}
 	response, err := GetTicketResponseFromProto(responseProto)
 	if err != nil {
@@ -674,7 +704,7 @@ func (c *ticketServiceGRPCClient) CreateTicket(ctx context.Context, ticket Ticke
 	}
 	responseProto, err := c.client.CreateTicket(ctx, requestProto)
 	if err != nil {
-		return CreateTicketResponseToInline(zero, err)
+		return CreateTicketResponseToInline(zero, c.mapError(err))
 	}
 	response, err := CreateTicketResponseFromProto(responseProto)
 	if err != nil {
@@ -692,7 +722,7 @@ func (c *ticketServiceGRPCClient) UpdateTicket(ctx context.Context, ticketID str
 	}
 	responseProto, err := c.client.UpdateTicket(ctx, requestProto)
 	if err != nil {
-		return UpdateTicketResponseToInline(zero, err)
+		return UpdateTicketResponseToInline(zero, c.mapError(err))
 	}
 	response, err := UpdateTicketResponseFromProto(responseProto)
 	if err != nil {
@@ -707,7 +737,7 @@ func (c *ticketServiceGRPCClient) CloseTicket(ctx context.Context, ticketID stri
 	requestProto := CloseTicketRequestToProto(request)
 	responseProto, err := c.client.CloseTicket(ctx, requestProto)
 	if err != nil {
-		return zero, err
+		return zero, c.mapError(err)
 	}
 	response := CloseTicketResponseFromProto(responseProto)
 	return response, nil
@@ -718,7 +748,7 @@ func (c *ticketServiceGRPCClient) WatchTicketEvents(ctx context.Context, project
 	requestProto := WatchTicketEventsRequestToProto(request)
 	stream, err := c.client.WatchTicketEvents(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return nil, c.mapError(err)
 	}
 	responses := func(yield func(WatchTicketEventsResponse, error) bool) {
 		for {
@@ -728,7 +758,7 @@ func (c *ticketServiceGRPCClient) WatchTicketEvents(ctx context.Context, project
 			}
 			if err != nil {
 				var zero WatchTicketEventsResponse
-				yield(zero, err)
+				yield(zero, c.mapError(err))
 				return
 			}
 			response := WatchTicketEventsResponseFromProto(responseProto)
@@ -744,7 +774,7 @@ func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, reques
 	var zero ImportTicketEventsResponse
 	stream, err := c.client.ImportTicketEvents(ctx)
 	if err != nil {
-		return ImportTicketEventsResponseToInline(zero, err)
+		return ImportTicketEventsResponseToInline(zero, c.mapError(err))
 	}
 	for request, err := range requests {
 		if err != nil {
@@ -755,12 +785,12 @@ func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, reques
 			return ImportTicketEventsResponseToInline(zero, err)
 		}
 		if err := stream.Send(requestProto); err != nil {
-			return ImportTicketEventsResponseToInline(zero, err)
+			return ImportTicketEventsResponseToInline(zero, c.mapError(err))
 		}
 	}
 	responseProto, err := stream.CloseAndRecv()
 	if err != nil {
-		return ImportTicketEventsResponseToInline(zero, err)
+		return ImportTicketEventsResponseToInline(zero, c.mapError(err))
 	}
 	response := ImportTicketEventsResponseFromProto(responseProto)
 	return ImportTicketEventsResponseToInline(response, nil)
@@ -769,7 +799,7 @@ func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, reques
 func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[SyncTicketEventsRequest, error]) (iter.Seq2[SyncTicketEventsResponse, error], error) {
 	stream, err := c.client.SyncTicketEvents(ctx)
 	if err != nil {
-		return nil, err
+		return nil, c.mapError(err)
 	}
 	responses := func(yield func(SyncTicketEventsResponse, error) bool) {
 		sendErr := make(chan error, 1)
@@ -786,11 +816,11 @@ func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests
 				}
 				requestProto := requestProto2
 				if err := stream.Send(requestProto); err != nil {
-					sendErr <- err
+					sendErr <- c.mapError(err)
 					return
 				}
 			}
-			sendErr <- stream.CloseSend()
+			sendErr <- c.mapError(stream.CloseSend())
 		}()
 		for {
 			responseProto, err := stream.Recv()
@@ -803,7 +833,7 @@ func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests
 			}
 			if err != nil {
 				var zero SyncTicketEventsResponse
-				yield(zero, err)
+				yield(zero, c.mapError(err))
 				return
 			}
 			response := SyncTicketEventsResponseFromProto(responseProto)
@@ -815,8 +845,14 @@ func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests
 	return responses, nil
 }
 
-func NewTicketServiceConnectHandler(service TicketService, opts ...connect.HandlerOption) (string, http.Handler) {
-	return yirapbv1connect.NewTicketServiceHandler(&ticketServiceConnectHandler{TicketServiceConnectAdapter: NewTicketServiceConnectAdapter(service)}, opts...)
+func NewTicketServiceConnectHandler(service TicketService, opts ...tego.ConnectHandlerOption) (string, http.Handler) {
+	return NewTicketServiceConnectHandlerWithAdapter(NewTicketServiceConnectAdapter(service), opts...)
+}
+
+func NewTicketServiceConnectHandlerWithAdapter(adapter *TicketServiceConnectAdapter, opts ...tego.ConnectHandlerOption) (string, http.Handler) {
+	options := tego.NewConnectHandlerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return yirapbv1connect.NewTicketServiceHandler(&ticketServiceConnectHandler{TicketServiceConnectAdapter: adapter}, options.ConnectHandlerOptions()...)
 }
 
 type ticketServiceConnectHandler struct {
@@ -824,11 +860,23 @@ type ticketServiceConnectHandler struct {
 }
 
 type TicketServiceConnectAdapter struct {
-	service TicketService
+	service     TicketService
+	errorMapper tego.ErrorMapper
 }
 
-func NewTicketServiceConnectAdapter(service TicketService) *TicketServiceConnectAdapter {
-	return &TicketServiceConnectAdapter{service: service}
+func NewTicketServiceConnectAdapter(service TicketService, opts ...tego.ConnectAdapterOption) *TicketServiceConnectAdapter {
+	options := tego.NewConnectAdapterOptions(opts...)
+	return &TicketServiceConnectAdapter{service: service, errorMapper: options.ErrorMapper(tego.ConnectError)}
+}
+
+func (a *TicketServiceConnectAdapter) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if a.errorMapper == nil {
+		return tego.ConnectError(err)
+	}
+	return a.errorMapper(err)
 }
 
 func (s *ticketServiceConnectHandler) ListTickets(ctx context.Context, requestProto *connect.Request[yirapbv1.ListTicketsRequest]) (*connect.Response[yirapbv1.ListTicketsResponse], error) {
@@ -842,7 +890,7 @@ func (a *TicketServiceConnectAdapter) AdaptListTickets(ctx context.Context, requ
 	}
 	response, err := ListTicketsResponseFromInline(a.service.ListTickets(ListTicketsRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := ListTicketsResponseToProto(response)
 	if err != nil {
@@ -859,7 +907,7 @@ func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, reques
 	request := GetTicketRequestFromProto(requestProto.Msg)
 	response, err := GetTicketResponseFromInline(a.service.GetTicket(GetTicketRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := GetTicketResponseToProto(response)
 	if err != nil {
@@ -879,7 +927,7 @@ func (a *TicketServiceConnectAdapter) AdaptCreateTicket(ctx context.Context, req
 	}
 	response, err := CreateTicketResponseFromInline(a.service.CreateTicket(CreateTicketRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := CreateTicketResponseToProto(response)
 	if err != nil {
@@ -899,7 +947,7 @@ func (a *TicketServiceConnectAdapter) AdaptUpdateTicket(ctx context.Context, req
 	}
 	response, err := UpdateTicketResponseFromInline(a.service.UpdateTicket(UpdateTicketRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto, err := UpdateTicketResponseToProto(response)
 	if err != nil {
@@ -916,7 +964,7 @@ func (a *TicketServiceConnectAdapter) AdaptCloseTicket(ctx context.Context, requ
 	request := CloseTicketRequestFromProto(requestProto.Msg)
 	response, err := a.service.CloseTicket(CloseTicketRequestToInline(ctx, request))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto := CloseTicketResponseToProto(response)
 	return connect.NewResponse(responseProto), nil
@@ -930,14 +978,14 @@ func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context
 	request := WatchTicketEventsRequestFromProto(requestProto.Msg)
 	responses, err := a.service.WatchTicketEvents(WatchTicketEventsRequestToInline(ctx, request))
 	if err != nil {
-		return tego.ConnectError(err)
+		return a.mapError(err)
 	}
 	if responses == nil {
 		return nil
 	}
 	for response, err := range responses {
 		if err != nil {
-			return tego.ConnectError(err)
+			return a.mapError(err)
 		}
 		responseProto, err := WatchTicketEventsResponseToProto(response)
 		if err != nil {
@@ -971,7 +1019,7 @@ func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Contex
 	}
 	response, err := ImportTicketEventsResponseFromInline(a.service.ImportTicketEvents(ctx, requests))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	if receiveErr != nil {
 		return nil, receiveErr
@@ -1006,12 +1054,12 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 	}
 	responses, err := a.service.SyncTicketEvents(ctx, requests)
 	if err != nil {
-		return tego.ConnectError(err)
+		return a.mapError(err)
 	}
 	if responses != nil {
 		for response, err := range responses {
 			if err != nil {
-				return tego.ConnectError(err)
+				return a.mapError(err)
 			}
 			responseProto, err := SyncTicketEventsResponseToProto(response)
 			if err != nil {
@@ -1025,12 +1073,24 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 	return receiveErr
 }
 
-func NewTicketServiceConnectClient(client yirapbv1connect.TicketServiceClient) TicketService {
-	return &ticketServiceConnectClient{client: client}
+func NewTicketServiceConnectClient(client yirapbv1connect.TicketServiceClient, opts ...tego.ConnectClientOption) TicketService {
+	options := tego.NewConnectClientOptions(opts...)
+	return &ticketServiceConnectClient{client: client, errorMapper: options.ErrorMapper(nil)}
 }
 
 type ticketServiceConnectClient struct {
-	client yirapbv1connect.TicketServiceClient
+	client      yirapbv1connect.TicketServiceClient
+	errorMapper tego.ErrorMapper
+}
+
+func (c *ticketServiceConnectClient) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
 }
 
 func (c *ticketServiceConnectClient) ListTickets(ctx context.Context, projectID string, filter TicketFilter, cursor CursorRequest) ([]Ticket, map[TicketStatus][]Ticket, CursorResponse, error) {
@@ -1042,7 +1102,7 @@ func (c *ticketServiceConnectClient) ListTickets(ctx context.Context, projectID 
 	}
 	responseProto, err := c.client.ListTickets(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return ListTicketsResponseToInline(zero, err)
+		return ListTicketsResponseToInline(zero, c.mapError(err))
 	}
 	response, err := ListTicketsResponseFromProto(responseProto.Msg)
 	if err != nil {
@@ -1057,7 +1117,7 @@ func (c *ticketServiceConnectClient) GetTicket(ctx context.Context, ticketID str
 	requestProto := GetTicketRequestToProto(request)
 	responseProto, err := c.client.GetTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return GetTicketResponseToInline(zero, err)
+		return GetTicketResponseToInline(zero, c.mapError(err))
 	}
 	response, err := GetTicketResponseFromProto(responseProto.Msg)
 	if err != nil {
@@ -1075,7 +1135,7 @@ func (c *ticketServiceConnectClient) CreateTicket(ctx context.Context, ticket Ti
 	}
 	responseProto, err := c.client.CreateTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return CreateTicketResponseToInline(zero, err)
+		return CreateTicketResponseToInline(zero, c.mapError(err))
 	}
 	response, err := CreateTicketResponseFromProto(responseProto.Msg)
 	if err != nil {
@@ -1093,7 +1153,7 @@ func (c *ticketServiceConnectClient) UpdateTicket(ctx context.Context, ticketID 
 	}
 	responseProto, err := c.client.UpdateTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return UpdateTicketResponseToInline(zero, err)
+		return UpdateTicketResponseToInline(zero, c.mapError(err))
 	}
 	response, err := UpdateTicketResponseFromProto(responseProto.Msg)
 	if err != nil {
@@ -1108,7 +1168,7 @@ func (c *ticketServiceConnectClient) CloseTicket(ctx context.Context, ticketID s
 	requestProto := CloseTicketRequestToProto(request)
 	responseProto, err := c.client.CloseTicket(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return zero, err
+		return zero, c.mapError(err)
 	}
 	response := CloseTicketResponseFromProto(responseProto.Msg)
 	return response, nil
@@ -1119,7 +1179,7 @@ func (c *ticketServiceConnectClient) WatchTicketEvents(ctx context.Context, proj
 	requestProto := WatchTicketEventsRequestToProto(request)
 	stream, err := c.client.WatchTicketEvents(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return nil, err
+		return nil, c.mapError(err)
 	}
 	responses := func(yield func(WatchTicketEventsResponse, error) bool) {
 		defer stream.Close()
@@ -1131,7 +1191,7 @@ func (c *ticketServiceConnectClient) WatchTicketEvents(ctx context.Context, proj
 		}
 		if err := stream.Err(); err != nil {
 			var zero WatchTicketEventsResponse
-			yield(zero, err)
+			yield(zero, c.mapError(err))
 		}
 	}
 	return responses, nil
@@ -1149,12 +1209,12 @@ func (c *ticketServiceConnectClient) ImportTicketEvents(ctx context.Context, req
 			return ImportTicketEventsResponseToInline(zero, err)
 		}
 		if err := stream.Send(requestProto); err != nil {
-			return ImportTicketEventsResponseToInline(zero, err)
+			return ImportTicketEventsResponseToInline(zero, c.mapError(err))
 		}
 	}
 	responseProto, err := stream.CloseAndReceive()
 	if err != nil {
-		return ImportTicketEventsResponseToInline(zero, err)
+		return ImportTicketEventsResponseToInline(zero, c.mapError(err))
 	}
 	response := ImportTicketEventsResponseFromProto(responseProto.Msg)
 	return ImportTicketEventsResponseToInline(response, nil)
@@ -1177,11 +1237,11 @@ func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, reque
 				}
 				requestProto := requestProto2
 				if err := stream.Send(requestProto); err != nil {
-					sendErr <- err
+					sendErr <- c.mapError(err)
 					return
 				}
 			}
-			sendErr <- stream.CloseRequest()
+			sendErr <- c.mapError(stream.CloseRequest())
 		}()
 		for {
 			responseProto, err := stream.Receive()
@@ -1190,7 +1250,7 @@ func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, reque
 					break
 				}
 				var zero SyncTicketEventsResponse
-				yield(zero, err)
+				yield(zero, c.mapError(err))
 				return
 			}
 			response := SyncTicketEventsResponseFromProto(responseProto)
@@ -1205,7 +1265,7 @@ func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, reque
 		}
 		if err := stream.CloseResponse(); err != nil {
 			var zero SyncTicketEventsResponse
-			yield(zero, err)
+			yield(zero, c.mapError(err))
 		}
 	}
 	return responses, nil

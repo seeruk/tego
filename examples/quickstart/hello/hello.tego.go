@@ -59,12 +59,18 @@ func unimplementedGreeterServiceError(method string) error {
 	return fmt.Errorf("GreeterService.%s: %w", method, tego.ErrUnimplemented)
 }
 
-func RegisterGreeterServiceGRPCServer(registrar grpc.ServiceRegistrar, service GreeterService) {
-	hellopbv1.RegisterGreeterServiceServer(registrar, NewGreeterServiceGRPCServer(service))
+func RegisterGreeterServiceGRPCServer(registrar grpc.ServiceRegistrar, service GreeterService, opts ...tego.GRPCServerOption) {
+	hellopbv1.RegisterGreeterServiceServer(registrar, NewGreeterServiceGRPCServer(service, opts...))
 }
 
-func NewGreeterServiceGRPCServer(service GreeterService) hellopbv1.GreeterServiceServer {
-	return &greeterServiceGRPCServer{GreeterServiceGRPCAdapter: NewGreeterServiceGRPCAdapter(service)}
+func NewGreeterServiceGRPCServer(service GreeterService, opts ...tego.GRPCServerOption) hellopbv1.GreeterServiceServer {
+	return NewGreeterServiceGRPCServerWithAdapter(NewGreeterServiceGRPCAdapter(service), opts...)
+}
+
+func NewGreeterServiceGRPCServerWithAdapter(adapter *GreeterServiceGRPCAdapter, opts ...tego.GRPCServerOption) hellopbv1.GreeterServiceServer {
+	options := tego.NewGRPCServerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return &greeterServiceGRPCServer{GreeterServiceGRPCAdapter: adapter}
 }
 
 type greeterServiceGRPCServer struct {
@@ -73,11 +79,23 @@ type greeterServiceGRPCServer struct {
 }
 
 type GreeterServiceGRPCAdapter struct {
-	service GreeterService
+	service     GreeterService
+	errorMapper tego.ErrorMapper
 }
 
-func NewGreeterServiceGRPCAdapter(service GreeterService) *GreeterServiceGRPCAdapter {
-	return &GreeterServiceGRPCAdapter{service: service}
+func NewGreeterServiceGRPCAdapter(service GreeterService, opts ...tego.GRPCAdapterOption) *GreeterServiceGRPCAdapter {
+	options := tego.NewGRPCAdapterOptions(opts...)
+	return &GreeterServiceGRPCAdapter{service: service, errorMapper: options.ErrorMapper(tego.GRPCError)}
+}
+
+func (a *GreeterServiceGRPCAdapter) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if a.errorMapper == nil {
+		return tego.GRPCError(err)
+	}
+	return a.errorMapper(err)
 }
 
 func (s *greeterServiceGRPCServer) SayHello(ctx context.Context, requestProto *hellopbv1.SayHelloRequest) (*hellopbv1.SayHelloResponse, error) {
@@ -88,18 +106,30 @@ func (a *GreeterServiceGRPCAdapter) AdaptSayHello(ctx context.Context, requestPr
 	request := SayHelloRequestFromProto(requestProto)
 	response, err := SayHelloResponseFromInline(a.service.SayHello(SayHelloRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto := SayHelloResponseToProto(response)
 	return responseProto, nil
 }
 
-func NewGreeterServiceGRPCClient(client hellopbv1.GreeterServiceClient) GreeterService {
-	return &greeterServiceGRPCClient{client: client}
+func NewGreeterServiceGRPCClient(client hellopbv1.GreeterServiceClient, opts ...tego.GRPCClientOption) GreeterService {
+	options := tego.NewGRPCClientOptions(opts...)
+	return &greeterServiceGRPCClient{client: client, errorMapper: options.ErrorMapper(nil)}
 }
 
 type greeterServiceGRPCClient struct {
-	client hellopbv1.GreeterServiceClient
+	client      hellopbv1.GreeterServiceClient
+	errorMapper tego.ErrorMapper
+}
+
+func (c *greeterServiceGRPCClient) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
 }
 
 func (c *greeterServiceGRPCClient) SayHello(ctx context.Context, name string) (string, error) {
@@ -108,14 +138,20 @@ func (c *greeterServiceGRPCClient) SayHello(ctx context.Context, name string) (s
 	requestProto := SayHelloRequestToProto(request)
 	responseProto, err := c.client.SayHello(ctx, requestProto)
 	if err != nil {
-		return SayHelloResponseToInline(zero, err)
+		return SayHelloResponseToInline(zero, c.mapError(err))
 	}
 	response := SayHelloResponseFromProto(responseProto)
 	return SayHelloResponseToInline(response, nil)
 }
 
-func NewGreeterServiceConnectHandler(service GreeterService, opts ...connect.HandlerOption) (string, http.Handler) {
-	return hellopbv1connect.NewGreeterServiceHandler(&greeterServiceConnectHandler{GreeterServiceConnectAdapter: NewGreeterServiceConnectAdapter(service)}, opts...)
+func NewGreeterServiceConnectHandler(service GreeterService, opts ...tego.ConnectHandlerOption) (string, http.Handler) {
+	return NewGreeterServiceConnectHandlerWithAdapter(NewGreeterServiceConnectAdapter(service), opts...)
+}
+
+func NewGreeterServiceConnectHandlerWithAdapter(adapter *GreeterServiceConnectAdapter, opts ...tego.ConnectHandlerOption) (string, http.Handler) {
+	options := tego.NewConnectHandlerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return hellopbv1connect.NewGreeterServiceHandler(&greeterServiceConnectHandler{GreeterServiceConnectAdapter: adapter}, options.ConnectHandlerOptions()...)
 }
 
 type greeterServiceConnectHandler struct {
@@ -123,11 +159,23 @@ type greeterServiceConnectHandler struct {
 }
 
 type GreeterServiceConnectAdapter struct {
-	service GreeterService
+	service     GreeterService
+	errorMapper tego.ErrorMapper
 }
 
-func NewGreeterServiceConnectAdapter(service GreeterService) *GreeterServiceConnectAdapter {
-	return &GreeterServiceConnectAdapter{service: service}
+func NewGreeterServiceConnectAdapter(service GreeterService, opts ...tego.ConnectAdapterOption) *GreeterServiceConnectAdapter {
+	options := tego.NewConnectAdapterOptions(opts...)
+	return &GreeterServiceConnectAdapter{service: service, errorMapper: options.ErrorMapper(tego.ConnectError)}
+}
+
+func (a *GreeterServiceConnectAdapter) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if a.errorMapper == nil {
+		return tego.ConnectError(err)
+	}
+	return a.errorMapper(err)
 }
 
 func (s *greeterServiceConnectHandler) SayHello(ctx context.Context, requestProto *connect.Request[hellopbv1.SayHelloRequest]) (*connect.Response[hellopbv1.SayHelloResponse], error) {
@@ -138,18 +186,30 @@ func (a *GreeterServiceConnectAdapter) AdaptSayHello(ctx context.Context, reques
 	request := SayHelloRequestFromProto(requestProto.Msg)
 	response, err := SayHelloResponseFromInline(a.service.SayHello(SayHelloRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.ConnectError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto := SayHelloResponseToProto(response)
 	return connect.NewResponse(responseProto), nil
 }
 
-func NewGreeterServiceConnectClient(client hellopbv1connect.GreeterServiceClient) GreeterService {
-	return &greeterServiceConnectClient{client: client}
+func NewGreeterServiceConnectClient(client hellopbv1connect.GreeterServiceClient, opts ...tego.ConnectClientOption) GreeterService {
+	options := tego.NewConnectClientOptions(opts...)
+	return &greeterServiceConnectClient{client: client, errorMapper: options.ErrorMapper(nil)}
 }
 
 type greeterServiceConnectClient struct {
-	client hellopbv1connect.GreeterServiceClient
+	client      hellopbv1connect.GreeterServiceClient
+	errorMapper tego.ErrorMapper
+}
+
+func (c *greeterServiceConnectClient) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
 }
 
 func (c *greeterServiceConnectClient) SayHello(ctx context.Context, name string) (string, error) {
@@ -158,7 +218,7 @@ func (c *greeterServiceConnectClient) SayHello(ctx context.Context, name string)
 	requestProto := SayHelloRequestToProto(request)
 	responseProto, err := c.client.SayHello(ctx, connect.NewRequest(requestProto))
 	if err != nil {
-		return SayHelloResponseToInline(zero, err)
+		return SayHelloResponseToInline(zero, c.mapError(err))
 	}
 	response := SayHelloResponseFromProto(responseProto.Msg)
 	return SayHelloResponseToInline(response, nil)

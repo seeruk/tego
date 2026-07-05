@@ -99,12 +99,18 @@ func unimplementedProfileServiceError(method string) error {
 	return fmt.Errorf("ProfileService.%s: %w", method, tego.ErrUnimplemented)
 }
 
-func RegisterProfileServiceGRPCServer(registrar grpc.ServiceRegistrar, service ProfileService) {
-	overridepbv1.RegisterProfileServiceServer(registrar, NewProfileServiceGRPCServer(service))
+func RegisterProfileServiceGRPCServer(registrar grpc.ServiceRegistrar, service ProfileService, opts ...tego.GRPCServerOption) {
+	overridepbv1.RegisterProfileServiceServer(registrar, NewProfileServiceGRPCServer(service, opts...))
 }
 
-func NewProfileServiceGRPCServer(service ProfileService) overridepbv1.ProfileServiceServer {
-	return &profileServiceGRPCServer{ProfileServiceGRPCAdapter: NewProfileServiceGRPCAdapter(service)}
+func NewProfileServiceGRPCServer(service ProfileService, opts ...tego.GRPCServerOption) overridepbv1.ProfileServiceServer {
+	return NewProfileServiceGRPCServerWithAdapter(NewProfileServiceGRPCAdapter(service), opts...)
+}
+
+func NewProfileServiceGRPCServerWithAdapter(adapter *ProfileServiceGRPCAdapter, opts ...tego.GRPCServerOption) overridepbv1.ProfileServiceServer {
+	options := tego.NewGRPCServerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return &profileServiceGRPCServer{ProfileServiceGRPCAdapter: adapter}
 }
 
 type profileServiceGRPCServer struct {
@@ -113,11 +119,23 @@ type profileServiceGRPCServer struct {
 }
 
 type ProfileServiceGRPCAdapter struct {
-	service ProfileService
+	service     ProfileService
+	errorMapper tego.ErrorMapper
 }
 
-func NewProfileServiceGRPCAdapter(service ProfileService) *ProfileServiceGRPCAdapter {
-	return &ProfileServiceGRPCAdapter{service: service}
+func NewProfileServiceGRPCAdapter(service ProfileService, opts ...tego.GRPCAdapterOption) *ProfileServiceGRPCAdapter {
+	options := tego.NewGRPCAdapterOptions(opts...)
+	return &ProfileServiceGRPCAdapter{service: service, errorMapper: options.ErrorMapper(tego.GRPCError)}
+}
+
+func (a *ProfileServiceGRPCAdapter) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if a.errorMapper == nil {
+		return tego.GRPCError(err)
+	}
+	return a.errorMapper(err)
 }
 
 func (s *profileServiceGRPCServer) GetProfile(ctx context.Context, requestProto *overridepbv1.GetProfileRequest) (*overridepbv1.GetProfileResponse, error) {
@@ -128,7 +146,7 @@ func (a *ProfileServiceGRPCAdapter) AdaptGetProfile(ctx context.Context, request
 	request := GetProfileRequestFromProto(requestProto)
 	response, err := GetProfileResponseFromInline(a.service.GetProfile(GetProfileRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto := GetProfileResponseToProto(response)
 	return responseProto, nil
@@ -142,18 +160,30 @@ func (a *ProfileServiceGRPCAdapter) AdaptDeleteProfile(ctx context.Context, requ
 	request := DeleteProfileRequestFromProto(requestProto)
 	response, err := DeleteProfileResponseFromInline(a.service.DeleteProfile(DeleteProfileRequestToInline(ctx, request)))
 	if err != nil {
-		return nil, tego.GRPCError(err)
+		return nil, a.mapError(err)
 	}
 	responseProto := DeleteProfileResponseToProto(response)
 	return responseProto, nil
 }
 
-func NewProfileServiceGRPCClient(client overridepbv1.ProfileServiceClient) ProfileService {
-	return &profileServiceGRPCClient{client: client}
+func NewProfileServiceGRPCClient(client overridepbv1.ProfileServiceClient, opts ...tego.GRPCClientOption) ProfileService {
+	options := tego.NewGRPCClientOptions(opts...)
+	return &profileServiceGRPCClient{client: client, errorMapper: options.ErrorMapper(nil)}
 }
 
 type profileServiceGRPCClient struct {
-	client overridepbv1.ProfileServiceClient
+	client      overridepbv1.ProfileServiceClient
+	errorMapper tego.ErrorMapper
+}
+
+func (c *profileServiceGRPCClient) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
 }
 
 func (c *profileServiceGRPCClient) GetProfile(ctx context.Context, id string) (Profile, error) {
@@ -162,7 +192,7 @@ func (c *profileServiceGRPCClient) GetProfile(ctx context.Context, id string) (P
 	requestProto := GetProfileRequestToProto(request)
 	responseProto, err := c.client.GetProfile(ctx, requestProto)
 	if err != nil {
-		return GetProfileResponseToInline(zero, err)
+		return GetProfileResponseToInline(zero, c.mapError(err))
 	}
 	response := GetProfileResponseFromProto(responseProto)
 	return GetProfileResponseToInline(response, nil)
@@ -174,7 +204,7 @@ func (c *profileServiceGRPCClient) DeleteProfile(ctx context.Context, id string)
 	requestProto := DeleteProfileRequestToProto(request)
 	responseProto, err := c.client.DeleteProfile(ctx, requestProto)
 	if err != nil {
-		return DeleteProfileResponseToInline(zero, err)
+		return DeleteProfileResponseToInline(zero, c.mapError(err))
 	}
 	response := DeleteProfileResponseFromProto(responseProto)
 	return DeleteProfileResponseToInline(response, nil)

@@ -11,6 +11,9 @@ import (
 // ErrUnimplemented marks a facade service method that has not been implemented.
 var ErrUnimplemented = errors.New("tego: unimplemented")
 
+// ErrorMapper maps errors at generated transport boundaries.
+type ErrorMapper func(error) error
+
 // GRPCError maps Tego sentinel errors to native gRPC errors.
 func GRPCError(err error) error {
 	if errors.Is(err, ErrUnimplemented) {

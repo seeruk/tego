@@ -229,11 +229,39 @@ adapter. See [examples/quickstart-grpc](examples/quickstart-grpc),
 [examples/quickstart-connect](examples/quickstart-connect), and
 [examples/transport-override](examples/transport-override).
 
+### Error Mapping
+
+Facade implementations can return ordinary Go errors from your domain. At the transport boundary,
+pass `tego.WithErrorMapper(...)` to map those errors to native gRPC or Connect errors:
+
+```go
+books.RegisterBookServiceGRPCServer(
+	server,
+	books.BookStore{},
+	tego.WithErrorMapper(grpcError),
+)
+```
+
+For Connect, native handler options are wrapped with `tego.WithConnectHandlerOptions(...)` so they
+can share the same generated constructor:
+
+```go
+path, handler := books.NewBookServiceConnectHandler(
+	books.BookStore{},
+	tego.WithErrorMapper(connectError),
+	tego.WithConnectHandlerOptions(connect.WithInterceptors(auth)),
+)
+```
+
+See [examples/error-mapping](examples/error-mapping) for sentinel errors with `errors.Is` and
+structured errors with `errors.As`. Generated facade clients can use the same option to map native
+transport errors back to domain errors before returning them to your code.
+
 ## Examples
 
 The [examples suite](examples/README.md) is the best place to start. It has small, focused examples
-for gRPC, Connect, generated shapes, options, custom types, patch semantics, streaming, transport
-overrides, and a kitchen-sink type reference.
+for gRPC, Connect, error mapping, generated shapes, options, custom types, patch semantics,
+streaming, transport overrides, and a kitchen-sink type reference.
 
 Tego is intentionally focused on generated Go types, mapping code, facade service interfaces, and
 optional gRPC/Connect adapters. It does not try to own your transport, application framework,

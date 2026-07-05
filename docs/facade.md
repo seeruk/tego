@@ -46,16 +46,49 @@ func (UnimplementedTicketService) GetTicket(context.Context, GetTicketRequest) (
 The helper wraps `tego.ErrUnimplemented`, allowing users and transport adapters to use
 `errors.Is(err, tego.ErrUnimplemented)`.
 
-Transport-specific error conversion should live in Tego rather than being generated once per
-service. Generated adapters call `tego.GRPCError(err)` and `tego.ConnectError(err)` for facade
-call errors and iterator-yielded errors, mapping `tego.ErrUnimplemented` to the native
-unimplemented code while passing other errors through unchanged.
+Transport-specific error conversion should live in the generated transport adapter rather than in
+the facade service. Generated adapters map facade call errors and iterator-yielded errors with a
+configured `tego.ErrorMapper`, defaulting to `tego.GRPCError` for gRPC and `tego.ConnectError` for
+Connect. Those defaults map `tego.ErrUnimplemented` to the native unimplemented code while passing
+other errors through unchanged. Generated facade clients can also use `tego.WithErrorMapper` to map
+native transport errors back to domain errors before returning them.
+
+Users can supply their own mapper at the transport boundary:
+
+```go
+server := NewTicketServiceGRPCServer(
+	service,
+	tego.WithErrorMapper(func(err error) error {
+		if tickets.IsNotFound(err) {
+			return status.Error(codes.NotFound, err.Error())
+		}
+		return tego.GRPCError(err)
+	}),
+)
+```
+
+Native Connect handler options are passed through the same generated constructor with a reusable
+Tego wrapper:
+
+```go
+path, handler := NewTicketServiceConnectHandler(
+	service,
+	tego.WithErrorMapper(func(err error) error {
+		if tickets.IsNotFound(err) {
+			return connect.NewError(connect.CodeNotFound, err)
+		}
+		return tego.ConnectError(err)
+	}),
+	tego.WithConnectHandlerOptions(connect.WithInterceptors(auth)),
+)
+```
 
 Generated transport adapters should be fully implemented servers/handlers that call the facade:
 
 ```go
-func NewTicketServiceGRPCServer(service TicketService) yirapbv1.TicketServiceServer
-func NewTicketServiceConnectHandler(service TicketService, opts ...connect.HandlerOption) (string, http.Handler)
+func NewTicketServiceGRPCServer(service TicketService, opts ...tego.GRPCServerOption) yirapbv1.TicketServiceServer
+func NewTicketServiceConnectHandler(service TicketService, opts ...tego.ConnectHandlerOption) (string, http.Handler)
+func NewTicketServiceConnectHandlerWithAdapter(adapter *TicketServiceConnectAdapter, opts ...tego.ConnectHandlerOption) (string, http.Handler)
 ```
 
 Those generated implementations should be embeddable, so users can override only the native
@@ -145,9 +178,10 @@ adaptation code a clear home:
 ```go
 type TicketServiceGRPCAdapter struct {
 	service TicketService
+	errorMapper tego.ErrorMapper
 }
 
-func NewTicketServiceGRPCAdapter(service TicketService) *TicketServiceGRPCAdapter
+func NewTicketServiceGRPCAdapter(service TicketService, opts ...tego.GRPCAdapterOption) *TicketServiceGRPCAdapter
 
 func (a *TicketServiceGRPCAdapter) AdaptGetTicket(
 	ctx context.Context,
@@ -158,9 +192,10 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(
 ```go
 type TicketServiceConnectAdapter struct {
 	service TicketService
+	errorMapper tego.ErrorMapper
 }
 
-func NewTicketServiceConnectAdapter(service TicketService) *TicketServiceConnectAdapter
+func NewTicketServiceConnectAdapter(service TicketService, opts ...tego.ConnectAdapterOption) *TicketServiceConnectAdapter
 
 func (a *TicketServiceConnectAdapter) AdaptGetTicket(
 	ctx context.Context,
@@ -180,10 +215,14 @@ type ticketServiceGRPCServer struct {
 	*TicketServiceGRPCAdapter
 }
 
-func NewTicketServiceGRPCServer(service TicketService) yirapbv1.TicketServiceServer {
-	return &ticketServiceGRPCServer{
-		TicketServiceGRPCAdapter: NewTicketServiceGRPCAdapter(service),
-	}
+func NewTicketServiceGRPCServer(service TicketService, opts ...tego.GRPCServerOption) yirapbv1.TicketServiceServer {
+	return NewTicketServiceGRPCServerWithAdapter(NewTicketServiceGRPCAdapter(service), opts...)
+}
+
+func NewTicketServiceGRPCServerWithAdapter(adapter *TicketServiceGRPCAdapter, opts ...tego.GRPCServerOption) yirapbv1.TicketServiceServer {
+	options := tego.NewGRPCServerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return &ticketServiceGRPCServer{TicketServiceGRPCAdapter: adapter}
 }
 
 func (s *ticketServiceGRPCServer) GetTicket(

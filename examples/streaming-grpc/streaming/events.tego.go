@@ -89,12 +89,18 @@ func unimplementedEventServiceError(method string) error {
 	return fmt.Errorf("EventService.%s: %w", method, tego.ErrUnimplemented)
 }
 
-func RegisterEventServiceGRPCServer(registrar grpc.ServiceRegistrar, service EventService) {
-	streamingpbv1.RegisterEventServiceServer(registrar, NewEventServiceGRPCServer(service))
+func RegisterEventServiceGRPCServer(registrar grpc.ServiceRegistrar, service EventService, opts ...tego.GRPCServerOption) {
+	streamingpbv1.RegisterEventServiceServer(registrar, NewEventServiceGRPCServer(service, opts...))
 }
 
-func NewEventServiceGRPCServer(service EventService) streamingpbv1.EventServiceServer {
-	return &eventServiceGRPCServer{EventServiceGRPCAdapter: NewEventServiceGRPCAdapter(service)}
+func NewEventServiceGRPCServer(service EventService, opts ...tego.GRPCServerOption) streamingpbv1.EventServiceServer {
+	return NewEventServiceGRPCServerWithAdapter(NewEventServiceGRPCAdapter(service), opts...)
+}
+
+func NewEventServiceGRPCServerWithAdapter(adapter *EventServiceGRPCAdapter, opts ...tego.GRPCServerOption) streamingpbv1.EventServiceServer {
+	options := tego.NewGRPCServerOptions(opts...)
+	adapter.errorMapper = options.ErrorMapper(adapter.errorMapper)
+	return &eventServiceGRPCServer{EventServiceGRPCAdapter: adapter}
 }
 
 type eventServiceGRPCServer struct {
@@ -103,11 +109,23 @@ type eventServiceGRPCServer struct {
 }
 
 type EventServiceGRPCAdapter struct {
-	service EventService
+	service     EventService
+	errorMapper tego.ErrorMapper
 }
 
-func NewEventServiceGRPCAdapter(service EventService) *EventServiceGRPCAdapter {
-	return &EventServiceGRPCAdapter{service: service}
+func NewEventServiceGRPCAdapter(service EventService, opts ...tego.GRPCAdapterOption) *EventServiceGRPCAdapter {
+	options := tego.NewGRPCAdapterOptions(opts...)
+	return &EventServiceGRPCAdapter{service: service, errorMapper: options.ErrorMapper(tego.GRPCError)}
+}
+
+func (a *EventServiceGRPCAdapter) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if a.errorMapper == nil {
+		return tego.GRPCError(err)
+	}
+	return a.errorMapper(err)
 }
 
 func (s *eventServiceGRPCServer) Watch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.WatchResponse]) error {
@@ -119,14 +137,14 @@ func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRe
 	request := WatchRequestFromProto(requestProto)
 	responses, err := a.service.Watch(WatchRequestToInline(ctx, request))
 	if err != nil {
-		return tego.GRPCError(err)
+		return a.mapError(err)
 	}
 	if responses == nil {
 		return nil
 	}
 	for response, err := range responses {
 		if err != nil {
-			return tego.GRPCError(err)
+			return a.mapError(err)
 		}
 		responseProto := WatchResponseToProto(response)
 		if err := stream.Send(responseProto); err != nil {
@@ -162,7 +180,7 @@ func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[
 	}
 	response, err := ImportResponseFromInline(a.service.Import(stream.Context(), requests))
 	if err != nil {
-		return tego.GRPCError(err)
+		return a.mapError(err)
 	}
 	if receiveErr != nil {
 		return receiveErr
@@ -197,12 +215,12 @@ func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[stre
 	}
 	responses, err := a.service.Chat(stream.Context(), requests)
 	if err != nil {
-		return tego.GRPCError(err)
+		return a.mapError(err)
 	}
 	if responses != nil {
 		for response, err := range responses {
 			if err != nil {
-				return tego.GRPCError(err)
+				return a.mapError(err)
 			}
 			responseProto := ChatResponseToProto(response)
 			if err := stream.Send(responseProto); err != nil {
@@ -213,12 +231,24 @@ func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[stre
 	return receiveErr
 }
 
-func NewEventServiceGRPCClient(client streamingpbv1.EventServiceClient) EventService {
-	return &eventServiceGRPCClient{client: client}
+func NewEventServiceGRPCClient(client streamingpbv1.EventServiceClient, opts ...tego.GRPCClientOption) EventService {
+	options := tego.NewGRPCClientOptions(opts...)
+	return &eventServiceGRPCClient{client: client, errorMapper: options.ErrorMapper(nil)}
 }
 
 type eventServiceGRPCClient struct {
-	client streamingpbv1.EventServiceClient
+	client      streamingpbv1.EventServiceClient
+	errorMapper tego.ErrorMapper
+}
+
+func (c *eventServiceGRPCClient) mapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if c.errorMapper == nil {
+		return err
+	}
+	return c.errorMapper(err)
 }
 
 func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.Seq2[WatchResponse, error], error) {
@@ -226,7 +256,7 @@ func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.
 	requestProto := WatchRequestToProto(request)
 	stream, err := c.client.Watch(ctx, requestProto)
 	if err != nil {
-		return nil, err
+		return nil, c.mapError(err)
 	}
 	responses := func(yield func(WatchResponse, error) bool) {
 		for {
@@ -236,7 +266,7 @@ func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.
 			}
 			if err != nil {
 				var zero WatchResponse
-				yield(zero, err)
+				yield(zero, c.mapError(err))
 				return
 			}
 			response := WatchResponseFromProto(responseProto)
@@ -252,7 +282,7 @@ func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[
 	var zero ImportResponse
 	stream, err := c.client.Import(ctx)
 	if err != nil {
-		return ImportResponseToInline(zero, err)
+		return ImportResponseToInline(zero, c.mapError(err))
 	}
 	for request, err := range requests {
 		if err != nil {
@@ -260,12 +290,12 @@ func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[
 		}
 		requestProto := ImportRequestToProto(request)
 		if err := stream.Send(requestProto); err != nil {
-			return ImportResponseToInline(zero, err)
+			return ImportResponseToInline(zero, c.mapError(err))
 		}
 	}
 	responseProto, err := stream.CloseAndRecv()
 	if err != nil {
-		return ImportResponseToInline(zero, err)
+		return ImportResponseToInline(zero, c.mapError(err))
 	}
 	response := ImportResponseFromProto(responseProto)
 	return ImportResponseToInline(response, nil)
@@ -274,7 +304,7 @@ func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[
 func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[ChatRequest, error]) (iter.Seq2[ChatResponse, error], error) {
 	stream, err := c.client.Chat(ctx)
 	if err != nil {
-		return nil, err
+		return nil, c.mapError(err)
 	}
 	responses := func(yield func(ChatResponse, error) bool) {
 		sendErr := make(chan error, 1)
@@ -286,11 +316,11 @@ func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[Ch
 				}
 				requestProto := ChatRequestToProto(request)
 				if err := stream.Send(requestProto); err != nil {
-					sendErr <- err
+					sendErr <- c.mapError(err)
 					return
 				}
 			}
-			sendErr <- stream.CloseSend()
+			sendErr <- c.mapError(stream.CloseSend())
 		}()
 		for {
 			responseProto, err := stream.Recv()
@@ -303,7 +333,7 @@ func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[Ch
 			}
 			if err != nil {
 				var zero ChatResponse
-				yield(zero, err)
+				yield(zero, c.mapError(err))
 				return
 			}
 			response := ChatResponseFromProto(responseProto)
