@@ -7,10 +7,13 @@ require (
 	github.com/danielgtaylor/casing v1.0.0
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/seeruk/go-containers v0.1.0
+	github.com/tinylib/msgp v1.6.4
 	golang.org/x/tools v0.47.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11
 )
+
+require github.com/philhofer/fwd v1.2.0 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

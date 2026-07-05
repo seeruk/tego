@@ -2,12 +2,15 @@ package tego
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/seeruk/tego/examples/shapes/shapes"
 	"github.com/seeruk/tego/examples/shapes/shapespbv1"
 	"google.golang.org/protobuf/proto"
 )
+
+const largeProjectBenchmarkScale = 50
 
 var (
 	benchmarkProjectProtoSink *shapespbv1.Project
@@ -20,12 +23,24 @@ type projectBenchmarkFixture struct {
 	proto      *shapespbv1.Project
 	protoBytes []byte
 	jsonBytes  []byte
+	msgpBytes  []byte
 }
 
 func BenchmarkProjectEncoding(b *testing.B) {
 	fixture := newProjectBenchmarkFixture(b)
+	runProjectEncodingBenchmarks(b, fixture)
+}
+
+func BenchmarkLargeProjectEncoding(b *testing.B) {
+	fixture := newLargeProjectBenchmarkFixture(b)
+	runProjectEncodingBenchmarks(b, fixture)
+}
+
+func runProjectEncodingBenchmarks(b *testing.B, fixture projectBenchmarkFixture) {
+	b.Helper()
 
 	b.Run("protobuf/marshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -42,6 +57,7 @@ func BenchmarkProjectEncoding(b *testing.B) {
 	})
 
 	b.Run("tego/to_proto", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -54,6 +70,7 @@ func BenchmarkProjectEncoding(b *testing.B) {
 	})
 
 	b.Run("tego/to_proto_then_marshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -71,6 +88,7 @@ func BenchmarkProjectEncoding(b *testing.B) {
 	})
 
 	b.Run("tego/json_marshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -85,12 +103,40 @@ func BenchmarkProjectEncoding(b *testing.B) {
 
 		benchmarkBytesSink = data
 	})
+
+	b.Run("tego/msgp_marshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		var data []byte
+		var err error
+		for i := 0; i < b.N; i++ {
+			data, err = fixture.tego.MarshalMsg(nil)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+
+		benchmarkBytesSink = data
+	})
 }
 
 func BenchmarkProjectDecoding(b *testing.B) {
 	fixture := newProjectBenchmarkFixture(b)
+	runProjectDecodingBenchmarks(b, fixture)
+}
+
+func BenchmarkLargeProjectDecoding(b *testing.B) {
+	fixture := newLargeProjectBenchmarkFixture(b)
+	runProjectDecodingBenchmarks(b, fixture)
+}
+
+func runProjectDecodingBenchmarks(b *testing.B, fixture projectBenchmarkFixture) {
+	b.Helper()
 
 	b.Run("protobuf/unmarshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -106,6 +152,7 @@ func BenchmarkProjectDecoding(b *testing.B) {
 	})
 
 	b.Run("tego/from_proto", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -118,6 +165,7 @@ func BenchmarkProjectDecoding(b *testing.B) {
 	})
 
 	b.Run("tego/unmarshal_then_from_proto", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -136,6 +184,7 @@ func BenchmarkProjectDecoding(b *testing.B) {
 	})
 
 	b.Run("tego/json_unmarshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
 		b.ReportAllocs()
 		b.ResetTimer()
 
@@ -149,12 +198,51 @@ func BenchmarkProjectDecoding(b *testing.B) {
 
 		benchmarkProjectTegoSink = project
 	})
+
+	b.Run("tego/msgp_unmarshal", func(b *testing.B) {
+		defer reportProjectFixtureMetrics(b, fixture)
+		b.ReportAllocs()
+		b.ResetTimer()
+
+		var project shapes.Project
+		for i := 0; i < b.N; i++ {
+			project = shapes.Project{}
+			leftover, err := project.UnmarshalMsg(fixture.msgpBytes)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if len(leftover) > 0 {
+				b.Fatalf("msgp unmarshal left %d trailing bytes", len(leftover))
+			}
+		}
+
+		benchmarkProjectTegoSink = project
+	})
+}
+
+func reportProjectFixtureMetrics(b *testing.B, fixture projectBenchmarkFixture) {
+	b.Helper()
+
+	b.ReportMetric(float64(len(fixture.protoBytes)), "proto_bytes")
+	b.ReportMetric(float64(len(fixture.jsonBytes)), "json_bytes")
+	b.ReportMetric(float64(len(fixture.msgpBytes)), "msgp_bytes")
 }
 
 func newProjectBenchmarkFixture(tb testing.TB) projectBenchmarkFixture {
 	tb.Helper()
 
-	tegoProject := newBenchmarkProject()
+	return newProjectBenchmarkFixtureFromProject(tb, newBenchmarkProject())
+}
+
+func newLargeProjectBenchmarkFixture(tb testing.TB) projectBenchmarkFixture {
+	tb.Helper()
+
+	return newProjectBenchmarkFixtureFromProject(tb, newLargeBenchmarkProject(largeProjectBenchmarkScale))
+}
+
+func newProjectBenchmarkFixtureFromProject(tb testing.TB, tegoProject shapes.Project) projectBenchmarkFixture {
+	tb.Helper()
+
 	protoProject := shapes.ProjectToProto(tegoProject)
 
 	protoBytes, err := proto.Marshal(protoProject)
@@ -179,11 +267,27 @@ func newProjectBenchmarkFixture(tb testing.TB) projectBenchmarkFixture {
 	}
 	_ = shapes.ProjectToProto(decodedTego)
 
+	msgpBytes, err := tegoProject.MarshalMsg(nil)
+	if err != nil {
+		tb.Fatal(err)
+	}
+
+	var decodedMsgp shapes.Project
+	leftover, err := decodedMsgp.UnmarshalMsg(msgpBytes)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	if len(leftover) > 0 {
+		tb.Fatalf("msgp unmarshal left %d trailing bytes", len(leftover))
+	}
+	_ = shapes.ProjectToProto(decodedMsgp)
+
 	return projectBenchmarkFixture{
 		tego:       tegoProject,
 		proto:      protoProject,
 		protoBytes: protoBytes,
 		jsonBytes:  jsonBytes,
+		msgpBytes:  msgpBytes,
 	}
 }
 
@@ -252,4 +356,54 @@ func newBenchmarkProject() shapes.Project {
 			"support":  nil,
 		},
 	}
+}
+
+func newLargeBenchmarkProject(scale int) shapes.Project {
+	project := newBenchmarkProject()
+
+	project.Slug = fmt.Sprintf("%s-%dx", project.Slug, scale)
+	project.Members = make(map[string]shapes.Person, 3*scale)
+	project.Reviewers = make([]shapes.Person, 0, 3*scale)
+	project.Aliases = make([]string, 0, 3*scale)
+	project.LocalizedSlugs = make(map[string]string, 3*scale)
+	project.PreviousOwners = make([]*shapes.Person, 0, 3*scale)
+	project.ContactsByRole = make(map[string]*shapes.Person, 4*scale)
+
+	people := make([]shapes.Person, 0, 4*scale)
+	for i := 0; i < 4*scale; i++ {
+		people = append(people, shapes.Person{
+			ID:          fmt.Sprintf("person_large_%03d", i),
+			DisplayName: fmt.Sprintf("Large Benchmark Person %03d", i),
+		})
+	}
+	if len(people) > 0 {
+		project.Owner = &people[0]
+	}
+
+	for i := 0; i < 3*scale; i++ {
+		person := people[i%len(people)]
+		project.Members[fmt.Sprintf("team_%03d", i)] = person
+		project.Reviewers = append(project.Reviewers, person)
+		project.Aliases = append(project.Aliases, fmt.Sprintf("tego-bench-large-%03d", i))
+		project.LocalizedSlugs[fmt.Sprintf("locale-%03d", i)] = fmt.Sprintf("tego-serialization-benchmarks-large-%03d", i)
+
+		if i%5 == 0 {
+			project.PreviousOwners = append(project.PreviousOwners, nil)
+		} else {
+			previousOwner := people[(i+1)%len(people)]
+			project.PreviousOwners = append(project.PreviousOwners, &previousOwner)
+		}
+	}
+
+	for i := 0; i < 4*scale; i++ {
+		key := fmt.Sprintf("role_%03d", i)
+		if i%7 == 0 {
+			project.ContactsByRole[key] = nil
+			continue
+		}
+		contact := people[i%len(people)]
+		project.ContactsByRole[key] = &contact
+	}
+
+	return project
 }
