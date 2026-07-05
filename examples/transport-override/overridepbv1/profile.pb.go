@@ -167,6 +167,159 @@ func (b0 GetProfileResponse_builder) Build() *GetProfileResponse {
 	return m0
 }
 
+type DeleteProfileRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DeleteProfileRequest) Reset() {
+	*x = DeleteProfileRequest{}
+	mi := &file_override_v1_profile_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteProfileRequest) ProtoMessage() {}
+
+func (x *DeleteProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_override_v1_profile_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteProfileRequest) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteProfileRequest) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteProfileRequest) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteProfileRequest) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+type DeleteProfileRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id *string
+}
+
+func (b0 DeleteProfileRequest_builder) Build() *DeleteProfileRequest {
+	m0 := &DeleteProfileRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Id = b.Id
+	}
+	return m0
+}
+
+type DeleteProfileResponse struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Acknowledged bool                   `protobuf:"varint,1,opt,name=acknowledged"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *DeleteProfileResponse) Reset() {
+	*x = DeleteProfileResponse{}
+	mi := &file_override_v1_profile_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteProfileResponse) ProtoMessage() {}
+
+func (x *DeleteProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_override_v1_profile_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteProfileResponse) GetAcknowledged() bool {
+	if x != nil {
+		return x.xxx_hidden_Acknowledged
+	}
+	return false
+}
+
+func (x *DeleteProfileResponse) SetAcknowledged(v bool) {
+	x.xxx_hidden_Acknowledged = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteProfileResponse) HasAcknowledged() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteProfileResponse) ClearAcknowledged() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Acknowledged = false
+}
+
+type DeleteProfileResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Acknowledged *bool
+}
+
+func (b0 DeleteProfileResponse_builder) Build() *DeleteProfileResponse {
+	m0 := &DeleteProfileResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Acknowledged != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Acknowledged = *b.Acknowledged
+	}
+	return m0
+}
+
 type Profile struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
@@ -179,7 +332,7 @@ type Profile struct {
 
 func (x *Profile) Reset() {
 	*x = Profile{}
-	mi := &file_override_v1_profile_proto_msgTypes[2]
+	mi := &file_override_v1_profile_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +344,7 @@ func (x *Profile) String() string {
 func (*Profile) ProtoMessage() {}
 
 func (x *Profile) ProtoReflect() protoreflect.Message {
-	mi := &file_override_v1_profile_proto_msgTypes[2]
+	mi := &file_override_v1_profile_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -286,28 +439,37 @@ const file_override_v1_profile_proto_rawDesc = "" +
 	"\x11GetProfileRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"D\n" +
 	"\x12GetProfileResponse\x12.\n" +
-	"\aprofile\x18\x01 \x01(\v2\x14.override.v1.ProfileR\aprofile\"<\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.override.v1.ProfileR\aprofile\"&\n" +
+	"\x14DeleteProfileRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\";\n" +
+	"\x15DeleteProfileResponse\x12\"\n" +
+	"\facknowledged\x18\x01 \x01(\bR\facknowledged\"<\n" +
 	"\aProfile\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName2_\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName2\xb7\x01\n" +
 	"\x0eProfileService\x12M\n" +
 	"\n" +
-	"GetProfile\x12\x1e.override.v1.GetProfileRequest\x1a\x1f.override.v1.GetProfileResponseB\x98\x01҅\n" +
+	"GetProfile\x12\x1e.override.v1.GetProfileRequest\x1a\x1f.override.v1.GetProfileResponse\x12V\n" +
+	"\rDeleteProfile\x12!.override.v1.DeleteProfileRequest\x1a\".override.v1.DeleteProfileResponseB\x98\x01҅\n" +
 	"F\n" +
 	"Dgithub.com/seeruk/tego/examples/transport-override/override;overrideZLgithub.com/seeruk/tego/examples/transport-override/overridepbv1;overridepbv1b\beditionsp\xe9\a"
 
-var file_override_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_override_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_override_v1_profile_proto_goTypes = []any{
-	(*GetProfileRequest)(nil),  // 0: override.v1.GetProfileRequest
-	(*GetProfileResponse)(nil), // 1: override.v1.GetProfileResponse
-	(*Profile)(nil),            // 2: override.v1.Profile
+	(*GetProfileRequest)(nil),     // 0: override.v1.GetProfileRequest
+	(*GetProfileResponse)(nil),    // 1: override.v1.GetProfileResponse
+	(*DeleteProfileRequest)(nil),  // 2: override.v1.DeleteProfileRequest
+	(*DeleteProfileResponse)(nil), // 3: override.v1.DeleteProfileResponse
+	(*Profile)(nil),               // 4: override.v1.Profile
 }
 var file_override_v1_profile_proto_depIdxs = []int32{
-	2, // 0: override.v1.GetProfileResponse.profile:type_name -> override.v1.Profile
+	4, // 0: override.v1.GetProfileResponse.profile:type_name -> override.v1.Profile
 	0, // 1: override.v1.ProfileService.GetProfile:input_type -> override.v1.GetProfileRequest
-	1, // 2: override.v1.ProfileService.GetProfile:output_type -> override.v1.GetProfileResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
+	2, // 2: override.v1.ProfileService.DeleteProfile:input_type -> override.v1.DeleteProfileRequest
+	1, // 3: override.v1.ProfileService.GetProfile:output_type -> override.v1.GetProfileResponse
+	3, // 4: override.v1.ProfileService.DeleteProfile:output_type -> override.v1.DeleteProfileResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -324,7 +486,7 @@ func file_override_v1_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_override_v1_profile_proto_rawDesc), len(file_override_v1_profile_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

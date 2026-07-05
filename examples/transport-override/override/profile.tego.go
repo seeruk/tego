@@ -17,6 +17,14 @@ type GetProfileResponse struct {
 	Profile Profile
 }
 
+type DeleteProfileRequest struct {
+	ID string
+}
+
+type DeleteProfileResponse struct {
+	Acknowledged bool
+}
+
 type Profile struct {
 	ID          string
 	DisplayName string
@@ -28,6 +36,14 @@ func GetProfileRequestToInline(ctx context.Context, request GetProfileRequest) (
 
 func GetProfileRequestFromInline(ctx context.Context, id string) (context.Context, GetProfileRequest) {
 	return ctx, GetProfileRequest{ID: id}
+}
+
+func DeleteProfileRequestToInline(ctx context.Context, request DeleteProfileRequest) (context.Context, string) {
+	return ctx, request.ID
+}
+
+func DeleteProfileRequestFromInline(ctx context.Context, id string) (context.Context, DeleteProfileRequest) {
+	return ctx, DeleteProfileRequest{ID: id}
 }
 
 func GetProfileResponseToInline(response GetProfileResponse, err error) (Profile, error) {
@@ -46,8 +62,25 @@ func GetProfileResponseFromInline(profile Profile, err error) (GetProfileRespons
 	return GetProfileResponse{Profile: profile}, nil
 }
 
+func DeleteProfileResponseToInline(response DeleteProfileResponse, err error) (bool, error) {
+	if err != nil {
+		var zeroAcknowledged bool
+		return zeroAcknowledged, err
+	}
+	return response.Acknowledged, nil
+}
+
+func DeleteProfileResponseFromInline(acknowledged bool, err error) (DeleteProfileResponse, error) {
+	if err != nil {
+		var zero DeleteProfileResponse
+		return zero, err
+	}
+	return DeleteProfileResponse{Acknowledged: acknowledged}, nil
+}
+
 type ProfileService interface {
 	GetProfile(ctx context.Context, id string) (Profile, error)
+	DeleteProfile(ctx context.Context, id string) (bool, error)
 }
 
 type UnimplementedProfileService struct{}
@@ -55,6 +88,11 @@ type UnimplementedProfileService struct{}
 func (UnimplementedProfileService) GetProfile(ctx context.Context, id string) (Profile, error) {
 	var zeroProfile Profile
 	return zeroProfile, unimplementedProfileServiceError("GetProfile")
+}
+
+func (UnimplementedProfileService) DeleteProfile(ctx context.Context, id string) (bool, error) {
+	var zeroAcknowledged bool
+	return zeroAcknowledged, unimplementedProfileServiceError("DeleteProfile")
 }
 
 func unimplementedProfileServiceError(method string) error {
@@ -96,6 +134,20 @@ func (a *ProfileServiceGRPCAdapter) AdaptGetProfile(ctx context.Context, request
 	return responseProto, nil
 }
 
+func (s *profileServiceGRPCServer) DeleteProfile(ctx context.Context, requestProto *overridepbv1.DeleteProfileRequest) (*overridepbv1.DeleteProfileResponse, error) {
+	return s.AdaptDeleteProfile(ctx, requestProto)
+}
+
+func (a *ProfileServiceGRPCAdapter) AdaptDeleteProfile(ctx context.Context, requestProto *overridepbv1.DeleteProfileRequest) (*overridepbv1.DeleteProfileResponse, error) {
+	request := DeleteProfileRequestFromProto(requestProto)
+	response, err := DeleteProfileResponseFromInline(a.service.DeleteProfile(DeleteProfileRequestToInline(ctx, request)))
+	if err != nil {
+		return nil, tego.GRPCError(err)
+	}
+	responseProto := DeleteProfileResponseToProto(response)
+	return responseProto, nil
+}
+
 func NewProfileServiceGRPCClient(client overridepbv1.ProfileServiceClient) ProfileService {
 	return &profileServiceGRPCClient{client: client}
 }
@@ -114,6 +166,18 @@ func (c *profileServiceGRPCClient) GetProfile(ctx context.Context, id string) (P
 	}
 	response := GetProfileResponseFromProto(responseProto)
 	return GetProfileResponseToInline(response, nil)
+}
+
+func (c *profileServiceGRPCClient) DeleteProfile(ctx context.Context, id string) (bool, error) {
+	var zero DeleteProfileResponse
+	ctx, request := DeleteProfileRequestFromInline(ctx, id)
+	requestProto := DeleteProfileRequestToProto(request)
+	responseProto, err := c.client.DeleteProfile(ctx, requestProto)
+	if err != nil {
+		return DeleteProfileResponseToInline(zero, err)
+	}
+	response := DeleteProfileResponseFromProto(responseProto)
+	return DeleteProfileResponseToInline(response, nil)
 }
 
 func GetProfileRequestFromProto(source *overridepbv1.GetProfileRequest) GetProfileRequest {
@@ -152,6 +216,44 @@ func GetProfileResponseToProto(source GetProfileResponse) *overridepbv1.GetProfi
 
 func (gpr GetProfileResponse) ToProto() *overridepbv1.GetProfileResponse {
 	return GetProfileResponseToProto(gpr)
+}
+
+func DeleteProfileRequestFromProto(source *overridepbv1.DeleteProfileRequest) DeleteProfileRequest {
+	var target DeleteProfileRequest
+	if source == nil {
+		return target
+	}
+	target.ID = source.GetId()
+	return target
+}
+
+func DeleteProfileRequestToProto(source DeleteProfileRequest) *overridepbv1.DeleteProfileRequest {
+	target := new(overridepbv1.DeleteProfileRequest)
+	target.SetId(source.ID)
+	return target
+}
+
+func (dpr DeleteProfileRequest) ToProto() *overridepbv1.DeleteProfileRequest {
+	return DeleteProfileRequestToProto(dpr)
+}
+
+func DeleteProfileResponseFromProto(source *overridepbv1.DeleteProfileResponse) DeleteProfileResponse {
+	var target DeleteProfileResponse
+	if source == nil {
+		return target
+	}
+	target.Acknowledged = source.GetAcknowledged()
+	return target
+}
+
+func DeleteProfileResponseToProto(source DeleteProfileResponse) *overridepbv1.DeleteProfileResponse {
+	target := new(overridepbv1.DeleteProfileResponse)
+	target.SetAcknowledged(source.Acknowledged)
+	return target
+}
+
+func (dpr DeleteProfileResponse) ToProto() *overridepbv1.DeleteProfileResponse {
+	return DeleteProfileResponseToProto(dpr)
 }
 
 func ProfileFromProto(source *overridepbv1.Profile) Profile {

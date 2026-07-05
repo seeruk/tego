@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
@@ -19,13 +20,26 @@ func (profileService) GetProfile(ctx context.Context, id string) (override.Profi
 	return override.Profile{ID: id, DisplayName: "Ada"}, nil
 }
 
+func (profileService) DeleteProfile(ctx context.Context, id string) (bool, error) {
+	return false, fmt.Errorf("profile not found: %s", id)
+}
+
+// By embedding both the gRPC service server, and the adapter, you're able to only override the
+// methods you need to for intercepting transport details.
 type profileServer struct {
-	overridepbv1.UnimplementedProfileServiceServer
+	overridepbv1.ProfileServiceServer
 	*override.ProfileServiceGRPCAdapter
 }
 
 func newProfileServer(service override.ProfileService) overridepbv1.ProfileServiceServer {
-	return &profileServer{ProfileServiceGRPCAdapter: override.NewProfileServiceGRPCAdapter(service)}
+	return &profileServer{
+		// The embedded gRPC server can be the version that Tego generates. It will continue to call
+		// the Tego adapter and your service implementation.
+		ProfileServiceServer: override.NewProfileServiceGRPCServer(service),
+		// The adapter is useful, but you don't have to use it. You can implement the gRPC server
+		// methods yourself, and use the mapping and inlining functions Tego generates directly.
+		ProfileServiceGRPCAdapter: override.NewProfileServiceGRPCAdapter(service),
+	}
 }
 
 func (s *profileServer) GetProfile(ctx context.Context, request *overridepbv1.GetProfileRequest) (*overridepbv1.GetProfileResponse, error) {

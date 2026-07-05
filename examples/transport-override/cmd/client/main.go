@@ -29,7 +29,14 @@ func main() {
 	}
 
 	adapted := override.GetProfileResponseFromProto(response)
-
 	fmt.Println(adapted.Profile.DisplayName)
 	fmt.Println(header.Get("x-example-response"))
+
+	tegoClient := override.NewProfileServiceGRPCClient(client)
+
+	_, err = tegoClient.DeleteProfile(ctx, "example")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }

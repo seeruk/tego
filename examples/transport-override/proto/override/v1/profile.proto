@@ -8,6 +8,7 @@ option (tego.file).go_package = "github.com/seeruk/tego/examples/transport-overr
 
 service ProfileService {
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc DeleteProfile(DeleteProfileRequest) returns (DeleteProfileResponse);
 }
 
 message GetProfileRequest {
@@ -16,6 +17,14 @@ message GetProfileRequest {
 
 message GetProfileResponse {
   Profile profile = 1;
+}
+
+message DeleteProfileRequest {
+  string id = 1;
+}
+
+message DeleteProfileResponse {
+  bool acknowledged = 1;
 }
 
 message Profile {

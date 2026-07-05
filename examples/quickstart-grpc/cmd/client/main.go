@@ -19,6 +19,7 @@ func main() {
 	defer func() { _ = conn.Close() }()
 
 	client := hello.NewGreeterServiceGRPCClient(hellopbv1.NewGreeterServiceClient(conn))
+
 	message, err := client.SayHello(context.Background(), "Tego")
 	if err != nil {
 		log.Fatal(err)
