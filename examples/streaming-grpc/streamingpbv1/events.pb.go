@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/streaming/v1/events.proto
+// source: streaming/v1/events.proto
 
 package streamingpbv1
 
@@ -32,7 +32,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_proto_streaming_v1_events_proto_msgTypes[0]
+	mi := &file_streaming_v1_events_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_streaming_v1_events_proto_msgTypes[0]
+	mi := &file_streaming_v1_events_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +111,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_proto_streaming_v1_events_proto_msgTypes[1]
+	mi := &file_streaming_v1_events_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +123,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_streaming_v1_events_proto_msgTypes[1]
+	mi := &file_streaming_v1_events_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -210,6 +210,142 @@ func (b0 Event_builder) Build() *Event {
 	return m0
 }
 
+type WatchResponse struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Event *Event                 `protobuf:"bytes,1,opt,name=event"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *WatchResponse) Reset() {
+	*x = WatchResponse{}
+	mi := &file_streaming_v1_events_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchResponse) ProtoMessage() {}
+
+func (x *WatchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_streaming_v1_events_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *WatchResponse) GetEvent() *Event {
+	if x != nil {
+		return x.xxx_hidden_Event
+	}
+	return nil
+}
+
+func (x *WatchResponse) SetEvent(v *Event) {
+	x.xxx_hidden_Event = v
+}
+
+func (x *WatchResponse) HasEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Event != nil
+}
+
+func (x *WatchResponse) ClearEvent() {
+	x.xxx_hidden_Event = nil
+}
+
+type WatchResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Event *Event
+}
+
+func (b0 WatchResponse_builder) Build() *WatchResponse {
+	m0 := &WatchResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Event = b.Event
+	return m0
+}
+
+type ImportRequest struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Event *Event                 `protobuf:"bytes,1,opt,name=event"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ImportRequest) Reset() {
+	*x = ImportRequest{}
+	mi := &file_streaming_v1_events_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportRequest) ProtoMessage() {}
+
+func (x *ImportRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_streaming_v1_events_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ImportRequest) GetEvent() *Event {
+	if x != nil {
+		return x.xxx_hidden_Event
+	}
+	return nil
+}
+
+func (x *ImportRequest) SetEvent(v *Event) {
+	x.xxx_hidden_Event = v
+}
+
+func (x *ImportRequest) HasEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Event != nil
+}
+
+func (x *ImportRequest) ClearEvent() {
+	x.xxx_hidden_Event = nil
+}
+
+type ImportRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Event *Event
+}
+
+func (b0 ImportRequest_builder) Build() *ImportRequest {
+	m0 := &ImportRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Event = b.Event
+	return m0
+}
+
 type ImportResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Count       int32                  `protobuf:"varint,1,opt,name=count"`
@@ -221,7 +357,7 @@ type ImportResponse struct {
 
 func (x *ImportResponse) Reset() {
 	*x = ImportResponse{}
-	mi := &file_proto_streaming_v1_events_proto_msgTypes[2]
+	mi := &file_streaming_v1_events_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -233,7 +369,7 @@ func (x *ImportResponse) String() string {
 func (*ImportResponse) ProtoMessage() {}
 
 func (x *ImportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_streaming_v1_events_proto_msgTypes[2]
+	mi := &file_streaming_v1_events_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,65 +421,217 @@ func (b0 ImportResponse_builder) Build() *ImportResponse {
 	return m0
 }
 
-var File_proto_streaming_v1_events_proto protoreflect.FileDescriptor
+type ChatRequest struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Event *Event                 `protobuf:"bytes,1,opt,name=event"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
 
-const file_proto_streaming_v1_events_proto_rawDesc = "" +
+func (x *ChatRequest) Reset() {
+	*x = ChatRequest{}
+	mi := &file_streaming_v1_events_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatRequest) ProtoMessage() {}
+
+func (x *ChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_streaming_v1_events_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ChatRequest) GetEvent() *Event {
+	if x != nil {
+		return x.xxx_hidden_Event
+	}
+	return nil
+}
+
+func (x *ChatRequest) SetEvent(v *Event) {
+	x.xxx_hidden_Event = v
+}
+
+func (x *ChatRequest) HasEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Event != nil
+}
+
+func (x *ChatRequest) ClearEvent() {
+	x.xxx_hidden_Event = nil
+}
+
+type ChatRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Event *Event
+}
+
+func (b0 ChatRequest_builder) Build() *ChatRequest {
+	m0 := &ChatRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Event = b.Event
+	return m0
+}
+
+type ChatResponse struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Event *Event                 `protobuf:"bytes,1,opt,name=event"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ChatResponse) Reset() {
+	*x = ChatResponse{}
+	mi := &file_streaming_v1_events_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatResponse) ProtoMessage() {}
+
+func (x *ChatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_streaming_v1_events_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ChatResponse) GetEvent() *Event {
+	if x != nil {
+		return x.xxx_hidden_Event
+	}
+	return nil
+}
+
+func (x *ChatResponse) SetEvent(v *Event) {
+	x.xxx_hidden_Event = v
+}
+
+func (x *ChatResponse) HasEvent() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Event != nil
+}
+
+func (x *ChatResponse) ClearEvent() {
+	x.xxx_hidden_Event = nil
+}
+
+type ChatResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Event *Event
+}
+
+func (b0 ChatResponse_builder) Build() *ChatResponse {
+	m0 := &ChatResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Event = b.Event
+	return m0
+}
+
+var File_streaming_v1_events_proto protoreflect.FileDescriptor
+
+const file_streaming_v1_events_proto_rawDesc = "" +
 	"\n" +
-	"\x1fproto/streaming/v1/events.proto\x12\fstreaming.v1\x1a\x12tego/options.proto\"$\n" +
+	"\x19streaming/v1/events.proto\x12\fstreaming.v1\x1a\x12tego/options.proto\"$\n" +
 	"\fWatchRequest\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\"7\n" +
 	"\x05Event\x12\x14\n" +
 	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"&\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\":\n" +
+	"\rWatchResponse\x12)\n" +
+	"\x05event\x18\x01 \x01(\v2\x13.streaming.v1.EventR\x05event\":\n" +
+	"\rImportRequest\x12)\n" +
+	"\x05event\x18\x01 \x01(\v2\x13.streaming.v1.EventR\x05event\"&\n" +
 	"\x0eImportResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count2\xbf\x01\n" +
-	"\fEventService\x12:\n" +
-	"\x05Watch\x12\x1a.streaming.v1.WatchRequest\x1a\x13.streaming.v1.Event0\x01\x12=\n" +
-	"\x06Import\x12\x13.streaming.v1.Event\x1a\x1c.streaming.v1.ImportResponse(\x01\x124\n" +
-	"\x04Chat\x12\x13.streaming.v1.Event\x1a\x13.streaming.v1.Event(\x010\x01B\x94\x01҅\n" +
+	"\x05count\x18\x01 \x01(\x05R\x05count\"8\n" +
+	"\vChatRequest\x12)\n" +
+	"\x05event\x18\x01 \x01(\v2\x13.streaming.v1.EventR\x05event\"9\n" +
+	"\fChatResponse\x12)\n" +
+	"\x05event\x18\x01 \x01(\v2\x13.streaming.v1.EventR\x05event2\xdc\x01\n" +
+	"\fEventService\x12B\n" +
+	"\x05Watch\x12\x1a.streaming.v1.WatchRequest\x1a\x1b.streaming.v1.WatchResponse0\x01\x12E\n" +
+	"\x06Import\x12\x1b.streaming.v1.ImportRequest\x1a\x1c.streaming.v1.ImportResponse(\x01\x12A\n" +
+	"\x04Chat\x12\x19.streaming.v1.ChatRequest\x1a\x1a.streaming.v1.ChatResponse(\x010\x01B\x94\x01҅\n" +
 	"D\n" +
 	"Bgithub.com/seeruk/tego/examples/streaming-grpc/streaming;streamingZJgithub.com/seeruk/tego/examples/streaming-grpc/streamingpbv1;streamingpbv1b\beditionsp\xe9\a"
 
-var file_proto_streaming_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proto_streaming_v1_events_proto_goTypes = []any{
+var file_streaming_v1_events_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_streaming_v1_events_proto_goTypes = []any{
 	(*WatchRequest)(nil),   // 0: streaming.v1.WatchRequest
 	(*Event)(nil),          // 1: streaming.v1.Event
-	(*ImportResponse)(nil), // 2: streaming.v1.ImportResponse
+	(*WatchResponse)(nil),  // 2: streaming.v1.WatchResponse
+	(*ImportRequest)(nil),  // 3: streaming.v1.ImportRequest
+	(*ImportResponse)(nil), // 4: streaming.v1.ImportResponse
+	(*ChatRequest)(nil),    // 5: streaming.v1.ChatRequest
+	(*ChatResponse)(nil),   // 6: streaming.v1.ChatResponse
 }
-var file_proto_streaming_v1_events_proto_depIdxs = []int32{
-	0, // 0: streaming.v1.EventService.Watch:input_type -> streaming.v1.WatchRequest
-	1, // 1: streaming.v1.EventService.Import:input_type -> streaming.v1.Event
-	1, // 2: streaming.v1.EventService.Chat:input_type -> streaming.v1.Event
-	1, // 3: streaming.v1.EventService.Watch:output_type -> streaming.v1.Event
-	2, // 4: streaming.v1.EventService.Import:output_type -> streaming.v1.ImportResponse
-	1, // 5: streaming.v1.EventService.Chat:output_type -> streaming.v1.Event
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+var file_streaming_v1_events_proto_depIdxs = []int32{
+	1, // 0: streaming.v1.WatchResponse.event:type_name -> streaming.v1.Event
+	1, // 1: streaming.v1.ImportRequest.event:type_name -> streaming.v1.Event
+	1, // 2: streaming.v1.ChatRequest.event:type_name -> streaming.v1.Event
+	1, // 3: streaming.v1.ChatResponse.event:type_name -> streaming.v1.Event
+	0, // 4: streaming.v1.EventService.Watch:input_type -> streaming.v1.WatchRequest
+	3, // 5: streaming.v1.EventService.Import:input_type -> streaming.v1.ImportRequest
+	5, // 6: streaming.v1.EventService.Chat:input_type -> streaming.v1.ChatRequest
+	2, // 7: streaming.v1.EventService.Watch:output_type -> streaming.v1.WatchResponse
+	4, // 8: streaming.v1.EventService.Import:output_type -> streaming.v1.ImportResponse
+	6, // 9: streaming.v1.EventService.Chat:output_type -> streaming.v1.ChatResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_proto_streaming_v1_events_proto_init() }
-func file_proto_streaming_v1_events_proto_init() {
-	if File_proto_streaming_v1_events_proto != nil {
+func init() { file_streaming_v1_events_proto_init() }
+func file_streaming_v1_events_proto_init() {
+	if File_streaming_v1_events_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_streaming_v1_events_proto_rawDesc), len(file_proto_streaming_v1_events_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_streaming_v1_events_proto_rawDesc), len(file_streaming_v1_events_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_streaming_v1_events_proto_goTypes,
-		DependencyIndexes: file_proto_streaming_v1_events_proto_depIdxs,
-		MessageInfos:      file_proto_streaming_v1_events_proto_msgTypes,
+		GoTypes:           file_streaming_v1_events_proto_goTypes,
+		DependencyIndexes: file_streaming_v1_events_proto_depIdxs,
+		MessageInfos:      file_streaming_v1_events_proto_msgTypes,
 	}.Build()
-	File_proto_streaming_v1_events_proto = out.File
-	file_proto_streaming_v1_events_proto_goTypes = nil
-	file_proto_streaming_v1_events_proto_depIdxs = nil
+	File_streaming_v1_events_proto = out.File
+	file_streaming_v1_events_proto_goTypes = nil
+	file_streaming_v1_events_proto_depIdxs = nil
 }

@@ -2,7 +2,6 @@ edition = "2024";
 package yirapb.v1;
 
 import "google/protobuf/any.proto";
-import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "tego/options.proto";
 
@@ -22,10 +21,10 @@ service TicketService {
   }
   rpc CreateTicket(CreateTicketRequest) returns (CreateTicketResponse);
   rpc UpdateTicket(UpdateTicketRequest) returns (UpdateTicketResponse);
-  rpc CloseTicket(CloseTicketRequest) returns (google.protobuf.Empty);
-  rpc WatchTicketEvents(WatchTicketEventsRequest) returns (stream TicketEvent);
-  rpc ImportTicketEvents(stream TicketEvent) returns (ImportTicketEventsResponse);
-  rpc SyncTicketEvents(stream TicketEvent) returns (stream TicketEvent);
+  rpc CloseTicket(CloseTicketRequest) returns (CloseTicketResponse);
+  rpc WatchTicketEvents(WatchTicketEventsRequest) returns (stream WatchTicketEventsResponse);
+  rpc ImportTicketEvents(stream ImportTicketEventsRequest) returns (ImportTicketEventsResponse);
+  rpc SyncTicketEvents(stream SyncTicketEventsRequest) returns (stream SyncTicketEventsResponse);
 }
 
 message ListTicketsRequest {
@@ -70,13 +69,31 @@ message CloseTicketRequest {
   string resolution = 2;
 }
 
+message CloseTicketResponse {}
+
 message WatchTicketEventsRequest {
   string project_id = 1;
   string ticket_id = 2;
 }
 
+message WatchTicketEventsResponse {
+  TicketEvent event = 1;
+}
+
+message ImportTicketEventsRequest {
+  TicketEvent event = 1;
+}
+
 message ImportTicketEventsResponse {
   int32 imported_count = 1;
+}
+
+message SyncTicketEventsRequest {
+  TicketEvent event = 1;
+}
+
+message SyncTicketEventsResponse {
+  TicketEvent event = 1;
 }
 
 enum TicketStatus {

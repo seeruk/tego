@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/override/v1/profile.proto
+// source: override/v1/profile.proto
 
 package overridepbv1
 
@@ -32,7 +32,7 @@ type GetProfileRequest struct {
 
 func (x *GetProfileRequest) Reset() {
 	*x = GetProfileRequest{}
-	mi := &file_proto_override_v1_profile_proto_msgTypes[0]
+	mi := &file_override_v1_profile_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *GetProfileRequest) String() string {
 func (*GetProfileRequest) ProtoMessage() {}
 
 func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_override_v1_profile_proto_msgTypes[0]
+	mi := &file_override_v1_profile_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +108,7 @@ type GetProfileResponse struct {
 
 func (x *GetProfileResponse) Reset() {
 	*x = GetProfileResponse{}
-	mi := &file_proto_override_v1_profile_proto_msgTypes[1]
+	mi := &file_override_v1_profile_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -120,7 +120,7 @@ func (x *GetProfileResponse) String() string {
 func (*GetProfileResponse) ProtoMessage() {}
 
 func (x *GetProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_override_v1_profile_proto_msgTypes[1]
+	mi := &file_override_v1_profile_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +179,7 @@ type Profile struct {
 
 func (x *Profile) Reset() {
 	*x = Profile{}
-	mi := &file_proto_override_v1_profile_proto_msgTypes[2]
+	mi := &file_override_v1_profile_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +191,7 @@ func (x *Profile) String() string {
 func (*Profile) ProtoMessage() {}
 
 func (x *Profile) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_override_v1_profile_proto_msgTypes[2]
+	mi := &file_override_v1_profile_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -278,11 +278,11 @@ func (b0 Profile_builder) Build() *Profile {
 	return m0
 }
 
-var File_proto_override_v1_profile_proto protoreflect.FileDescriptor
+var File_override_v1_profile_proto protoreflect.FileDescriptor
 
-const file_proto_override_v1_profile_proto_rawDesc = "" +
+const file_override_v1_profile_proto_rawDesc = "" +
 	"\n" +
-	"\x1fproto/override/v1/profile.proto\x12\voverride.v1\x1a\x12tego/options.proto\"#\n" +
+	"\x19override/v1/profile.proto\x12\voverride.v1\x1a\x12tego/options.proto\"#\n" +
 	"\x11GetProfileRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"D\n" +
 	"\x12GetProfileResponse\x12.\n" +
@@ -296,13 +296,13 @@ const file_proto_override_v1_profile_proto_rawDesc = "" +
 	"F\n" +
 	"Dgithub.com/seeruk/tego/examples/transport-override/override;overrideZLgithub.com/seeruk/tego/examples/transport-override/overridepbv1;overridepbv1b\beditionsp\xe9\a"
 
-var file_proto_override_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proto_override_v1_profile_proto_goTypes = []any{
+var file_override_v1_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_override_v1_profile_proto_goTypes = []any{
 	(*GetProfileRequest)(nil),  // 0: override.v1.GetProfileRequest
 	(*GetProfileResponse)(nil), // 1: override.v1.GetProfileResponse
 	(*Profile)(nil),            // 2: override.v1.Profile
 }
-var file_proto_override_v1_profile_proto_depIdxs = []int32{
+var file_override_v1_profile_proto_depIdxs = []int32{
 	2, // 0: override.v1.GetProfileResponse.profile:type_name -> override.v1.Profile
 	0, // 1: override.v1.ProfileService.GetProfile:input_type -> override.v1.GetProfileRequest
 	1, // 2: override.v1.ProfileService.GetProfile:output_type -> override.v1.GetProfileResponse
@@ -313,26 +313,26 @@ var file_proto_override_v1_profile_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_proto_override_v1_profile_proto_init() }
-func file_proto_override_v1_profile_proto_init() {
-	if File_proto_override_v1_profile_proto != nil {
+func init() { file_override_v1_profile_proto_init() }
+func file_override_v1_profile_proto_init() {
+	if File_override_v1_profile_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_override_v1_profile_proto_rawDesc), len(file_proto_override_v1_profile_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_override_v1_profile_proto_rawDesc), len(file_override_v1_profile_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_override_v1_profile_proto_goTypes,
-		DependencyIndexes: file_proto_override_v1_profile_proto_depIdxs,
-		MessageInfos:      file_proto_override_v1_profile_proto_msgTypes,
+		GoTypes:           file_override_v1_profile_proto_goTypes,
+		DependencyIndexes: file_override_v1_profile_proto_depIdxs,
+		MessageInfos:      file_override_v1_profile_proto_msgTypes,
 	}.Build()
-	File_proto_override_v1_profile_proto = out.File
-	file_proto_override_v1_profile_proto_goTypes = nil
-	file_proto_override_v1_profile_proto_depIdxs = nil
+	File_override_v1_profile_proto = out.File
+	file_override_v1_profile_proto_goTypes = nil
+	file_override_v1_profile_proto_depIdxs = nil
 }

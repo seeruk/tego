@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/custom/v1/custom.proto
+// source: custom/v1/custom.proto
 
 package custompbv1
 
@@ -32,7 +32,7 @@ type UUID struct {
 
 func (x *UUID) Reset() {
 	*x = UUID{}
-	mi := &file_proto_custom_v1_custom_proto_msgTypes[0]
+	mi := &file_custom_v1_custom_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *UUID) String() string {
 func (*UUID) ProtoMessage() {}
 
 func (x *UUID) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_custom_v1_custom_proto_msgTypes[0]
+	mi := &file_custom_v1_custom_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +110,7 @@ type EmailAddress struct {
 
 func (x *EmailAddress) Reset() {
 	*x = EmailAddress{}
-	mi := &file_proto_custom_v1_custom_proto_msgTypes[1]
+	mi := &file_custom_v1_custom_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -122,7 +122,7 @@ func (x *EmailAddress) String() string {
 func (*EmailAddress) ProtoMessage() {}
 
 func (x *EmailAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_custom_v1_custom_proto_msgTypes[1]
+	mi := &file_custom_v1_custom_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -193,7 +193,7 @@ type Customer struct {
 
 func (x *Customer) Reset() {
 	*x = Customer{}
-	mi := &file_proto_custom_v1_custom_proto_msgTypes[2]
+	mi := &file_custom_v1_custom_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -205,7 +205,7 @@ func (x *Customer) String() string {
 func (*Customer) ProtoMessage() {}
 
 func (x *Customer) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_custom_v1_custom_proto_msgTypes[2]
+	mi := &file_custom_v1_custom_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -363,11 +363,11 @@ func (b0 Customer_builder) Build() *Customer {
 	return m0
 }
 
-var File_proto_custom_v1_custom_proto protoreflect.FileDescriptor
+var File_custom_v1_custom_proto protoreflect.FileDescriptor
 
-const file_proto_custom_v1_custom_proto_rawDesc = "" +
+const file_custom_v1_custom_proto_rawDesc = "" +
 	"\n" +
-	"\x1cproto/custom/v1/custom.proto\x12\tcustom.v1\x1a\x12tego/options.proto\"\xe4\x01\n" +
+	"\x16custom/v1/custom.proto\x12\tcustom.v1\x1a\x12tego/options.proto\"\xe4\x01\n" +
 	"\x04UUID\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value:\xc5\x01҅\n" +
 	"\xc0\x01\x1a\xbd\x01\n" +
@@ -399,13 +399,13 @@ const file_proto_custom_v1_custom_proto_rawDesc = "" +
 	"<\n" +
 	":github.com/seeruk/tego/examples/custom-types/custom;customZBgithub.com/seeruk/tego/examples/custom-types/custompbv1;custompbv1b\beditionsp\xe9\a"
 
-var file_proto_custom_v1_custom_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proto_custom_v1_custom_proto_goTypes = []any{
+var file_custom_v1_custom_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_custom_v1_custom_proto_goTypes = []any{
 	(*UUID)(nil),         // 0: custom.v1.UUID
 	(*EmailAddress)(nil), // 1: custom.v1.EmailAddress
 	(*Customer)(nil),     // 2: custom.v1.Customer
 }
-var file_proto_custom_v1_custom_proto_depIdxs = []int32{
+var file_custom_v1_custom_proto_depIdxs = []int32{
 	0, // 0: custom.v1.Customer.id:type_name -> custom.v1.UUID
 	1, // 1: custom.v1.Customer.email:type_name -> custom.v1.EmailAddress
 	2, // [2:2] is the sub-list for method output_type
@@ -415,26 +415,26 @@ var file_proto_custom_v1_custom_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_proto_custom_v1_custom_proto_init() }
-func file_proto_custom_v1_custom_proto_init() {
-	if File_proto_custom_v1_custom_proto != nil {
+func init() { file_custom_v1_custom_proto_init() }
+func file_custom_v1_custom_proto_init() {
+	if File_custom_v1_custom_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_custom_v1_custom_proto_rawDesc), len(file_proto_custom_v1_custom_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_custom_v1_custom_proto_rawDesc), len(file_custom_v1_custom_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_custom_v1_custom_proto_goTypes,
-		DependencyIndexes: file_proto_custom_v1_custom_proto_depIdxs,
-		MessageInfos:      file_proto_custom_v1_custom_proto_msgTypes,
+		GoTypes:           file_custom_v1_custom_proto_goTypes,
+		DependencyIndexes: file_custom_v1_custom_proto_depIdxs,
+		MessageInfos:      file_custom_v1_custom_proto_msgTypes,
 	}.Build()
-	File_proto_custom_v1_custom_proto = out.File
-	file_proto_custom_v1_custom_proto_goTypes = nil
-	file_proto_custom_v1_custom_proto_depIdxs = nil
+	File_custom_v1_custom_proto = out.File
+	file_custom_v1_custom_proto_goTypes = nil
+	file_custom_v1_custom_proto_depIdxs = nil
 }

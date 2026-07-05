@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/shapes/v1/shapes.proto
+// source: shapes/v1/shapes.proto
 
 package shapespbv1
 
@@ -34,7 +34,7 @@ type Person struct {
 
 func (x *Person) Reset() {
 	*x = Person{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[0]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *Person) String() string {
 func (*Person) ProtoMessage() {}
 
 func (x *Person) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[0]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -142,7 +142,7 @@ type PersonList struct {
 
 func (x *PersonList) Reset() {
 	*x = PersonList{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[1]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +154,7 @@ func (x *PersonList) String() string {
 func (*PersonList) ProtoMessage() {}
 
 func (x *PersonList) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[1]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -201,7 +201,7 @@ type NullablePerson struct {
 
 func (x *NullablePerson) Reset() {
 	*x = NullablePerson{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[2]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +213,7 @@ func (x *NullablePerson) String() string {
 func (*NullablePerson) ProtoMessage() {}
 
 func (x *NullablePerson) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[2]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -336,7 +336,7 @@ func (b0 NullablePerson_builder) Build() *NullablePerson {
 type case_NullablePerson_Value protoreflect.FieldNumber
 
 func (x case_NullablePerson_Value) String() string {
-	md := file_proto_shapes_v1_shapes_proto_msgTypes[2].Descriptor()
+	md := file_shapes_v1_shapes_proto_msgTypes[2].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -368,7 +368,7 @@ type PeopleByTeam struct {
 
 func (x *PeopleByTeam) Reset() {
 	*x = PeopleByTeam{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[3]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +380,7 @@ func (x *PeopleByTeam) String() string {
 func (*PeopleByTeam) ProtoMessage() {}
 
 func (x *PeopleByTeam) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[3]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -429,7 +429,7 @@ type ProjectSlug struct {
 
 func (x *ProjectSlug) Reset() {
 	*x = ProjectSlug{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[4]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -441,7 +441,7 @@ func (x *ProjectSlug) String() string {
 func (*ProjectSlug) ProtoMessage() {}
 
 func (x *ProjectSlug) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[4]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -512,7 +512,7 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[5]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -524,7 +524,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[5]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -711,7 +711,7 @@ type PeopleByTeam_Map struct {
 
 func (x *PeopleByTeam_Map) Reset() {
 	*x = PeopleByTeam_Map{}
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[6]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -723,7 +723,7 @@ func (x *PeopleByTeam_Map) String() string {
 func (*PeopleByTeam_Map) ProtoMessage() {}
 
 func (x *PeopleByTeam_Map) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_shapes_v1_shapes_proto_msgTypes[6]
+	mi := &file_shapes_v1_shapes_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -802,11 +802,11 @@ func (b0 PeopleByTeam_Map_builder) Build() *PeopleByTeam_Map {
 	return m0
 }
 
-var File_proto_shapes_v1_shapes_proto protoreflect.FileDescriptor
+var File_shapes_v1_shapes_proto protoreflect.FileDescriptor
 
-const file_proto_shapes_v1_shapes_proto_rawDesc = "" +
+const file_shapes_v1_shapes_proto_rawDesc = "" +
 	"\n" +
-	"\x1cproto/shapes/v1/shapes.proto\x12\tshapes.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\";\n" +
+	"\x16shapes/v1/shapes.proto\x12\tshapes.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\";\n" +
 	"\x06Person\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"7\n" +
@@ -843,8 +843,8 @@ const file_proto_shapes_v1_shapes_proto_rawDesc = "" +
 	"6\n" +
 	"4github.com/seeruk/tego/examples/shapes/shapes;shapesZ<github.com/seeruk/tego/examples/shapes/shapespbv1;shapespbv1b\beditionsp\xe9\a"
 
-var file_proto_shapes_v1_shapes_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_proto_shapes_v1_shapes_proto_goTypes = []any{
+var file_shapes_v1_shapes_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_shapes_v1_shapes_proto_goTypes = []any{
 	(*Person)(nil),           // 0: shapes.v1.Person
 	(*PersonList)(nil),       // 1: shapes.v1.PersonList
 	(*NullablePerson)(nil),   // 2: shapes.v1.NullablePerson
@@ -856,7 +856,7 @@ var file_proto_shapes_v1_shapes_proto_goTypes = []any{
 	nil,                      // 8: shapes.v1.Project.ContactsByRoleEntry
 	(structpb.NullValue)(0),  // 9: google.protobuf.NullValue
 }
-var file_proto_shapes_v1_shapes_proto_depIdxs = []int32{
+var file_shapes_v1_shapes_proto_depIdxs = []int32{
 	0,  // 0: shapes.v1.PersonList.people:type_name -> shapes.v1.Person
 	0,  // 1: shapes.v1.NullablePerson.person:type_name -> shapes.v1.Person
 	9,  // 2: shapes.v1.NullablePerson.null:type_name -> google.protobuf.NullValue
@@ -879,12 +879,12 @@ var file_proto_shapes_v1_shapes_proto_depIdxs = []int32{
 	0,  // [0:15] is the sub-list for field type_name
 }
 
-func init() { file_proto_shapes_v1_shapes_proto_init() }
-func file_proto_shapes_v1_shapes_proto_init() {
-	if File_proto_shapes_v1_shapes_proto != nil {
+func init() { file_shapes_v1_shapes_proto_init() }
+func file_shapes_v1_shapes_proto_init() {
+	if File_shapes_v1_shapes_proto != nil {
 		return
 	}
-	file_proto_shapes_v1_shapes_proto_msgTypes[2].OneofWrappers = []any{
+	file_shapes_v1_shapes_proto_msgTypes[2].OneofWrappers = []any{
 		(*nullablePerson_Person)(nil),
 		(*nullablePerson_Null)(nil),
 	}
@@ -892,17 +892,17 @@ func file_proto_shapes_v1_shapes_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_shapes_v1_shapes_proto_rawDesc), len(file_proto_shapes_v1_shapes_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shapes_v1_shapes_proto_rawDesc), len(file_shapes_v1_shapes_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_shapes_v1_shapes_proto_goTypes,
-		DependencyIndexes: file_proto_shapes_v1_shapes_proto_depIdxs,
-		MessageInfos:      file_proto_shapes_v1_shapes_proto_msgTypes,
+		GoTypes:           file_shapes_v1_shapes_proto_goTypes,
+		DependencyIndexes: file_shapes_v1_shapes_proto_depIdxs,
+		MessageInfos:      file_shapes_v1_shapes_proto_msgTypes,
 	}.Build()
-	File_proto_shapes_v1_shapes_proto = out.File
-	file_proto_shapes_v1_shapes_proto_goTypes = nil
-	file_proto_shapes_v1_shapes_proto_depIdxs = nil
+	File_shapes_v1_shapes_proto = out.File
+	file_shapes_v1_shapes_proto_goTypes = nil
+	file_shapes_v1_shapes_proto_depIdxs = nil
 }

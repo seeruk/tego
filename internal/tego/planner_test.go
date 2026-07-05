@@ -147,10 +147,11 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 			assert.Equal(t, []string{"ticket"}, inlineFieldNames(updateTicket.InlineResponse.Fields))
 		})
 
-		t.Run("keeps empty responses error-only", func(t *testing.T) {
+		t.Run("plans named empty responses", func(t *testing.T) {
 			closeTicket := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.CloseTicket")
-			assert.Equal(t, TypeKindEmptyStruct, closeTicket.Response.Type.Kind)
-			assert.Equal(t, MappingValueKindEmptyStruct, closeTicket.Response.FromProto.Kind)
+			assert.Equal(t, TypeKindStruct, closeTicket.Response.Type.Kind)
+			assert.Equal(t, "CloseTicketResponse", closeTicket.Response.Type.Ref.Name)
+			assert.Equal(t, MappingValueKindStruct, closeTicket.Response.FromProto.Kind)
 			assert.False(t, closeTicket.Response.ToProto.CanError)
 			require.NotNil(t, closeTicket.InlineRequest)
 			assert.Nil(t, closeTicket.InlineResponse)
@@ -161,7 +162,7 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 			watchEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.WatchTicketEvents")
 			assert.Equal(t, ServiceStreamTypeServerStreaming, watchEvents.StreamType)
 			assert.Equal(t, TypeKindStruct, watchEvents.Response.Type.Kind)
-			assert.Equal(t, "TicketEvent", watchEvents.Response.Type.Ref.Name)
+			assert.Equal(t, "WatchTicketEventsResponse", watchEvents.Response.Type.Ref.Name)
 			assert.True(t, watchEvents.Response.ToProto.CanError)
 			require.NotNil(t, watchEvents.InlineRequest)
 			assert.Nil(t, watchEvents.InlineResponse)
@@ -169,7 +170,7 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 
 			importEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.ImportTicketEvents")
 			assert.Equal(t, ServiceStreamTypeClientStreaming, importEvents.StreamType)
-			assert.Equal(t, "TicketEvent", importEvents.Request.Type.Ref.Name)
+			assert.Equal(t, "ImportTicketEventsRequest", importEvents.Request.Type.Ref.Name)
 			assert.Equal(t, "ImportTicketEventsResponse", importEvents.Response.Type.Ref.Name)
 			assert.Nil(t, importEvents.InlineRequest)
 			require.NotNil(t, importEvents.InlineResponse)
@@ -177,8 +178,8 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 
 			syncEvents := serviceMethodByProtoName(t, service, "yirapb.v1.TicketService.SyncTicketEvents")
 			assert.Equal(t, ServiceStreamTypeBidiStreaming, syncEvents.StreamType)
-			assert.Equal(t, "TicketEvent", syncEvents.Request.Type.Ref.Name)
-			assert.Equal(t, "TicketEvent", syncEvents.Response.Type.Ref.Name)
+			assert.Equal(t, "SyncTicketEventsRequest", syncEvents.Request.Type.Ref.Name)
+			assert.Equal(t, "SyncTicketEventsResponse", syncEvents.Response.Type.Ref.Name)
 			assert.Nil(t, syncEvents.InlineRequest)
 			assert.Nil(t, syncEvents.InlineResponse)
 		})

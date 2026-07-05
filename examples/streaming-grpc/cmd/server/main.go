@@ -15,23 +15,23 @@ type eventService struct {
 	streaming.UnimplementedEventService
 }
 
-func (eventService) Watch(ctx context.Context, topic string) (iter.Seq2[streaming.Event, error], error) {
-	return func(yield func(streaming.Event, error) bool) {
+func (eventService) Watch(ctx context.Context, topic string) (iter.Seq2[streaming.WatchResponse, error], error) {
+	return func(yield func(streaming.WatchResponse, error) bool) {
 		for i := range 3 {
 			event := streaming.Event{
 				Topic:   topic,
 				Message: fmt.Sprintf("event %d", i+1),
 			}
-			if !yield(event, nil) {
+			if !yield(streaming.WatchResponse{Event: event}, nil) {
 				return
 			}
 		}
 	}, nil
 }
 
-func (eventService) Import(ctx context.Context, events iter.Seq2[streaming.Event, error]) (int32, error) {
+func (eventService) Import(ctx context.Context, requests iter.Seq2[streaming.ImportRequest, error]) (int32, error) {
 	var count int32
-	for _, err := range events {
+	for _, err := range requests {
 		if err != nil {
 			return 0, err
 		}
@@ -40,15 +40,16 @@ func (eventService) Import(ctx context.Context, events iter.Seq2[streaming.Event
 	return count, nil
 }
 
-func (eventService) Chat(ctx context.Context, events iter.Seq2[streaming.Event, error]) (iter.Seq2[streaming.Event, error], error) {
-	return func(yield func(streaming.Event, error) bool) {
-		for event, err := range events {
+func (eventService) Chat(ctx context.Context, requests iter.Seq2[streaming.ChatRequest, error]) (iter.Seq2[streaming.ChatResponse, error], error) {
+	return func(yield func(streaming.ChatResponse, error) bool) {
+		for request, err := range requests {
 			if err != nil {
-				yield(streaming.Event{}, err)
+				yield(streaming.ChatResponse{}, err)
 				return
 			}
+			event := request.Event
 			event.Message = "echo: " + event.Message
-			if !yield(event, nil) {
+			if !yield(streaming.ChatResponse{Event: event}, nil) {
 				return
 			}
 		}

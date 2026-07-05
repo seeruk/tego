@@ -55,19 +55,19 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 
 		watchEvents := methodByName(t, service, "WatchTicketEvents")
 		assert.Same(t, requireMessage(t, index, "yirapb.v1.WatchTicketEventsRequest"), watchEvents.Input)
-		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), watchEvents.Output)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.WatchTicketEventsResponse"), watchEvents.Output)
 		assert.False(t, watchEvents.ClientStreaming)
 		assert.True(t, watchEvents.ServerStreaming)
 
 		importEvents := methodByName(t, service, "ImportTicketEvents")
-		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), importEvents.Input)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.ImportTicketEventsRequest"), importEvents.Input)
 		assert.Same(t, requireMessage(t, index, "yirapb.v1.ImportTicketEventsResponse"), importEvents.Output)
 		assert.True(t, importEvents.ClientStreaming)
 		assert.False(t, importEvents.ServerStreaming)
 
 		syncEvents := methodByName(t, service, "SyncTicketEvents")
-		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), syncEvents.Input)
-		assert.Same(t, requireMessage(t, index, "yirapb.v1.TicketEvent"), syncEvents.Output)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.SyncTicketEventsRequest"), syncEvents.Input)
+		assert.Same(t, requireMessage(t, index, "yirapb.v1.SyncTicketEventsResponse"), syncEvents.Output)
 		assert.True(t, syncEvents.ClientStreaming)
 		assert.True(t, syncEvents.ServerStreaming)
 	})

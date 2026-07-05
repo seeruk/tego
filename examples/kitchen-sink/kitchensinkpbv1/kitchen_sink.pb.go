@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/kitchensink/v1/kitchen_sink.proto
+// source: kitchensink/v1/kitchen_sink.proto
 
 package kitchensinkpbv1
 
@@ -60,11 +60,11 @@ func (x Status) String() string {
 }
 
 func (Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_kitchensink_v1_kitchen_sink_proto_enumTypes[0].Descriptor()
+	return file_kitchensink_v1_kitchen_sink_proto_enumTypes[0].Descriptor()
 }
 
 func (Status) Type() protoreflect.EnumType {
-	return &file_proto_kitchensink_v1_kitchen_sink_proto_enumTypes[0]
+	return &file_kitchensink_v1_kitchen_sink_proto_enumTypes[0]
 }
 
 func (x Status) Number() protoreflect.EnumNumber {
@@ -127,7 +127,7 @@ type KitchenSink struct {
 
 func (x *KitchenSink) Reset() {
 	*x = KitchenSink{}
-	mi := &file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes[0]
+	mi := &file_kitchensink_v1_kitchen_sink_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -139,7 +139,7 @@ func (x *KitchenSink) String() string {
 func (*KitchenSink) ProtoMessage() {}
 
 func (x *KitchenSink) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes[0]
+	mi := &file_kitchensink_v1_kitchen_sink_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1161,7 +1161,7 @@ type Choice struct {
 
 func (x *Choice) Reset() {
 	*x = Choice{}
-	mi := &file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes[1]
+	mi := &file_kitchensink_v1_kitchen_sink_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1173,7 +1173,7 @@ func (x *Choice) String() string {
 func (*Choice) ProtoMessage() {}
 
 func (x *Choice) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes[1]
+	mi := &file_kitchensink_v1_kitchen_sink_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1292,7 +1292,7 @@ func (b0 Choice_builder) Build() *Choice {
 type case_Choice_Value protoreflect.FieldNumber
 
 func (x case_Choice_Value) String() string {
-	md := file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes[1].Descriptor()
+	md := file_kitchensink_v1_kitchen_sink_proto_msgTypes[1].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -1315,11 +1315,11 @@ func (*choice_Text) isChoice_Value() {}
 
 func (*choice_Number) isChoice_Value() {}
 
-var File_proto_kitchensink_v1_kitchen_sink_proto protoreflect.FileDescriptor
+var File_kitchensink_v1_kitchen_sink_proto protoreflect.FileDescriptor
 
-const file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc = "" +
+const file_kitchensink_v1_kitchen_sink_proto_rawDesc = "" +
 	"\n" +
-	"'proto/kitchensink/v1/kitchen_sink.proto\x12\x0ekitchensink.v1\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x12tego/options.proto\"\xd3\x1b\n" +
+	"!kitchensink/v1/kitchen_sink.proto\x12\x0ekitchensink.v1\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x12tego/options.proto\"\xd3\x1b\n" +
 	"\vKitchenSink\x12\x1d\n" +
 	"\n" +
 	"bool_value\x18\x01 \x01(\bR\tboolValue\x12\x1f\n" +
@@ -1420,9 +1420,9 @@ const file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc = "" +
 	"F\n" +
 	"Dgithub.com/seeruk/tego/examples/kitchen-sink/kitchensink;kitchensinkZLgithub.com/seeruk/tego/examples/kitchen-sink/kitchensinkpbv1;kitchensinkpbv1b\beditionsp\xe9\a"
 
-var file_proto_kitchensink_v1_kitchen_sink_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_proto_kitchensink_v1_kitchen_sink_proto_goTypes = []any{
+var file_kitchensink_v1_kitchen_sink_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_kitchensink_v1_kitchen_sink_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_kitchensink_v1_kitchen_sink_proto_goTypes = []any{
 	(Status)(0),                    // 0: kitchensink.v1.Status
 	(*KitchenSink)(nil),            // 1: kitchensink.v1.KitchenSink
 	(*Choice)(nil),                 // 2: kitchensink.v1.Choice
@@ -1446,7 +1446,7 @@ var file_proto_kitchensink_v1_kitchen_sink_proto_goTypes = []any{
 	(*anypb.Any)(nil),              // 20: google.protobuf.Any
 	(*emptypb.Empty)(nil),          // 21: google.protobuf.Empty
 }
-var file_proto_kitchensink_v1_kitchen_sink_proto_depIdxs = []int32{
+var file_kitchensink_v1_kitchen_sink_proto_depIdxs = []int32{
 	0,  // 0: kitchensink.v1.KitchenSink.status:type_name -> kitchensink.v1.Status
 	3,  // 1: kitchensink.v1.KitchenSink.counts:type_name -> kitchensink.v1.KitchenSink.CountsEntry
 	13, // 2: kitchensink.v1.KitchenSink.wrapped_bool:type_name -> google.protobuf.BoolValue
@@ -1493,12 +1493,12 @@ var file_proto_kitchensink_v1_kitchen_sink_proto_depIdxs = []int32{
 	0,  // [0:39] is the sub-list for field type_name
 }
 
-func init() { file_proto_kitchensink_v1_kitchen_sink_proto_init() }
-func file_proto_kitchensink_v1_kitchen_sink_proto_init() {
-	if File_proto_kitchensink_v1_kitchen_sink_proto != nil {
+func init() { file_kitchensink_v1_kitchen_sink_proto_init() }
+func file_kitchensink_v1_kitchen_sink_proto_init() {
+	if File_kitchensink_v1_kitchen_sink_proto != nil {
 		return
 	}
-	file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes[1].OneofWrappers = []any{
+	file_kitchensink_v1_kitchen_sink_proto_msgTypes[1].OneofWrappers = []any{
 		(*choice_Text)(nil),
 		(*choice_Number)(nil),
 	}
@@ -1506,18 +1506,18 @@ func file_proto_kitchensink_v1_kitchen_sink_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc), len(file_proto_kitchensink_v1_kitchen_sink_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_kitchensink_v1_kitchen_sink_proto_rawDesc), len(file_kitchensink_v1_kitchen_sink_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_kitchensink_v1_kitchen_sink_proto_goTypes,
-		DependencyIndexes: file_proto_kitchensink_v1_kitchen_sink_proto_depIdxs,
-		EnumInfos:         file_proto_kitchensink_v1_kitchen_sink_proto_enumTypes,
-		MessageInfos:      file_proto_kitchensink_v1_kitchen_sink_proto_msgTypes,
+		GoTypes:           file_kitchensink_v1_kitchen_sink_proto_goTypes,
+		DependencyIndexes: file_kitchensink_v1_kitchen_sink_proto_depIdxs,
+		EnumInfos:         file_kitchensink_v1_kitchen_sink_proto_enumTypes,
+		MessageInfos:      file_kitchensink_v1_kitchen_sink_proto_msgTypes,
 	}.Build()
-	File_proto_kitchensink_v1_kitchen_sink_proto = out.File
-	file_proto_kitchensink_v1_kitchen_sink_proto_goTypes = nil
-	file_proto_kitchensink_v1_kitchen_sink_proto_depIdxs = nil
+	File_kitchensink_v1_kitchen_sink_proto = out.File
+	file_kitchensink_v1_kitchen_sink_proto_goTypes = nil
+	file_kitchensink_v1_kitchen_sink_proto_depIdxs = nil
 }

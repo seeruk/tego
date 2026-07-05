@@ -4,6 +4,15 @@ version: v2
 modules:
 - path: proto
   name: buf.build/seeruk-oss/tego
+- path: examples/quickstart/proto
+- path: examples/shapes/proto
+- path: examples/options/proto
+- path: examples/custom-types/proto
+- path: examples/presence-patch/proto
+- path: examples/streaming-grpc/proto
+- path: examples/transport-override/proto
+- path: examples/kitchen-sink/proto
+- path: internal/tego/testdata/proto
 
 lint:
   use:

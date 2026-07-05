@@ -16,7 +16,7 @@ Good files to start with:
 From this example folder, regenerate with:
 
 ```sh
-buf generate --config ../../buf.dev.yaml --template buf.gen.yaml ../.. --path proto/streaming/v1/events.proto
+buf generate
 ```
 
 Run the server and client in separate terminals:

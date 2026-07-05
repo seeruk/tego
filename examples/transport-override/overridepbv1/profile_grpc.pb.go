@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: proto/override/v1/profile.proto
+// source: override/v1/profile.proto
 
 package overridepbv1
 
@@ -117,5 +117,5 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/override/v1/profile.proto",
+	Metadata: "override/v1/profile.proto",
 }

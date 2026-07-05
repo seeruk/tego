@@ -7,9 +7,9 @@ option go_package = "github.com/seeruk/tego/examples/streaming-grpc/streamingpbv
 option (tego.file).go_package = "github.com/seeruk/tego/examples/streaming-grpc/streaming;streaming";
 
 service EventService {
-  rpc Watch(WatchRequest) returns (stream Event);
-  rpc Import(stream Event) returns (ImportResponse);
-  rpc Chat(stream Event) returns (stream Event);
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
+  rpc Import(stream ImportRequest) returns (ImportResponse);
+  rpc Chat(stream ChatRequest) returns (stream ChatResponse);
 }
 
 message WatchRequest {
@@ -21,6 +21,22 @@ message Event {
   string message = 2;
 }
 
+message WatchResponse {
+  Event event = 1;
+}
+
+message ImportRequest {
+  Event event = 1;
+}
+
 message ImportResponse {
   int32 count = 1;
+}
+
+message ChatRequest {
+  Event event = 1;
+}
+
+message ChatResponse {
+  Event event = 1;
 }

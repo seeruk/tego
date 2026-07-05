@@ -20,8 +20,24 @@ type Event struct {
 	Message string
 }
 
+type WatchResponse struct {
+	Event Event
+}
+
+type ImportRequest struct {
+	Event Event
+}
+
 type ImportResponse struct {
 	Count int32
+}
+
+type ChatRequest struct {
+	Event Event
+}
+
+type ChatResponse struct {
+	Event Event
 }
 
 func WatchRequestToInline(ctx context.Context, request WatchRequest) (context.Context, string) {
@@ -49,23 +65,23 @@ func ImportResponseFromInline(count int32, err error) (ImportResponse, error) {
 }
 
 type EventService interface {
-	Watch(ctx context.Context, topic string) (iter.Seq2[Event, error], error)
-	Import(ctx context.Context, requests iter.Seq2[Event, error]) (int32, error)
-	Chat(ctx context.Context, requests iter.Seq2[Event, error]) (iter.Seq2[Event, error], error)
+	Watch(ctx context.Context, topic string) (iter.Seq2[WatchResponse, error], error)
+	Import(ctx context.Context, requests iter.Seq2[ImportRequest, error]) (int32, error)
+	Chat(ctx context.Context, requests iter.Seq2[ChatRequest, error]) (iter.Seq2[ChatResponse, error], error)
 }
 
 type UnimplementedEventService struct{}
 
-func (UnimplementedEventService) Watch(ctx context.Context, topic string) (iter.Seq2[Event, error], error) {
+func (UnimplementedEventService) Watch(ctx context.Context, topic string) (iter.Seq2[WatchResponse, error], error) {
 	return nil, unimplementedEventServiceError("Watch")
 }
 
-func (UnimplementedEventService) Import(ctx context.Context, requests iter.Seq2[Event, error]) (int32, error) {
+func (UnimplementedEventService) Import(ctx context.Context, requests iter.Seq2[ImportRequest, error]) (int32, error) {
 	var zeroCount int32
 	return zeroCount, unimplementedEventServiceError("Import")
 }
 
-func (UnimplementedEventService) Chat(ctx context.Context, requests iter.Seq2[Event, error]) (iter.Seq2[Event, error], error) {
+func (UnimplementedEventService) Chat(ctx context.Context, requests iter.Seq2[ChatRequest, error]) (iter.Seq2[ChatResponse, error], error) {
 	return nil, unimplementedEventServiceError("Chat")
 }
 
@@ -94,11 +110,11 @@ func NewEventServiceGRPCAdapter(service EventService) *EventServiceGRPCAdapter {
 	return &EventServiceGRPCAdapter{service: service}
 }
 
-func (s *eventServiceGRPCServer) Watch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.Event]) error {
+func (s *eventServiceGRPCServer) Watch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.WatchResponse]) error {
 	return s.AdaptWatch(requestProto, stream)
 }
 
-func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.Event]) error {
+func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.WatchResponse]) error {
 	ctx := stream.Context()
 	request := WatchRequestFromProto(requestProto)
 	responses, err := a.service.Watch(WatchRequestToInline(ctx, request))
@@ -112,7 +128,7 @@ func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRe
 		if err != nil {
 			return tego.GRPCError(err)
 		}
-		responseProto := EventToProto(response)
+		responseProto := WatchResponseToProto(response)
 		if err := stream.Send(responseProto); err != nil {
 			return err
 		}
@@ -120,13 +136,13 @@ func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRe
 	return nil
 }
 
-func (s *eventServiceGRPCServer) Import(stream grpc.ClientStreamingServer[streamingpbv1.Event, streamingpbv1.ImportResponse]) error {
+func (s *eventServiceGRPCServer) Import(stream grpc.ClientStreamingServer[streamingpbv1.ImportRequest, streamingpbv1.ImportResponse]) error {
 	return s.AdaptImport(stream)
 }
 
-func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[streamingpbv1.Event, streamingpbv1.ImportResponse]) error {
+func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[streamingpbv1.ImportRequest, streamingpbv1.ImportResponse]) error {
 	var receiveErr error
-	requests := func(yield func(Event, error) bool) {
+	requests := func(yield func(ImportRequest, error) bool) {
 		for {
 			requestProto, err := stream.Recv()
 			if err == io.EOF {
@@ -134,11 +150,11 @@ func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[
 			}
 			if err != nil {
 				receiveErr = err
-				var zero Event
+				var zero ImportRequest
 				yield(zero, err)
 				return
 			}
-			request := EventFromProto(requestProto)
+			request := ImportRequestFromProto(requestProto)
 			if !yield(request, nil) {
 				return
 			}
@@ -155,13 +171,13 @@ func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[
 	return stream.SendAndClose(responseProto)
 }
 
-func (s *eventServiceGRPCServer) Chat(stream grpc.BidiStreamingServer[streamingpbv1.Event, streamingpbv1.Event]) error {
+func (s *eventServiceGRPCServer) Chat(stream grpc.BidiStreamingServer[streamingpbv1.ChatRequest, streamingpbv1.ChatResponse]) error {
 	return s.AdaptChat(stream)
 }
 
-func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[streamingpbv1.Event, streamingpbv1.Event]) error {
+func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[streamingpbv1.ChatRequest, streamingpbv1.ChatResponse]) error {
 	var receiveErr error
-	requests := func(yield func(Event, error) bool) {
+	requests := func(yield func(ChatRequest, error) bool) {
 		for {
 			requestProto, err := stream.Recv()
 			if err == io.EOF {
@@ -169,11 +185,11 @@ func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[stre
 			}
 			if err != nil {
 				receiveErr = err
-				var zero Event
+				var zero ChatRequest
 				yield(zero, err)
 				return
 			}
-			request := EventFromProto(requestProto)
+			request := ChatRequestFromProto(requestProto)
 			if !yield(request, nil) {
 				return
 			}
@@ -188,7 +204,7 @@ func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[stre
 			if err != nil {
 				return tego.GRPCError(err)
 			}
-			responseProto := EventToProto(response)
+			responseProto := ChatResponseToProto(response)
 			if err := stream.Send(responseProto); err != nil {
 				return err
 			}
@@ -205,25 +221,25 @@ type eventServiceGRPCClient struct {
 	client streamingpbv1.EventServiceClient
 }
 
-func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.Seq2[Event, error], error) {
+func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.Seq2[WatchResponse, error], error) {
 	ctx, request := WatchRequestFromInline(ctx, topic)
 	requestProto := WatchRequestToProto(request)
 	stream, err := c.client.Watch(ctx, requestProto)
 	if err != nil {
 		return nil, err
 	}
-	responses := func(yield func(Event, error) bool) {
+	responses := func(yield func(WatchResponse, error) bool) {
 		for {
 			responseProto, err := stream.Recv()
 			if err == io.EOF {
 				return
 			}
 			if err != nil {
-				var zero Event
+				var zero WatchResponse
 				yield(zero, err)
 				return
 			}
-			response := EventFromProto(responseProto)
+			response := WatchResponseFromProto(responseProto)
 			if !yield(response, nil) {
 				return
 			}
@@ -232,7 +248,7 @@ func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.
 	return responses, nil
 }
 
-func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[Event, error]) (int32, error) {
+func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[ImportRequest, error]) (int32, error) {
 	var zero ImportResponse
 	stream, err := c.client.Import(ctx)
 	if err != nil {
@@ -242,7 +258,7 @@ func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[
 		if err != nil {
 			return ImportResponseToInline(zero, err)
 		}
-		requestProto := EventToProto(request)
+		requestProto := ImportRequestToProto(request)
 		if err := stream.Send(requestProto); err != nil {
 			return ImportResponseToInline(zero, err)
 		}
@@ -255,12 +271,12 @@ func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[
 	return ImportResponseToInline(response, nil)
 }
 
-func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[Event, error]) (iter.Seq2[Event, error], error) {
+func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[ChatRequest, error]) (iter.Seq2[ChatResponse, error], error) {
 	stream, err := c.client.Chat(ctx)
 	if err != nil {
 		return nil, err
 	}
-	responses := func(yield func(Event, error) bool) {
+	responses := func(yield func(ChatResponse, error) bool) {
 		sendErr := make(chan error, 1)
 		go func() {
 			for request, err := range requests {
@@ -268,7 +284,7 @@ func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[Ev
 					sendErr <- err
 					return
 				}
-				requestProto := EventToProto(request)
+				requestProto := ChatRequestToProto(request)
 				if err := stream.Send(requestProto); err != nil {
 					sendErr <- err
 					return
@@ -280,17 +296,17 @@ func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[Ev
 			responseProto, err := stream.Recv()
 			if err == io.EOF {
 				if err := <-sendErr; err != nil {
-					var zero Event
+					var zero ChatResponse
 					yield(zero, err)
 				}
 				return
 			}
 			if err != nil {
-				var zero Event
+				var zero ChatResponse
 				yield(zero, err)
 				return
 			}
-			response := EventFromProto(responseProto)
+			response := ChatResponseFromProto(responseProto)
 			if !yield(response, nil) {
 				return
 			}
@@ -339,6 +355,44 @@ func (e Event) ToProto() *streamingpbv1.Event {
 	return EventToProto(e)
 }
 
+func WatchResponseFromProto(source *streamingpbv1.WatchResponse) WatchResponse {
+	var target WatchResponse
+	if source == nil {
+		return target
+	}
+	target.Event = EventFromProto(source.GetEvent())
+	return target
+}
+
+func WatchResponseToProto(source WatchResponse) *streamingpbv1.WatchResponse {
+	target := new(streamingpbv1.WatchResponse)
+	target.SetEvent(EventToProto(source.Event))
+	return target
+}
+
+func (wr WatchResponse) ToProto() *streamingpbv1.WatchResponse {
+	return WatchResponseToProto(wr)
+}
+
+func ImportRequestFromProto(source *streamingpbv1.ImportRequest) ImportRequest {
+	var target ImportRequest
+	if source == nil {
+		return target
+	}
+	target.Event = EventFromProto(source.GetEvent())
+	return target
+}
+
+func ImportRequestToProto(source ImportRequest) *streamingpbv1.ImportRequest {
+	target := new(streamingpbv1.ImportRequest)
+	target.SetEvent(EventToProto(source.Event))
+	return target
+}
+
+func (ir ImportRequest) ToProto() *streamingpbv1.ImportRequest {
+	return ImportRequestToProto(ir)
+}
+
 func ImportResponseFromProto(source *streamingpbv1.ImportResponse) ImportResponse {
 	var target ImportResponse
 	if source == nil {
@@ -356,4 +410,42 @@ func ImportResponseToProto(source ImportResponse) *streamingpbv1.ImportResponse 
 
 func (ir ImportResponse) ToProto() *streamingpbv1.ImportResponse {
 	return ImportResponseToProto(ir)
+}
+
+func ChatRequestFromProto(source *streamingpbv1.ChatRequest) ChatRequest {
+	var target ChatRequest
+	if source == nil {
+		return target
+	}
+	target.Event = EventFromProto(source.GetEvent())
+	return target
+}
+
+func ChatRequestToProto(source ChatRequest) *streamingpbv1.ChatRequest {
+	target := new(streamingpbv1.ChatRequest)
+	target.SetEvent(EventToProto(source.Event))
+	return target
+}
+
+func (cr ChatRequest) ToProto() *streamingpbv1.ChatRequest {
+	return ChatRequestToProto(cr)
+}
+
+func ChatResponseFromProto(source *streamingpbv1.ChatResponse) ChatResponse {
+	var target ChatResponse
+	if source == nil {
+		return target
+	}
+	target.Event = EventFromProto(source.GetEvent())
+	return target
+}
+
+func ChatResponseToProto(source ChatResponse) *streamingpbv1.ChatResponse {
+	target := new(streamingpbv1.ChatResponse)
+	target.SetEvent(EventToProto(source.Event))
+	return target
+}
+
+func (cr ChatResponse) ToProto() *streamingpbv1.ChatResponse {
+	return ChatResponseToProto(cr)
 }

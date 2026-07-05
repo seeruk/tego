@@ -4,11 +4,11 @@ plugins:
 - local: protoc-gen-tego-capture
   out: .
   opt:
-  - path=yira.codegenreq.bin
+  - path=internal/tego/testdata/yira.codegenreq.bin
   - module=github.com/seeruk/tego/internal/tego/testdata
   strategy: all
 
 inputs:
 - directory: .
   paths:
-  - proto/yirapb/v1/yira.proto
+  - internal/tego/testdata/proto/yirapb/v1/yira.proto

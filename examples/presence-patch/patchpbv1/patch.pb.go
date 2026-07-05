@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/patch/v1/patch.proto
+// source: patch/v1/patch.proto
 
 package patchpbv1
 
@@ -31,7 +31,7 @@ type NullableString struct {
 
 func (x *NullableString) Reset() {
 	*x = NullableString{}
-	mi := &file_proto_patch_v1_patch_proto_msgTypes[0]
+	mi := &file_patch_v1_patch_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *NullableString) String() string {
 func (*NullableString) ProtoMessage() {}
 
 func (x *NullableString) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_patch_v1_patch_proto_msgTypes[0]
+	mi := &file_patch_v1_patch_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -162,7 +162,7 @@ func (b0 NullableString_builder) Build() *NullableString {
 type case_NullableString_Value protoreflect.FieldNumber
 
 func (x case_NullableString_Value) String() string {
-	md := file_proto_patch_v1_patch_proto_msgTypes[0].Descriptor()
+	md := file_patch_v1_patch_proto_msgTypes[0].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -209,7 +209,7 @@ type UpdateProfileRequest struct {
 
 func (x *UpdateProfileRequest) Reset() {
 	*x = UpdateProfileRequest{}
-	mi := &file_proto_patch_v1_patch_proto_msgTypes[1]
+	mi := &file_patch_v1_patch_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -221,7 +221,7 @@ func (x *UpdateProfileRequest) String() string {
 func (*UpdateProfileRequest) ProtoMessage() {}
 
 func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_patch_v1_patch_proto_msgTypes[1]
+	mi := &file_patch_v1_patch_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -356,11 +356,11 @@ func (b0 UpdateProfileRequest_builder) Build() *UpdateProfileRequest {
 	return m0
 }
 
-var File_proto_patch_v1_patch_proto protoreflect.FileDescriptor
+var File_patch_v1_patch_proto protoreflect.FileDescriptor
 
-const file_proto_patch_v1_patch_proto_rawDesc = "" +
+const file_patch_v1_patch_proto_rawDesc = "" +
 	"\n" +
-	"\x1aproto/patch/v1/patch.proto\x12\bpatch.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\"a\n" +
+	"\x14patch/v1/patch.proto\x12\bpatch.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\"a\n" +
 	"\x0eNullableString\x12\x14\n" +
 	"\x04text\x18\x01 \x01(\tH\x00R\x04text\x120\n" +
 	"\x04null\x18\x02 \x01(\x0e2\x1a.google.protobuf.NullValueH\x00R\x04nullB\a\n" +
@@ -375,14 +375,14 @@ const file_proto_patch_v1_patch_proto_rawDesc = "" +
 	"<\n" +
 	":github.com/seeruk/tego/examples/presence-patch/patch;patchZBgithub.com/seeruk/tego/examples/presence-patch/patchpbv1;patchpbv1b\beditionsp\xe9\a"
 
-var file_proto_patch_v1_patch_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_patch_v1_patch_proto_goTypes = []any{
+var file_patch_v1_patch_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_patch_v1_patch_proto_goTypes = []any{
 	(*NullableString)(nil),       // 0: patch.v1.NullableString
 	(*UpdateProfileRequest)(nil), // 1: patch.v1.UpdateProfileRequest
 	(structpb.NullValue)(0),      // 2: google.protobuf.NullValue
 	(*structpb.Struct)(nil),      // 3: google.protobuf.Struct
 }
-var file_proto_patch_v1_patch_proto_depIdxs = []int32{
+var file_patch_v1_patch_proto_depIdxs = []int32{
 	2, // 0: patch.v1.NullableString.null:type_name -> google.protobuf.NullValue
 	0, // 1: patch.v1.UpdateProfileRequest.bio:type_name -> patch.v1.NullableString
 	3, // 2: patch.v1.UpdateProfileRequest.preferences:type_name -> google.protobuf.Struct
@@ -393,12 +393,12 @@ var file_proto_patch_v1_patch_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_proto_patch_v1_patch_proto_init() }
-func file_proto_patch_v1_patch_proto_init() {
-	if File_proto_patch_v1_patch_proto != nil {
+func init() { file_patch_v1_patch_proto_init() }
+func file_patch_v1_patch_proto_init() {
+	if File_patch_v1_patch_proto != nil {
 		return
 	}
-	file_proto_patch_v1_patch_proto_msgTypes[0].OneofWrappers = []any{
+	file_patch_v1_patch_proto_msgTypes[0].OneofWrappers = []any{
 		(*nullableString_Text)(nil),
 		(*nullableString_Null)(nil),
 	}
@@ -406,17 +406,17 @@ func file_proto_patch_v1_patch_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_patch_v1_patch_proto_rawDesc), len(file_proto_patch_v1_patch_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_patch_v1_patch_proto_rawDesc), len(file_patch_v1_patch_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_patch_v1_patch_proto_goTypes,
-		DependencyIndexes: file_proto_patch_v1_patch_proto_depIdxs,
-		MessageInfos:      file_proto_patch_v1_patch_proto_msgTypes,
+		GoTypes:           file_patch_v1_patch_proto_goTypes,
+		DependencyIndexes: file_patch_v1_patch_proto_depIdxs,
+		MessageInfos:      file_patch_v1_patch_proto_msgTypes,
 	}.Build()
-	File_proto_patch_v1_patch_proto = out.File
-	file_proto_patch_v1_patch_proto_goTypes = nil
-	file_proto_patch_v1_patch_proto_depIdxs = nil
+	File_patch_v1_patch_proto = out.File
+	file_patch_v1_patch_proto_goTypes = nil
+	file_patch_v1_patch_proto_depIdxs = nil
 }

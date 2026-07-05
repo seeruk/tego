@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: proto/streaming/v1/events.proto
+// source: streaming/v1/events.proto
 
 package streamingpbv1
 
@@ -28,9 +28,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EventServiceClient interface {
-	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error)
-	Import(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[Event, ImportResponse], error)
-	Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Event, Event], error)
+	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchResponse], error)
+	Import(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportRequest, ImportResponse], error)
+	Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatRequest, ChatResponse], error)
 }
 
 type eventServiceClient struct {
@@ -41,13 +41,13 @@ func NewEventServiceClient(cc grpc.ClientConnInterface) EventServiceClient {
 	return &eventServiceClient{cc}
 }
 
-func (c *eventServiceClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error) {
+func (c *eventServiceClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[0], EventService_Watch_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[WatchRequest, Event]{ClientStream: stream}
+	x := &grpc.GenericClientStream[WatchRequest, WatchResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -58,41 +58,41 @@ func (c *eventServiceClient) Watch(ctx context.Context, in *WatchRequest, opts .
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type EventService_WatchClient = grpc.ServerStreamingClient[Event]
+type EventService_WatchClient = grpc.ServerStreamingClient[WatchResponse]
 
-func (c *eventServiceClient) Import(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[Event, ImportResponse], error) {
+func (c *eventServiceClient) Import(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ImportRequest, ImportResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[1], EventService_Import_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[Event, ImportResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ImportRequest, ImportResponse]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type EventService_ImportClient = grpc.ClientStreamingClient[Event, ImportResponse]
+type EventService_ImportClient = grpc.ClientStreamingClient[ImportRequest, ImportResponse]
 
-func (c *eventServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Event, Event], error) {
+func (c *eventServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatRequest, ChatResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &EventService_ServiceDesc.Streams[2], EventService_Chat_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[Event, Event]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ChatRequest, ChatResponse]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type EventService_ChatClient = grpc.BidiStreamingClient[Event, Event]
+type EventService_ChatClient = grpc.BidiStreamingClient[ChatRequest, ChatResponse]
 
 // EventServiceServer is the server API for EventService service.
 // All implementations must embed UnimplementedEventServiceServer
 // for forward compatibility.
 type EventServiceServer interface {
-	Watch(*WatchRequest, grpc.ServerStreamingServer[Event]) error
-	Import(grpc.ClientStreamingServer[Event, ImportResponse]) error
-	Chat(grpc.BidiStreamingServer[Event, Event]) error
+	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchResponse]) error
+	Import(grpc.ClientStreamingServer[ImportRequest, ImportResponse]) error
+	Chat(grpc.BidiStreamingServer[ChatRequest, ChatResponse]) error
 	mustEmbedUnimplementedEventServiceServer()
 }
 
@@ -103,13 +103,13 @@ type EventServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedEventServiceServer struct{}
 
-func (UnimplementedEventServiceServer) Watch(*WatchRequest, grpc.ServerStreamingServer[Event]) error {
+func (UnimplementedEventServiceServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchResponse]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
 }
-func (UnimplementedEventServiceServer) Import(grpc.ClientStreamingServer[Event, ImportResponse]) error {
+func (UnimplementedEventServiceServer) Import(grpc.ClientStreamingServer[ImportRequest, ImportResponse]) error {
 	return status.Error(codes.Unimplemented, "method Import not implemented")
 }
-func (UnimplementedEventServiceServer) Chat(grpc.BidiStreamingServer[Event, Event]) error {
+func (UnimplementedEventServiceServer) Chat(grpc.BidiStreamingServer[ChatRequest, ChatResponse]) error {
 	return status.Error(codes.Unimplemented, "method Chat not implemented")
 }
 func (UnimplementedEventServiceServer) mustEmbedUnimplementedEventServiceServer() {}
@@ -138,25 +138,25 @@ func _EventService_Watch_Handler(srv interface{}, stream grpc.ServerStream) erro
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(EventServiceServer).Watch(m, &grpc.GenericServerStream[WatchRequest, Event]{ServerStream: stream})
+	return srv.(EventServiceServer).Watch(m, &grpc.GenericServerStream[WatchRequest, WatchResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type EventService_WatchServer = grpc.ServerStreamingServer[Event]
+type EventService_WatchServer = grpc.ServerStreamingServer[WatchResponse]
 
 func _EventService_Import_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(EventServiceServer).Import(&grpc.GenericServerStream[Event, ImportResponse]{ServerStream: stream})
+	return srv.(EventServiceServer).Import(&grpc.GenericServerStream[ImportRequest, ImportResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type EventService_ImportServer = grpc.ClientStreamingServer[Event, ImportResponse]
+type EventService_ImportServer = grpc.ClientStreamingServer[ImportRequest, ImportResponse]
 
 func _EventService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(EventServiceServer).Chat(&grpc.GenericServerStream[Event, Event]{ServerStream: stream})
+	return srv.(EventServiceServer).Chat(&grpc.GenericServerStream[ChatRequest, ChatResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type EventService_ChatServer = grpc.BidiStreamingServer[Event, Event]
+type EventService_ChatServer = grpc.BidiStreamingServer[ChatRequest, ChatResponse]
 
 // EventService_ServiceDesc is the grpc.ServiceDesc for EventService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -183,5 +183,5 @@ var EventService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "proto/streaming/v1/events.proto",
+	Metadata: "streaming/v1/events.proto",
 }

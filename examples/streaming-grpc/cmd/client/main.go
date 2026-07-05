@@ -26,20 +26,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for event, err := range events {
+	for response, err := range events {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(event.Message)
+		fmt.Println(response.Event.Message)
 	}
 
-	count, err := client.Import(ctx, sampleEvents())
+	count, err := client.Import(ctx, sampleImportRequests())
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("imported %d events\n", count)
 
-	replies, err := client.Chat(ctx, sampleEvents())
+	replies, err := client.Chat(ctx, sampleChatRequests())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,18 +47,32 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(reply.Message)
+		fmt.Println(reply.Event.Message)
 	}
 }
 
-func sampleEvents() iter.Seq2[streaming.Event, error] {
-	return func(yield func(streaming.Event, error) bool) {
+func sampleImportRequests() iter.Seq2[streaming.ImportRequest, error] {
+	return func(yield func(streaming.ImportRequest, error) bool) {
 		for i := range 2 {
 			event := streaming.Event{
 				Topic:   "builds",
 				Message: fmt.Sprintf("client event %d", i+1),
 			}
-			if !yield(event, nil) {
+			if !yield(streaming.ImportRequest{Event: event}, nil) {
+				return
+			}
+		}
+	}
+}
+
+func sampleChatRequests() iter.Seq2[streaming.ChatRequest, error] {
+	return func(yield func(streaming.ChatRequest, error) bool) {
+		for i := range 2 {
+			event := streaming.Event{
+				Topic:   "builds",
+				Message: fmt.Sprintf("client event %d", i+1),
+			}
+			if !yield(streaming.ChatRequest{Event: event}, nil) {
 				return
 			}
 		}

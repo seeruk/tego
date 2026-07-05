@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: proto/options/v1/options.proto
+// source: options/v1/options.proto
 
 package optionspbv1
 
@@ -55,11 +55,11 @@ func (x Role) String() string {
 }
 
 func (Role) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_options_v1_options_proto_enumTypes[0].Descriptor()
+	return file_options_v1_options_proto_enumTypes[0].Descriptor()
 }
 
 func (Role) Type() protoreflect.EnumType {
-	return &file_proto_options_v1_options_proto_enumTypes[0]
+	return &file_options_v1_options_proto_enumTypes[0]
 }
 
 func (x Role) Number() protoreflect.EnumNumber {
@@ -77,7 +77,7 @@ type LookupAccountRequest struct {
 
 func (x *LookupAccountRequest) Reset() {
 	*x = LookupAccountRequest{}
-	mi := &file_proto_options_v1_options_proto_msgTypes[0]
+	mi := &file_options_v1_options_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -89,7 +89,7 @@ func (x *LookupAccountRequest) String() string {
 func (*LookupAccountRequest) ProtoMessage() {}
 
 func (x *LookupAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_options_v1_options_proto_msgTypes[0]
+	mi := &file_options_v1_options_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -153,7 +153,7 @@ type LookupAccountResponse struct {
 
 func (x *LookupAccountResponse) Reset() {
 	*x = LookupAccountResponse{}
-	mi := &file_proto_options_v1_options_proto_msgTypes[1]
+	mi := &file_options_v1_options_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +165,7 @@ func (x *LookupAccountResponse) String() string {
 func (*LookupAccountResponse) ProtoMessage() {}
 
 func (x *LookupAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_options_v1_options_proto_msgTypes[1]
+	mi := &file_options_v1_options_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -227,7 +227,7 @@ type Account struct {
 
 func (x *Account) Reset() {
 	*x = Account{}
-	mi := &file_proto_options_v1_options_proto_msgTypes[2]
+	mi := &file_options_v1_options_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -239,7 +239,7 @@ func (x *Account) String() string {
 func (*Account) ProtoMessage() {}
 
 func (x *Account) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_options_v1_options_proto_msgTypes[2]
+	mi := &file_options_v1_options_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +436,7 @@ type AccountPatch struct {
 
 func (x *AccountPatch) Reset() {
 	*x = AccountPatch{}
-	mi := &file_proto_options_v1_options_proto_msgTypes[3]
+	mi := &file_options_v1_options_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -448,7 +448,7 @@ func (x *AccountPatch) String() string {
 func (*AccountPatch) ProtoMessage() {}
 
 func (x *AccountPatch) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_options_v1_options_proto_msgTypes[3]
+	mi := &file_options_v1_options_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +623,7 @@ type NullableString struct {
 
 func (x *NullableString) Reset() {
 	*x = NullableString{}
-	mi := &file_proto_options_v1_options_proto_msgTypes[4]
+	mi := &file_options_v1_options_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +635,7 @@ func (x *NullableString) String() string {
 func (*NullableString) ProtoMessage() {}
 
 func (x *NullableString) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_options_v1_options_proto_msgTypes[4]
+	mi := &file_options_v1_options_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -754,7 +754,7 @@ func (b0 NullableString_builder) Build() *NullableString {
 type case_NullableString_Value protoreflect.FieldNumber
 
 func (x case_NullableString_Value) String() string {
-	md := file_proto_options_v1_options_proto_msgTypes[4].Descriptor()
+	md := file_options_v1_options_proto_msgTypes[4].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -777,11 +777,11 @@ func (*nullableString_Text) isNullableString_Value() {}
 
 func (*nullableString_Null) isNullableString_Value() {}
 
-var File_proto_options_v1_options_proto protoreflect.FileDescriptor
+var File_options_v1_options_proto protoreflect.FileDescriptor
 
-const file_proto_options_v1_options_proto_rawDesc = "" +
+const file_options_v1_options_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproto/options/v1/options.proto\x12\n" +
+	"\x18options/v1/options.proto\x12\n" +
 	"options.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\"5\n" +
 	"\x14LookupAccountRequest\x12\x1d\n" +
 	"\n" +
@@ -838,9 +838,9 @@ const file_proto_options_v1_options_proto_rawDesc = "" +
 	"9\n" +
 	"7github.com/seeruk/tego/examples/options/options;optionsZ?github.com/seeruk/tego/examples/options/optionspbv1;optionspbv1b\beditionsp\xe9\a"
 
-var file_proto_options_v1_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_options_v1_options_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_proto_options_v1_options_proto_goTypes = []any{
+var file_options_v1_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_options_v1_options_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_options_v1_options_proto_goTypes = []any{
 	(Role)(0),                     // 0: options.v1.Role
 	(*LookupAccountRequest)(nil),  // 1: options.v1.LookupAccountRequest
 	(*LookupAccountResponse)(nil), // 2: options.v1.LookupAccountResponse
@@ -850,7 +850,7 @@ var file_proto_options_v1_options_proto_goTypes = []any{
 	(*structpb.Struct)(nil),       // 6: google.protobuf.Struct
 	(structpb.NullValue)(0),       // 7: google.protobuf.NullValue
 }
-var file_proto_options_v1_options_proto_depIdxs = []int32{
+var file_options_v1_options_proto_depIdxs = []int32{
 	3, // 0: options.v1.LookupAccountResponse.account:type_name -> options.v1.Account
 	0, // 1: options.v1.Account.role:type_name -> options.v1.Role
 	5, // 2: options.v1.AccountPatch.email:type_name -> options.v1.NullableString
@@ -866,12 +866,12 @@ var file_proto_options_v1_options_proto_depIdxs = []int32{
 	0, // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_proto_options_v1_options_proto_init() }
-func file_proto_options_v1_options_proto_init() {
-	if File_proto_options_v1_options_proto != nil {
+func init() { file_options_v1_options_proto_init() }
+func file_options_v1_options_proto_init() {
+	if File_options_v1_options_proto != nil {
 		return
 	}
-	file_proto_options_v1_options_proto_msgTypes[4].OneofWrappers = []any{
+	file_options_v1_options_proto_msgTypes[4].OneofWrappers = []any{
 		(*nullableString_Text)(nil),
 		(*nullableString_Null)(nil),
 	}
@@ -879,18 +879,18 @@ func file_proto_options_v1_options_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_options_v1_options_proto_rawDesc), len(file_proto_options_v1_options_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_options_v1_options_proto_rawDesc), len(file_options_v1_options_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_options_v1_options_proto_goTypes,
-		DependencyIndexes: file_proto_options_v1_options_proto_depIdxs,
-		EnumInfos:         file_proto_options_v1_options_proto_enumTypes,
-		MessageInfos:      file_proto_options_v1_options_proto_msgTypes,
+		GoTypes:           file_options_v1_options_proto_goTypes,
+		DependencyIndexes: file_options_v1_options_proto_depIdxs,
+		EnumInfos:         file_options_v1_options_proto_enumTypes,
+		MessageInfos:      file_options_v1_options_proto_msgTypes,
 	}.Build()
-	File_proto_options_v1_options_proto = out.File
-	file_proto_options_v1_options_proto_goTypes = nil
-	file_proto_options_v1_options_proto_depIdxs = nil
+	File_options_v1_options_proto = out.File
+	file_options_v1_options_proto_goTypes = nil
+	file_options_v1_options_proto_depIdxs = nil
 }

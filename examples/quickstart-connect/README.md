@@ -19,7 +19,7 @@ Regenerate the shared quickstart package from `../quickstart`:
 
 ```sh
 cd ../quickstart
-buf generate --config ../../buf.dev.yaml --template buf.gen.yaml ../.. --path proto/hello/v1/hello.proto
+buf generate
 ```
 
 Run the server and client in separate terminals:
