@@ -237,6 +237,10 @@ normalization, context setup, and response enrichment outside the service implem
 service hooks are method-specific and typed, while `tego.InterfaceHooks` let you reuse hooks for
 values that implement an interface such as `Validate() error`. See [examples/hooks](examples/hooks).
 
+NOTE: The API for interface hooks _will_ change when Go 1.27 releases to take advantage of methods
+being allowed to also have their own generic type parameters. I'll be reviewing the whole API of 
+Tego to see what other opportunities for simplification may arise with the release of Go 1.27.
+
 ### Error Mapping
 
 Facade implementations can return ordinary Go errors from your domain. At the transport boundary,
