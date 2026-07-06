@@ -355,8 +355,9 @@ func WatchRequestFromProto(source *streamingpbv1.WatchRequest) WatchRequest {
 }
 
 func WatchRequestToProto(source WatchRequest) *streamingpbv1.WatchRequest {
-	target := new(streamingpbv1.WatchRequest)
-	target.SetTopic(source.Topic)
+	target := streamingpbv1.WatchRequest_builder{
+		Topic: &source.Topic,
+	}.Build()
 	return target
 }
 
@@ -375,9 +376,10 @@ func EventFromProto(source *streamingpbv1.Event) Event {
 }
 
 func EventToProto(source Event) *streamingpbv1.Event {
-	target := new(streamingpbv1.Event)
-	target.SetTopic(source.Topic)
-	target.SetMessage(source.Message)
+	target := streamingpbv1.Event_builder{
+		Topic:   &source.Topic,
+		Message: &source.Message,
+	}.Build()
 	return target
 }
 
@@ -395,8 +397,9 @@ func WatchResponseFromProto(source *streamingpbv1.WatchResponse) WatchResponse {
 }
 
 func WatchResponseToProto(source WatchResponse) *streamingpbv1.WatchResponse {
-	target := new(streamingpbv1.WatchResponse)
-	target.SetEvent(EventToProto(source.Event))
+	target := streamingpbv1.WatchResponse_builder{
+		Event: EventToProto(source.Event),
+	}.Build()
 	return target
 }
 
@@ -414,8 +417,9 @@ func ImportRequestFromProto(source *streamingpbv1.ImportRequest) ImportRequest {
 }
 
 func ImportRequestToProto(source ImportRequest) *streamingpbv1.ImportRequest {
-	target := new(streamingpbv1.ImportRequest)
-	target.SetEvent(EventToProto(source.Event))
+	target := streamingpbv1.ImportRequest_builder{
+		Event: EventToProto(source.Event),
+	}.Build()
 	return target
 }
 
@@ -433,8 +437,9 @@ func ImportResponseFromProto(source *streamingpbv1.ImportResponse) ImportRespons
 }
 
 func ImportResponseToProto(source ImportResponse) *streamingpbv1.ImportResponse {
-	target := new(streamingpbv1.ImportResponse)
-	target.SetCount(source.Count)
+	target := streamingpbv1.ImportResponse_builder{
+		Count: &source.Count,
+	}.Build()
 	return target
 }
 
@@ -452,8 +457,9 @@ func ChatRequestFromProto(source *streamingpbv1.ChatRequest) ChatRequest {
 }
 
 func ChatRequestToProto(source ChatRequest) *streamingpbv1.ChatRequest {
-	target := new(streamingpbv1.ChatRequest)
-	target.SetEvent(EventToProto(source.Event))
+	target := streamingpbv1.ChatRequest_builder{
+		Event: EventToProto(source.Event),
+	}.Build()
 	return target
 }
 
@@ -471,8 +477,9 @@ func ChatResponseFromProto(source *streamingpbv1.ChatResponse) ChatResponse {
 }
 
 func ChatResponseToProto(source ChatResponse) *streamingpbv1.ChatResponse {
-	target := new(streamingpbv1.ChatResponse)
-	target.SetEvent(EventToProto(source.Event))
+	target := streamingpbv1.ChatResponse_builder{
+		Event: EventToProto(source.Event),
+	}.Build()
 	return target
 }
 

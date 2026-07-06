@@ -2,6 +2,8 @@ package tego
 
 import (
 	"fmt"
+	"go/ast"
+	"go/parser"
 	"strconv"
 	"strings"
 
@@ -77,19 +79,26 @@ func generateToProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) erro
 	}
 
 	g.P("func ", mapping.ToProto.Name, "(source ", sourceType, ") ", mappingResults(targetType, mapping.ToProto.CanError), " {")
-	targetExpr, err := newValueExpr(g, mapping.ToProto.Target)
+	builderType, err := builderTypeExpr(g, mapping.ToProto.Target)
 	if err != nil {
-		return fmt.Errorf("to proto target: %w", err)
+		return fmt.Errorf("to proto builder target: %w", err)
 	}
-	g.P("\ttarget := ", targetExpr)
 
 	ctx := newMappingRenderContext(g, mapping.ToProto.CanError, "nil, err")
+	var fields []builderField
 	for _, field := range mapping.Fields {
-		if err := generateToProtoField(ctx, field); err != nil {
+		fieldFields, err := generateToProtoBuilderField(ctx, field)
+		if err != nil {
 			return fmt.Errorf("to proto field %s: %w", field.ProtoName, err)
 		}
+		fields = append(fields, fieldFields...)
 	}
 
+	ctx.line("target := " + builderType + "{")
+	for _, field := range fields {
+		ctx.line(field.Name + ": " + field.Value + ",")
+	}
+	ctx.line("}.Build()")
 	if mapping.ToProto.CanError {
 		g.P("\treturn target, nil")
 	} else {
@@ -98,6 +107,16 @@ func generateToProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) erro
 	g.P("}")
 	g.P()
 	return nil
+}
+
+type builderField struct {
+	Name  string
+	Value string
+}
+
+type renderedValue struct {
+	Expr        string
+	Addressable bool
 }
 
 func generateToProtoMethod(g *protogen.GeneratedFile, mapping MappingPlan) error {
@@ -129,6 +148,95 @@ func mappingResults(typ string, canError bool) string {
 	return typ
 }
 
+func builderTypeExpr(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
+	if plan.Kind != TypeKindPointer || plan.Elem == nil {
+		return "", fmt.Errorf("builder target must be a pointer type")
+	}
+	target, err := generateType(g, *plan.Elem)
+	if err != nil {
+		return "", err
+	}
+	return target + "_builder", nil
+}
+
+func builderFieldType(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
+	typ, err := generateType(g, plan)
+	if err != nil {
+		return "", err
+	}
+	if builderFieldNeedsPointer(plan) {
+		return "*" + typ, nil
+	}
+	return typ, nil
+}
+
+func builderFieldValue(plan TypePlan, value renderedValue) string {
+	if builderFieldNeedsPointer(plan) {
+		return builderPointerValue(value)
+	}
+	return value.Expr
+}
+
+func builderPointerValue(value renderedValue) string {
+	if value.Addressable {
+		if dereferenced, ok := strings.CutPrefix(value.Expr, "*"); ok {
+			return dereferenced
+		}
+		return "&" + value.Expr
+	}
+	return "new(" + value.Expr + ")"
+}
+
+func builderFieldNeedsPointer(plan TypePlan) bool {
+	switch plan.Kind {
+	case TypeKindEnum:
+		return true
+	case TypeKindScalar:
+		return plan.Scalar != ScalarKindBytes
+	default:
+		return false
+	}
+}
+
+func renderedAddressableValue(expr string) renderedValue {
+	return renderedValue{
+		Expr:        expr,
+		Addressable: isAddressableExpr(expr),
+	}
+}
+
+func renderedNonAddressableValue(expr string) renderedValue {
+	return renderedValue{Expr: expr}
+}
+
+// Tego targets Go 1.26+, where range variables are per-iteration values, so
+// generated identifiers like membersKey and aliasesItem can be safely addressed.
+func isAddressableExpr(expr string) bool {
+	parsed, err := parser.ParseExpr(expr)
+	if err != nil {
+		return false
+	}
+	return isAddressableASTExpr(parsed)
+}
+
+func isAddressableASTExpr(expr ast.Expr) bool {
+	switch expr := expr.(type) {
+	case *ast.Ident:
+		if expr.Name == "true" || expr.Name == "false" || expr.Name == "nil" || expr.Name == "iota" {
+			return false
+		}
+		return true
+	case *ast.ParenExpr:
+		return isAddressableASTExpr(expr.X)
+	case *ast.SelectorExpr:
+		return isAddressableASTExpr(expr.X)
+	case *ast.StarExpr:
+		return true
+	default:
+		return false
+	}
+}
+
 func generateFromProtoField(ctx *mappingRenderContext, field FieldMappingPlan) error {
 	return ctx.withTempNameHint(field.Name, func() error {
 		if field.FromProto.Kind == MappingValueKindOneof {
@@ -147,41 +255,57 @@ func generateFromProtoField(ctx *mappingRenderContext, field FieldMappingPlan) e
 	})
 }
 
-func generateToProtoField(ctx *mappingRenderContext, field FieldMappingPlan) error {
-	return ctx.withTempNameHint(field.Name, func() error {
+func generateToProtoBuilderField(ctx *mappingRenderContext, field FieldMappingPlan) ([]builderField, error) {
+	var fields []builderField
+	err := ctx.withTempNameHint(field.Name, func() error {
 		if field.ToProto.Kind == MappingValueKindOneof {
-			return generateToProtoOneofField(ctx, field)
+			var err error
+			fields, err = generateToProtoOneofBuilderFields(ctx, field)
+			return err
 		}
 		if field.ToProto.Kind == MappingValueKindOmittable {
-			return generateToProtoOmittableField(ctx, field)
+			var err error
+			fields, err = generateToProtoOmittableBuilderField(ctx, field)
+			return err
 		}
 		if field.ToProto.Kind == MappingValueKindNullable && !isProtoPointer(field.ToProto.Target) {
-			return generateToProtoNullablePresenceField(ctx, field)
+			var err error
+			fields, err = generateToProtoNullablePresenceBuilderField(ctx, field)
+			return err
 		}
 
-		expr, err := ctx.renderValue(field.ToProto, "source."+field.Name)
+		expr, err := ctx.renderBuilderValue(field.ToProto, "source."+field.Name)
 		if err != nil {
 			return err
 		}
-		ctx.line("target." + field.Proto.Setter + "(" + expr + ")")
+		value := builderFieldValue(field.ToProto.Target, expr)
+		fields = []builderField{{Name: field.Proto.Name, Value: value}}
 		return nil
 	})
+	return fields, err
 }
 
-func generateToProtoNullablePresenceField(ctx *mappingRenderContext, field FieldMappingPlan) error {
+func generateToProtoNullablePresenceBuilderField(ctx *mappingRenderContext, field FieldMappingPlan) ([]builderField, error) {
 	if field.ToProto.Elem == nil {
-		return fmt.Errorf("nullable mapping is missing an element")
+		return nil, fmt.Errorf("nullable mapping is missing an element")
 	}
 
+	fieldType, err := builderFieldType(ctx.g, field.ToProto.Target)
+	if err != nil {
+		return nil, err
+	}
+	fieldValue := ctx.tempName(field.Proto.Name)
+	ctx.line("var " + fieldValue + " " + fieldType)
 	ctx.line("if source." + field.Name + " != nil {")
 	childSource := mappingChildSource("source."+field.Name, field.ToProto.Source, field.ToProto.Elem.Source)
-	expr, err := ctx.renderValue(*field.ToProto.Elem, childSource)
+	expr, err := ctx.renderBuilderValue(*field.ToProto.Elem, childSource)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ctx.line("target." + field.Proto.Setter + "(" + expr + ")")
+	value := builderFieldValue(field.ToProto.Target, expr)
+	ctx.line(fieldValue + " = " + value)
 	ctx.line("}")
-	return nil
+	return []builderField{{Name: field.Proto.Name, Value: fieldValue}}, nil
 }
 
 func generateFromProtoOneofField(ctx *mappingRenderContext, field FieldMappingPlan) error {
@@ -203,47 +327,62 @@ func generateFromProtoOneofField(ctx *mappingRenderContext, field FieldMappingPl
 	return nil
 }
 
-func generateToProtoOneofField(ctx *mappingRenderContext, field FieldMappingPlan) error {
+func generateToProtoOneofBuilderFields(ctx *mappingRenderContext, field FieldMappingPlan) ([]builderField, error) {
 	oneof := field.ToProto.Oneof
 	if oneof == nil {
-		return fmt.Errorf("oneof mapping is missing metadata")
+		return nil, fmt.Errorf("oneof mapping is missing metadata")
 	}
 	if !ctx.canError {
-		return fmt.Errorf("oneof to proto mapping requires an erroring mapper")
+		return nil, fmt.Errorf("oneof to proto mapping requires an erroring mapper")
+	}
+
+	fields := make([]builderField, 0, len(oneof.Variants))
+	var fieldVars []builderField
+	for _, variant := range oneof.Variants {
+		fieldType, err := builderFieldType(ctx.g, variant.Value.Target)
+		if err != nil {
+			return nil, fmt.Errorf("variant %s: %w", variant.ProtoName, err)
+		}
+		fieldVar := ctx.tempName(variant.Proto.Name)
+		ctx.line("var " + fieldVar + " " + fieldType)
+		fieldVars = append(fieldVars, builderField{Name: variant.Proto.Name, Value: fieldVar})
 	}
 
 	value := ctx.tempName("value")
 	ctx.line("switch " + value + " := source." + field.Name + ".(type) {")
 	ctx.line("case nil:")
-	for _, variant := range oneof.Variants {
-		if err := generateToProtoOneofVariant(ctx, variant.Name, value, variant); err != nil {
-			return err
+	for index, variant := range oneof.Variants {
+		if err := generateToProtoOneofBuilderVariant(ctx, variant.Name, value, variant, fieldVars[index].Value); err != nil {
+			return nil, err
 		}
-		if err := generateToProtoOneofVariant(ctx, "*"+variant.Name, value, variant); err != nil {
-			return err
+		if err := generateToProtoOneofBuilderVariant(ctx, "*"+variant.Name, value, variant, fieldVars[index].Value); err != nil {
+			return nil, err
 		}
 	}
 	ctx.line("default:")
 	ctx.line("return nil, " + errorsNew(ctx.g) + "(" + fmt.Sprintf("%q", "unsupported oneof implementation") + ")")
 	ctx.line("}")
-	return nil
+	fields = append(fields, fieldVars...)
+	return fields, nil
 }
 
-func generateToProtoOneofVariant(
+func generateToProtoOneofBuilderVariant(
 	ctx *mappingRenderContext,
 	caseType string,
 	value string,
 	variant MappingOneofVariantPlan,
+	target string,
 ) error {
 	ctx.line("case " + caseType + ":")
 	if strings.HasPrefix(caseType, "*") {
 		ctx.line("if " + value + " != nil {")
 	}
-	expr, err := ctx.renderValueWithTempNameHint(variant.FieldName, variant.Value, value+"."+variant.FieldName)
+	expr, err := ctx.renderBuilderValueWithTempNameHint(variant.FieldName, variant.Value, value+"."+variant.FieldName)
 	if err != nil {
 		return fmt.Errorf("variant %s: %w", variant.ProtoName, err)
 	}
-	ctx.line("target." + variant.Proto.Setter + "(" + expr + ")")
+	builderValue := builderFieldValue(variant.Value.Target, expr)
+	ctx.line(target + " = " + builderValue)
 	if strings.HasPrefix(caseType, "*") {
 		ctx.line("}")
 	}
@@ -283,19 +422,26 @@ func generateFromProtoOmittableField(ctx *mappingRenderContext, field FieldMappi
 	return nil
 }
 
-func generateToProtoOmittableField(ctx *mappingRenderContext, field FieldMappingPlan) error {
+func generateToProtoOmittableBuilderField(ctx *mappingRenderContext, field FieldMappingPlan) ([]builderField, error) {
 	if field.ToProto.Elem == nil {
-		return fmt.Errorf("omittable mapping is missing an element")
+		return nil, fmt.Errorf("omittable mapping is missing an element")
 	}
 
-	ctx.line("if source." + field.Name + ".IsPresent() {")
-	expr, err := ctx.renderValue(*field.ToProto.Elem, "source."+field.Name+".Get()")
+	fieldType, err := builderFieldType(ctx.g, field.ToProto.Target)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	ctx.line("target." + field.Proto.Setter + "(" + expr + ")")
+	fieldValue := ctx.tempName(field.Proto.Name)
+	ctx.line("var " + fieldValue + " " + fieldType)
+	ctx.line("if source." + field.Name + ".IsPresent() {")
+	expr, err := ctx.renderBuilderValue(*field.ToProto.Elem, "source."+field.Name+".Get()")
+	if err != nil {
+		return nil, err
+	}
+	value := builderFieldValue(field.ToProto.Target, expr)
+	ctx.line(fieldValue + " = " + value)
 	ctx.line("}")
-	return nil
+	return []builderField{{Name: field.Proto.Name, Value: fieldValue}}, nil
 }
 
 type mappingRenderContext struct {
@@ -404,12 +550,79 @@ func (ctx *mappingRenderContext) renderValueWithTempNameHintSuffix(
 	return ctx.renderValueWithTempNameHint(hint, plan, source)
 }
 
+func (ctx *mappingRenderContext) renderBuilderValueWithTempNameHint(
+	name string,
+	plan MappingValuePlan,
+	source string,
+) (renderedValue, error) {
+	var value renderedValue
+	err := ctx.withTempNameHint(name, func() error {
+		var err error
+		value, err = ctx.renderBuilderValue(plan, source)
+		return err
+	})
+	return value, err
+}
+
+func (ctx *mappingRenderContext) renderBuilderValueWithTempNameHintSuffix(
+	name string,
+	plan MappingValuePlan,
+	source string,
+) (renderedValue, error) {
+	hint := name
+	if ctx.tempHint != "" {
+		hint = ctx.tempHint + goName(name)
+	}
+	return ctx.renderBuilderValueWithTempNameHint(hint, plan, source)
+}
+
 func (ctx *mappingRenderContext) collectionItemName(source string) string {
 	sourceBase, ok := tempIdentifierBaseFromIdentifier(source)
 	if ok && (ctx.tempHint == sourceBase+"Tego" || ctx.tempHint == sourceBase+"Proto") {
 		return ctx.tempNames.name(sourceBase + "Item")
 	}
 	return ctx.tempPartName("item")
+}
+
+func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, source string) (renderedValue, error) {
+	switch plan.Kind {
+	case MappingValueKindDirect:
+		return renderedAddressableValue(source), nil
+	case MappingValueKindScalarCast:
+		target, err := scalarCastTargetType(ctx.g, plan)
+		if err != nil {
+			return renderedValue{}, err
+		}
+		return renderedNonAddressableValue(target + "(" + source + ")"), nil
+	case MappingValueKindEnum:
+		target, err := generateType(ctx.g, plan.Target)
+		if err != nil {
+			return renderedValue{}, err
+		}
+		return renderedNonAddressableValue(target + "(" + source + ")"), nil
+	case MappingValueKindStruct:
+		if plan.Struct == nil {
+			return renderedValue{}, fmt.Errorf("struct mapping is missing a ref")
+		}
+		name := plan.Struct.Name
+		if plan.Struct.Ref.Name != "" {
+			name = generateSymbol(ctx.g, plan.Struct.Ref)
+		}
+		return ctx.renderBuilderCall(name, source, plan.CanError)
+	case MappingValueKindCustom:
+		if plan.Custom == nil {
+			return renderedValue{}, fmt.Errorf("custom mapping is missing conversion refs")
+		}
+		return ctx.renderBuilderCustom(plan, source)
+	case MappingValueKindOmittable:
+		return renderedValue{}, fmt.Errorf("omittable mapping must be rendered at field level")
+	default:
+		expr, err := ctx.renderValue(plan, source)
+		if err != nil {
+			return renderedValue{}, err
+		}
+		return renderedAddressableValue(expr), nil
+	}
 }
 
 func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source string) (string, error) {
@@ -488,6 +701,19 @@ func (ctx *mappingRenderContext) renderCustom(plan MappingValuePlan, source stri
 	return ctx.renderCall(name, source, plan.CanError)
 }
 
+func (ctx *mappingRenderContext) renderBuilderCustom(plan MappingValuePlan, source string) (renderedValue, error) {
+	ref := plan.Custom.FromProto
+	if top, ok := topCustomType(plan.Source); ok && top.ToProto.Name != "" {
+		ref = plan.Custom.ToProto
+	}
+
+	if ref.Receiver != "" {
+		return ctx.renderBuilderCall(source+"."+ref.Name, "", plan.CanError)
+	}
+	name := generateSymbol(ctx.g, ref)
+	return ctx.renderBuilderCall(name, source, plan.CanError)
+}
+
 func (ctx *mappingRenderContext) renderCall(name string, source string, canError bool) (string, error) {
 	call := name + "(" + source + ")"
 	if source == "" {
@@ -503,6 +729,23 @@ func (ctx *mappingRenderContext) renderCall(name string, source string, canError
 	ctx.emitErrorReturn()
 	ctx.line("}")
 	return tmp, nil
+}
+
+func (ctx *mappingRenderContext) renderBuilderCall(name string, source string, canError bool) (renderedValue, error) {
+	call := name + "(" + source + ")"
+	if source == "" {
+		call = name + "()"
+	}
+	if !canError {
+		return renderedNonAddressableValue(call), nil
+	}
+
+	tmp := ctx.tempName("mapped")
+	ctx.line(tmp + ", err := " + call)
+	ctx.line("if err != nil {")
+	ctx.emitErrorReturn()
+	ctx.line("}")
+	return renderedAddressableValue(tmp), nil
 }
 
 func (ctx *mappingRenderContext) renderNullable(plan MappingValuePlan, source string) (string, error) {
@@ -594,43 +837,47 @@ func (ctx *mappingRenderContext) renderNullableToProto(plan MappingValuePlan, so
 
 	if plan.Target.Kind == TypeKindPointer && plan.Target.Elem != nil && plan.Target.Elem.Kind == TypeKindExternal {
 		// Nullable shape wrappers can encode explicit null; ordinary pointer mappings only omit it.
-		var empty string
+		var builder string
 		if plan.Access.NullableForm == MappingNullableFormOneof || plan.Access.NullableForm == MappingNullableFormValue {
 			var err error
-			empty, err = newValueExpr(ctx.g, plan.Target)
+			builder, err = builderTypeExpr(ctx.g, plan.Target)
 			if err != nil {
 				return "", err
 			}
 		}
 		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
-		if empty != "" {
-			ctx.line(tmp + " = " + empty)
-		}
 		childSource := mappingChildSource(source, plan.Source, plan.Elem.Source)
-		child, err := ctx.renderValue(*plan.Elem, childSource)
+		child, err := ctx.renderBuilderValue(*plan.Elem, childSource)
 		if err != nil {
 			return "", err
 		}
 		switch plan.Access.NullableForm {
 		case MappingNullableFormOneof:
-			ctx.line(tmp + "." + plan.Access.Oneof.Value.Setter + "(" + child + ")")
+			ctx.line(tmp + " = " + builder + "{")
+			ctx.line(plan.Access.Oneof.Value.Name + ": " + builderFieldValue(plan.Elem.Target, child) + ",")
+			ctx.line("}.Build()")
 		case MappingNullableFormValue:
-			ctx.line(tmp + "." + plan.Access.Value.Setter + "(" + child + ")")
-			ctx.line(tmp + "." + plan.Access.Valid.Setter + "(true)")
+			ctx.line(tmp + " = " + builder + "{")
+			ctx.line(plan.Access.Value.Name + ": " + builderFieldValue(plan.Elem.Target, child) + ",")
+			ctx.line(plan.Access.Valid.Name + ": " + builderFieldValue(scalarType(ScalarKindBool), renderedNonAddressableValue("true")) + ",")
+			ctx.line("}.Build()")
 		default:
-			ctx.line(tmp + " = " + child)
+			ctx.line(tmp + " = " + child.Expr)
 		}
 		switch plan.Access.NullableForm {
 		case MappingNullableFormOneof:
 			ctx.line("} else {")
-			ctx.line(tmp + " = " + empty)
-			ctx.line(tmp + "." + plan.Access.Oneof.Null.Setter + "(" + structpbNullValue(ctx.g) + ")")
+			ctx.line(tmp + " = " + builder + "{")
+			nullType := TypePlan{Kind: TypeKindEnum, Ref: plan.Access.Oneof.NullRef}
+			ctx.line(plan.Access.Oneof.Null.Name + ": " + builderFieldValue(nullType, renderedNonAddressableValue(structpbNullValue(ctx.g))) + ",")
+			ctx.line("}.Build()")
 			ctx.line("}")
 		case MappingNullableFormValue:
 			ctx.line("} else {")
-			ctx.line(tmp + " = " + empty)
-			ctx.line(tmp + "." + plan.Access.Valid.Setter + "(false)")
+			ctx.line(tmp + " = " + builder + "{")
+			ctx.line(plan.Access.Valid.Name + ": " + builderFieldValue(scalarType(ScalarKindBool), renderedNonAddressableValue("false")) + ",")
+			ctx.line("}.Build()")
 			ctx.line("}")
 		default:
 			ctx.line("}")
@@ -708,12 +955,13 @@ func (ctx *mappingRenderContext) renderShapeSlice(plan MappingValuePlan, source 
 		return "", err
 	}
 	tmp := ctx.tempName("slice")
-	empty, err := newValueExpr(ctx.g, plan.Target)
+	builder, err := builderTypeExpr(ctx.g, plan.Target)
 	if err != nil {
 		return "", err
 	}
-	ctx.line(tmp + " := " + empty)
-	ctx.line(tmp + "." + plan.Access.Field.Setter + "(" + inner + ")")
+	ctx.line(tmp + " := " + builder + "{")
+	ctx.line(plan.Access.Field.Name + ": " + builderFieldValue(TypePlan{Kind: TypeKindSlice, Elem: &plan.Elem.Target}, renderedAddressableValue(inner)) + ",")
+	ctx.line("}.Build()")
 	return tmp, nil
 }
 
@@ -746,17 +994,18 @@ func (ctx *mappingRenderContext) renderFlattenFromProto(plan MappingValuePlan, s
 }
 
 func (ctx *mappingRenderContext) renderFlattenToProto(plan MappingValuePlan, source string) (string, error) {
+	child, err := ctx.renderBuilderValueWithTempNameHintSuffix(plan.Access.Field.Name, *plan.Elem, source)
+	if err != nil {
+		return "", err
+	}
+	builder, err := builderTypeExpr(ctx.g, plan.Target)
+	if err != nil {
+		return "", err
+	}
 	tmp := ctx.tempName("value")
-	empty, err := newValueExpr(ctx.g, plan.Target)
-	if err != nil {
-		return "", err
-	}
-	ctx.line(tmp + " := " + empty)
-	child, err := ctx.renderValueWithTempNameHintSuffix(plan.Access.Field.Name, *plan.Elem, source)
-	if err != nil {
-		return "", err
-	}
-	ctx.line(tmp + "." + plan.Access.Field.Setter + "(" + child + ")")
+	ctx.line(tmp + " := " + builder + "{")
+	ctx.line(plan.Access.Field.Name + ": " + builderFieldValue(plan.Elem.Target, child) + ",")
+	ctx.line("}.Build()")
 	return tmp, nil
 }
 
@@ -1081,37 +1330,39 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 	if err != nil {
 		return "", err
 	}
+	entryBuilder, err := builderTypeExpr(ctx.g, plan.Access.ProtoElemType)
+	if err != nil {
+		return "", err
+	}
 	entries := ctx.tempPartName("entries")
 	key := ctx.tempPartName("key")
 	value := ctx.tempPartName("value")
 	ctx.line(entries + " := make([]" + entryType + ", 0, len(" + source + "))")
 	ctx.line("for " + key + ", " + value + " := range " + source + " {")
+	mappedKey, err := ctx.renderBuilderValueWithTempNameHint(mappedCollectionPartName(key, *plan.Key), *plan.Key, key)
+	if err != nil {
+		return "", err
+	}
+	mappedValue, err := ctx.renderBuilderValueWithTempNameHint(mappedCollectionPartName(value, *plan.Value), *plan.Value, value)
+	if err != nil {
+		return "", err
+	}
 	entry := ctx.tempPartName("entry")
-	empty, err := newValueExpr(ctx.g, plan.Access.ProtoElemType)
-	if err != nil {
-		return "", err
-	}
-	ctx.line(entry + " := " + empty)
-	mappedKey, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(key, *plan.Key), *plan.Key, key)
-	if err != nil {
-		return "", err
-	}
-	mappedValue, err := ctx.renderValueWithTempNameHint(mappedCollectionPartName(value, *plan.Value), *plan.Value, value)
-	if err != nil {
-		return "", err
-	}
-	ctx.line(entry + "." + plan.Access.Key.Setter + "(" + mappedKey + ")")
-	ctx.line(entry + "." + plan.Access.Value.Setter + "(" + mappedValue + ")")
+	ctx.line(entry + " := " + entryBuilder + "{")
+	ctx.line(plan.Access.Key.Name + ": " + builderFieldValue(plan.Key.Target, mappedKey) + ",")
+	ctx.line(plan.Access.Value.Name + ": " + builderFieldValue(plan.Value.Target, mappedValue) + ",")
+	ctx.line("}.Build()")
 	ctx.line(entries + " = append(" + entries + ", " + entry + ")")
 	ctx.line("}")
 
 	tmp := ctx.tempName("mapping")
-	wrapper, err := newValueExpr(ctx.g, plan.Target)
+	wrapper, err := builderTypeExpr(ctx.g, plan.Target)
 	if err != nil {
 		return "", err
 	}
-	ctx.line(tmp + " := " + wrapper)
-	ctx.line(tmp + "." + plan.Access.Field.Setter + "(" + entries + ")")
+	ctx.line(tmp + " := " + wrapper + "{")
+	ctx.line(plan.Access.Field.Name + ": " + builderFieldValue(TypePlan{Kind: TypeKindSlice, Elem: &plan.Access.ProtoElemType}, renderedAddressableValue(entries)) + ",")
+	ctx.line("}.Build()")
 	return tmp, nil
 }
 

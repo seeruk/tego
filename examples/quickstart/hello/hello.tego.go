@@ -234,8 +234,9 @@ func SayHelloRequestFromProto(source *hellopbv1.SayHelloRequest) SayHelloRequest
 }
 
 func SayHelloRequestToProto(source SayHelloRequest) *hellopbv1.SayHelloRequest {
-	target := new(hellopbv1.SayHelloRequest)
-	target.SetName(source.Name)
+	target := hellopbv1.SayHelloRequest_builder{
+		Name: &source.Name,
+	}.Build()
 	return target
 }
 
@@ -253,8 +254,9 @@ func SayHelloResponseFromProto(source *hellopbv1.SayHelloResponse) SayHelloRespo
 }
 
 func SayHelloResponseToProto(source SayHelloResponse) *hellopbv1.SayHelloResponse {
-	target := new(hellopbv1.SayHelloResponse)
-	target.SetMessage(source.Message)
+	target := hellopbv1.SayHelloResponse_builder{
+		Message: &source.Message,
+	}.Build()
 	return target
 }
 

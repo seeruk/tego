@@ -52,8 +52,9 @@ func LookupAccountRequestFromProto(source *optionspbv1.LookupAccountRequest) Loo
 }
 
 func LookupAccountRequestToProto(source LookupAccountRequest) *optionspbv1.LookupAccountRequest {
-	target := new(optionspbv1.LookupAccountRequest)
-	target.SetAccountId(source.AccountID)
+	target := optionspbv1.LookupAccountRequest_builder{
+		AccountId: &source.AccountID,
+	}.Build()
 	return target
 }
 
@@ -71,8 +72,9 @@ func LookupAccountResponseFromProto(source *optionspbv1.LookupAccountResponse) L
 }
 
 func LookupAccountResponseToProto(source LookupAccountResponse) *optionspbv1.LookupAccountResponse {
-	target := new(optionspbv1.LookupAccountResponse)
-	target.SetAccount(UserAccountToProto(source.Account))
+	target := optionspbv1.LookupAccountResponse_builder{
+		Account: UserAccountToProto(source.Account),
+	}.Build()
 	return target
 }
 
@@ -97,13 +99,16 @@ func UserAccountFromProto(source *optionspbv1.Account) UserAccount {
 }
 
 func UserAccountToProto(source UserAccount) *optionspbv1.Account {
-	target := new(optionspbv1.Account)
-	target.SetId(source.ID)
-	target.SetDisplayName(source.DisplayName)
+	var email *string
 	if source.Email != nil {
-		target.SetEmail(*source.Email)
+		email = source.Email
 	}
-	target.SetRole(optionspbv1.Role(source.Role))
+	target := optionspbv1.Account_builder{
+		Id:          &source.ID,
+		DisplayName: &source.DisplayName,
+		Email:       email,
+		Role:        new(optionspbv1.Role(source.Role)),
+	}.Build()
 	return target
 }
 
@@ -149,36 +154,47 @@ func AccountPatchFromProto(source *optionspbv1.AccountPatch) AccountPatch {
 }
 
 func AccountPatchToProto(source AccountPatch) (*optionspbv1.AccountPatch, error) {
-	target := new(optionspbv1.AccountPatch)
+	var displayName *string
 	if source.DisplayName.IsPresent() {
-		target.SetDisplayName(source.DisplayName.Get())
+		displayName = new(source.DisplayName.Get())
 	}
+	var email *optionspbv1.NullableString
 	if source.Email.IsPresent() {
-		var email *optionspbv1.NullableString
+		var email2 *optionspbv1.NullableString
 		if source.Email.Get() != nil {
-			email = new(optionspbv1.NullableString)
-			email.SetText(*source.Email.Get())
+			email2 = optionspbv1.NullableString_builder{
+				Text: source.Email.Get(),
+			}.Build()
 		} else {
-			email = new(optionspbv1.NullableString)
-			email.SetNull(structpb.NullValue_NULL_VALUE)
+			email2 = optionspbv1.NullableString_builder{
+				Null: new(structpb.NullValue_NULL_VALUE),
+			}.Build()
 		}
-		target.SetEmail(email)
+		email = email2
 	}
+	var role *optionspbv1.Role
 	if source.Role.IsPresent() {
-		target.SetRole(optionspbv1.Role(source.Role.Get()))
+		role = new(optionspbv1.Role(source.Role.Get()))
 	}
+	var metadata *structpb.Struct
 	if source.Metadata.IsPresent() {
-		var metadata *structpb.Struct
+		var metadata2 *structpb.Struct
 		if source.Metadata.Get() != nil {
-			metadata2, err := structpb.NewStruct(source.Metadata.Get())
+			metadata3, err := structpb.NewStruct(source.Metadata.Get())
 			if err != nil {
 				return nil, err
 			}
-			metadata = metadata2
+			metadata2 = metadata3
 		}
-		target.SetMetadata(metadata)
+		metadata = metadata2
 	}
-	target.SetActorId(source.ActorID)
+	target := optionspbv1.AccountPatch_builder{
+		DisplayName: displayName,
+		Email:       email,
+		Role:        role,
+		Metadata:    metadata,
+		ActorId:     &source.ActorID,
+	}.Build()
 	return target, nil
 }
 

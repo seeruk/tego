@@ -151,79 +151,88 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 }
 
 func PersonToProto(source Person) (*generatedpb.Person, error) {
-	target := new(generatedpb.Person)
-	target.SetId(source.ID)
-	switch value := source.Value.(type) {
+	var value *string
+	var value2 *generatedpb.Person
+	var value3 *string
+	switch value4 := source.Value.(type) {
 	case nil:
 	case PersonName:
-		target.SetName(value.Name)
+		value = &value4.Name
 	case *PersonName:
-		if value != nil {
-			target.SetName(value.Name)
+		if value4 != nil {
+			value = &value4.Name
 		}
 	case PersonBestFriend:
-		bestFriend, err := PersonToProto(value.BestFriend)
+		bestFriend, err := PersonToProto(value4.BestFriend)
 		if err != nil {
 			return nil, err
 		}
-		target.SetBestFriend(bestFriend)
+		value2 = bestFriend
 	case *PersonBestFriend:
-		if value != nil {
-			bestFriend2, err := PersonToProto(value.BestFriend)
+		if value4 != nil {
+			bestFriend2, err := PersonToProto(value4.BestFriend)
 			if err != nil {
 				return nil, err
 			}
-			target.SetBestFriend(bestFriend2)
+			value2 = bestFriend2
 		}
 	case PersonDescriptionValue:
-		description, err := (value.Description)
+		description, err := (value4.Description)
 		if err != nil {
 			return nil, err
 		}
-		target.SetDescriptionValue(description)
+		value3 = &description
 	case *PersonDescriptionValue:
-		if value != nil {
-			description2, err := (value.Description)
+		if value4 != nil {
+			description2, err := (value4.Description)
 			if err != nil {
 				return nil, err
 			}
-			target.SetDescriptionValue(description2)
+			value3 = &description2
 		}
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
-	target.SetVersion(int64(source.Version))
-	target.SetStatus(generatedpb.UintStatus(source.Status))
 	var wrappedName *wrapperspb.StringValue
 	if source.WrappedName != nil {
 		wrappedName = wrapperspb.String(*source.WrappedName)
 	}
-	target.SetWrappedName(wrappedName)
 	var wrappedCount *wrapperspb.Int64Value
 	if source.WrappedCount != nil {
 		wrappedCount = wrapperspb.Int64(int64(*source.WrappedCount))
 	}
-	target.SetWrappedCount(wrappedCount)
-	target.SetCreatedAt(timestamppb.New(source.CreatedAt))
-	target.SetTtl(durationpb.New(source.TTL))
 	description3, err := (source.Description)
 	if err != nil {
 		return nil, err
 	}
-	target.SetDescription(description3)
 	watcherIDs := make([]string, len(source.WatcherIDs))
 	for watcherIDsIndex, watcherIDsItem := range source.WatcherIDs {
 		watcherIDs[watcherIDsIndex] = watcherIDsItem
 	}
-	target.SetWatcherIds(watcherIDs)
 	metadata := make(map[string]string, len(source.Metadata))
 	for metadataKey, metadataValue := range source.Metadata {
 		metadata[metadataKey] = metadataValue
 	}
-	target.SetMetadata(metadata)
+	var optionalName *string
 	if source.OptionalName.IsPresent() {
-		target.SetOptionalName(source.OptionalName.Get())
+		optionalName = new(source.OptionalName.Get())
 	}
+	target := generatedpb.Person_builder{
+		Id:               &source.ID,
+		Name:             value,
+		BestFriend:       value2,
+		DescriptionValue: value3,
+		Version:          new(int64(source.Version)),
+		Status:           new(generatedpb.UintStatus(source.Status)),
+		WrappedName:      wrappedName,
+		WrappedCount:     wrappedCount,
+		CreatedAt:        timestamppb.New(source.CreatedAt),
+		Ttl:              durationpb.New(source.TTL),
+		Description:      &description3,
+		WatcherIds:       watcherIDs,
+		Metadata:         metadata,
+		OptionalName:     optionalName,
+	}.Build()
 	return target, nil
 }
 

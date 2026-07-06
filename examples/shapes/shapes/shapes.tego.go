@@ -33,9 +33,10 @@ func PersonFromProto(source *shapespbv1.Person) Person {
 }
 
 func PersonToProto(source Person) *shapespbv1.Person {
-	target := new(shapespbv1.Person)
-	target.SetId(source.ID)
-	target.SetDisplayName(source.DisplayName)
+	target := shapespbv1.Person_builder{
+		Id:          &source.ID,
+		DisplayName: &source.DisplayName,
+	}.Build()
 	return target
 }
 
@@ -118,76 +119,89 @@ func ProjectFromProto(source *shapespbv1.Project) Project {
 }
 
 func ProjectToProto(source Project) *shapespbv1.Project {
-	target := new(shapespbv1.Project)
-	slug := new(shapespbv1.ProjectSlug)
-	slug.SetValue(source.Slug)
-	target.SetSlug(slug)
+	slug := shapespbv1.ProjectSlug_builder{
+		Value: &source.Slug,
+	}.Build()
 	membersEntries := make([]*shapespbv1.PeopleByTeam_Map, 0, len(source.Members))
 	for membersKey, membersValue := range source.Members {
-		membersEntry := new(shapespbv1.PeopleByTeam_Map)
-		membersEntry.SetKey(membersKey)
-		membersEntry.SetValue(PersonToProto(membersValue))
+		membersEntry := shapespbv1.PeopleByTeam_Map_builder{
+			Key:   &membersKey,
+			Value: PersonToProto(membersValue),
+		}.Build()
 		membersEntries = append(membersEntries, membersEntry)
 	}
-	members := new(shapespbv1.PeopleByTeam)
-	members.SetEntries(membersEntries)
-	target.SetMembers(members)
+	members := shapespbv1.PeopleByTeam_builder{
+		Entries: membersEntries,
+	}.Build()
 	var owner *shapespbv1.NullablePerson
 	if source.Owner != nil {
-		owner = new(shapespbv1.NullablePerson)
-		owner.SetPerson(PersonToProto(*source.Owner))
+		owner = shapespbv1.NullablePerson_builder{
+			Person: PersonToProto(*source.Owner),
+		}.Build()
 	} else {
-		owner = new(shapespbv1.NullablePerson)
-		owner.SetNull(structpb.NullValue_NULL_VALUE)
+		owner = shapespbv1.NullablePerson_builder{
+			Null: new(structpb.NullValue_NULL_VALUE),
+		}.Build()
 	}
-	target.SetOwner(owner)
 	reviewers := make([]*shapespbv1.Person, len(source.Reviewers))
 	for reviewersIndex, reviewersItem := range source.Reviewers {
 		reviewers[reviewersIndex] = PersonToProto(reviewersItem)
 	}
-	reviewers2 := new(shapespbv1.PersonList)
-	reviewers2.SetPeople(reviewers)
-	target.SetReviewers(reviewers2)
+	reviewers2 := shapespbv1.PersonList_builder{
+		People: reviewers,
+	}.Build()
 	aliases := make([]*shapespbv1.ProjectSlug, len(source.Aliases))
 	for aliasesIndex, aliasesItem := range source.Aliases {
-		aliasesItemProto := new(shapespbv1.ProjectSlug)
-		aliasesItemProto.SetValue(aliasesItem)
+		aliasesItemProto := shapespbv1.ProjectSlug_builder{
+			Value: &aliasesItem,
+		}.Build()
 		aliases[aliasesIndex] = aliasesItemProto
 	}
-	target.SetAliases(aliases)
 	localizedSlugs := make(map[string]*shapespbv1.ProjectSlug, len(source.LocalizedSlugs))
 	for localizedSlugsKey, localizedSlugsValue := range source.LocalizedSlugs {
-		localizedSlugsValueProto := new(shapespbv1.ProjectSlug)
-		localizedSlugsValueProto.SetValue(localizedSlugsValue)
+		localizedSlugsValueProto := shapespbv1.ProjectSlug_builder{
+			Value: &localizedSlugsValue,
+		}.Build()
 		localizedSlugs[localizedSlugsKey] = localizedSlugsValueProto
 	}
-	target.SetLocalizedSlugs(localizedSlugs)
 	previousOwners := make([]*shapespbv1.NullablePerson, len(source.PreviousOwners))
 	for previousOwnersIndex, previousOwnersItem := range source.PreviousOwners {
 		var previousOwnersItemProto *shapespbv1.NullablePerson
 		if previousOwnersItem != nil {
-			previousOwnersItemProto = new(shapespbv1.NullablePerson)
-			previousOwnersItemProto.SetPerson(PersonToProto(*previousOwnersItem))
+			previousOwnersItemProto = shapespbv1.NullablePerson_builder{
+				Person: PersonToProto(*previousOwnersItem),
+			}.Build()
 		} else {
-			previousOwnersItemProto = new(shapespbv1.NullablePerson)
-			previousOwnersItemProto.SetNull(structpb.NullValue_NULL_VALUE)
+			previousOwnersItemProto = shapespbv1.NullablePerson_builder{
+				Null: new(structpb.NullValue_NULL_VALUE),
+			}.Build()
 		}
 		previousOwners[previousOwnersIndex] = previousOwnersItemProto
 	}
-	target.SetPreviousOwners(previousOwners)
 	contactsByRole := make(map[string]*shapespbv1.NullablePerson, len(source.ContactsByRole))
 	for contactsByRoleKey, contactsByRoleValue := range source.ContactsByRole {
 		var contactsByRoleValueProto *shapespbv1.NullablePerson
 		if contactsByRoleValue != nil {
-			contactsByRoleValueProto = new(shapespbv1.NullablePerson)
-			contactsByRoleValueProto.SetPerson(PersonToProto(*contactsByRoleValue))
+			contactsByRoleValueProto = shapespbv1.NullablePerson_builder{
+				Person: PersonToProto(*contactsByRoleValue),
+			}.Build()
 		} else {
-			contactsByRoleValueProto = new(shapespbv1.NullablePerson)
-			contactsByRoleValueProto.SetNull(structpb.NullValue_NULL_VALUE)
+			contactsByRoleValueProto = shapespbv1.NullablePerson_builder{
+				Null: new(structpb.NullValue_NULL_VALUE),
+			}.Build()
 		}
 		contactsByRole[contactsByRoleKey] = contactsByRoleValueProto
 	}
-	target.SetContactsByRole(contactsByRole)
+	target := shapespbv1.Project_builder{
+		Slug:           slug,
+		Members:        members,
+		Owner:          owner,
+		Reviewers:      reviewers2,
+		Aliases:        aliases,
+		LocalizedSlugs: localizedSlugs,
+		PreviousOwners: previousOwners,
+		ContactsByRole: contactsByRole,
+	}.Build()
 	return target
 }
 

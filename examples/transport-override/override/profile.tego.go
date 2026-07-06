@@ -220,8 +220,9 @@ func GetProfileRequestFromProto(source *overridepbv1.GetProfileRequest) GetProfi
 }
 
 func GetProfileRequestToProto(source GetProfileRequest) *overridepbv1.GetProfileRequest {
-	target := new(overridepbv1.GetProfileRequest)
-	target.SetId(source.ID)
+	target := overridepbv1.GetProfileRequest_builder{
+		Id: &source.ID,
+	}.Build()
 	return target
 }
 
@@ -239,8 +240,9 @@ func GetProfileResponseFromProto(source *overridepbv1.GetProfileResponse) GetPro
 }
 
 func GetProfileResponseToProto(source GetProfileResponse) *overridepbv1.GetProfileResponse {
-	target := new(overridepbv1.GetProfileResponse)
-	target.SetProfile(ProfileToProto(source.Profile))
+	target := overridepbv1.GetProfileResponse_builder{
+		Profile: ProfileToProto(source.Profile),
+	}.Build()
 	return target
 }
 
@@ -258,8 +260,9 @@ func DeleteProfileRequestFromProto(source *overridepbv1.DeleteProfileRequest) De
 }
 
 func DeleteProfileRequestToProto(source DeleteProfileRequest) *overridepbv1.DeleteProfileRequest {
-	target := new(overridepbv1.DeleteProfileRequest)
-	target.SetId(source.ID)
+	target := overridepbv1.DeleteProfileRequest_builder{
+		Id: &source.ID,
+	}.Build()
 	return target
 }
 
@@ -277,8 +280,9 @@ func DeleteProfileResponseFromProto(source *overridepbv1.DeleteProfileResponse) 
 }
 
 func DeleteProfileResponseToProto(source DeleteProfileResponse) *overridepbv1.DeleteProfileResponse {
-	target := new(overridepbv1.DeleteProfileResponse)
-	target.SetAcknowledged(source.Acknowledged)
+	target := overridepbv1.DeleteProfileResponse_builder{
+		Acknowledged: &source.Acknowledged,
+	}.Build()
 	return target
 }
 
@@ -297,9 +301,10 @@ func ProfileFromProto(source *overridepbv1.Profile) Profile {
 }
 
 func ProfileToProto(source Profile) *overridepbv1.Profile {
-	target := new(overridepbv1.Profile)
-	target.SetId(source.ID)
-	target.SetDisplayName(source.DisplayName)
+	target := overridepbv1.Profile_builder{
+		Id:          &source.ID,
+		DisplayName: &source.DisplayName,
+	}.Build()
 	return target
 }
 

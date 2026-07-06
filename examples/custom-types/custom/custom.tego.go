@@ -46,23 +46,25 @@ func CustomerFromProto(source *custompbv1.Customer) (Customer, error) {
 }
 
 func CustomerToProto(source Customer) (*custompbv1.Customer, error) {
-	target := new(custompbv1.Customer)
-	target.SetId(types.UUIDToProto(source.ID))
-	email := new(custompbv1.EmailAddress)
 	emailValue, err := types.EmailToProto(source.Email)
 	if err != nil {
 		return nil, err
 	}
-	email.SetValue(emailValue)
-	target.SetEmail(email)
-	target.SetCreditCents(types.MoneyToProto(source.CreditCents))
-	target.SetDisplayName(types.DisplayNameToProto(source.DisplayName))
-	target.SetLabels(types.LabelSetToProto(source.Labels))
+	email := custompbv1.EmailAddress_builder{
+		Value: &emailValue,
+	}.Build()
 	contactAliases, err := types.ContactAliasesToProto(source.ContactAliases)
 	if err != nil {
 		return nil, err
 	}
-	target.SetContactAliases(contactAliases)
+	target := custompbv1.Customer_builder{
+		Id:             types.UUIDToProto(source.ID),
+		Email:          email,
+		CreditCents:    new(types.MoneyToProto(source.CreditCents)),
+		DisplayName:    new(types.DisplayNameToProto(source.DisplayName)),
+		Labels:         types.LabelSetToProto(source.Labels),
+		ContactAliases: contactAliases,
+	}.Build()
 	return target, nil
 }
 

@@ -31,6 +31,44 @@ func TestTempIdentifierBase(t *testing.T) {
 	}
 }
 
+func TestIsAddressableExpr(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		expr string
+		want bool
+	}{
+		{name: "field selector", expr: "source.ID", want: true},
+		{name: "range key", expr: "membersKey", want: true},
+		{name: "range item", expr: "aliasesItem", want: true},
+		{name: "dereference", expr: "*source.Name", want: true},
+		{name: "parenthesized selector", expr: "(source.ID)", want: true},
+		{name: "scalar cast", expr: "int64(source.Version)", want: false},
+		{name: "enum conversion", expr: "generatedpb.Status(source.Status)", want: false},
+		{name: "function call", expr: "SomeFunc(source.Value)", want: false},
+		{name: "bool literal", expr: "true", want: false},
+		{name: "invalid expression", expr: "source.", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, isAddressableExpr(tt.expr))
+		})
+	}
+}
+
+func TestBuilderPointerValue(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "&source.ID", builderPointerValue(renderedAddressableValue("source.ID")))
+	assert.Equal(t, "source.Name", builderPointerValue(renderedAddressableValue("*source.Name")))
+	assert.Equal(t, "new(generatedpb.Status(source.Status))", builderPointerValue(renderedNonAddressableValue("generatedpb.Status(source.Status)")))
+	assert.Equal(t, "new(structpb.NullValue_NULL_VALUE)", builderPointerValue(renderedNonAddressableValue("structpb.NullValue_NULL_VALUE")))
+}
+
 func TestTempNameAllocator(t *testing.T) {
 	t.Parallel()
 

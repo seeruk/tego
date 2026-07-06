@@ -58,33 +58,42 @@ func UpdateProfileRequestFromProto(source *patchpbv1.UpdateProfileRequest) Updat
 }
 
 func UpdateProfileRequestToProto(source UpdateProfileRequest) (*patchpbv1.UpdateProfileRequest, error) {
-	target := new(patchpbv1.UpdateProfileRequest)
+	var displayName *string
 	if source.DisplayName.IsPresent() {
-		target.SetDisplayName(source.DisplayName.Get())
+		displayName = new(source.DisplayName.Get())
 	}
+	var bio *patchpbv1.NullableString
 	if source.Bio.IsPresent() {
-		var bio *patchpbv1.NullableString
+		var bio2 *patchpbv1.NullableString
 		if source.Bio.Get() != nil {
-			bio = new(patchpbv1.NullableString)
-			bio.SetText(*source.Bio.Get())
+			bio2 = patchpbv1.NullableString_builder{
+				Text: source.Bio.Get(),
+			}.Build()
 		} else {
-			bio = new(patchpbv1.NullableString)
-			bio.SetNull(structpb.NullValue_NULL_VALUE)
+			bio2 = patchpbv1.NullableString_builder{
+				Null: new(structpb.NullValue_NULL_VALUE),
+			}.Build()
 		}
-		target.SetBio(bio)
+		bio = bio2
 	}
+	var preferences *structpb.Struct
 	if source.Preferences.IsPresent() {
-		var preferences *structpb.Struct
+		var preferences2 *structpb.Struct
 		if source.Preferences.Get() != nil {
-			preferences2, err := structpb.NewStruct(source.Preferences.Get())
+			preferences3, err := structpb.NewStruct(source.Preferences.Get())
 			if err != nil {
 				return nil, err
 			}
-			preferences = preferences2
+			preferences2 = preferences3
 		}
-		target.SetPreferences(preferences)
+		preferences = preferences2
 	}
-	target.SetActorId(source.ActorID)
+	target := patchpbv1.UpdateProfileRequest_builder{
+		DisplayName: displayName,
+		Bio:         bio,
+		Preferences: preferences,
+		ActorId:     &source.ActorID,
+	}.Build()
 	return target, nil
 }
 

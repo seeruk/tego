@@ -240,8 +240,9 @@ func GetBookRequestFromProto(source *bookspbv1.GetBookRequest) GetBookRequest {
 }
 
 func GetBookRequestToProto(source GetBookRequest) *bookspbv1.GetBookRequest {
-	target := new(bookspbv1.GetBookRequest)
-	target.SetId(source.ID)
+	target := bookspbv1.GetBookRequest_builder{
+		Id: &source.ID,
+	}.Build()
 	return target
 }
 
@@ -259,8 +260,9 @@ func GetBookResponseFromProto(source *bookspbv1.GetBookResponse) GetBookResponse
 }
 
 func GetBookResponseToProto(source GetBookResponse) *bookspbv1.GetBookResponse {
-	target := new(bookspbv1.GetBookResponse)
-	target.SetBook(BookToProto(source.Book))
+	target := bookspbv1.GetBookResponse_builder{
+		Book: BookToProto(source.Book),
+	}.Build()
 	return target
 }
 
@@ -280,10 +282,11 @@ func BookFromProto(source *bookspbv1.Book) Book {
 }
 
 func BookToProto(source Book) *bookspbv1.Book {
-	target := new(bookspbv1.Book)
-	target.SetId(source.ID)
-	target.SetTitle(source.Title)
-	target.SetAuthor(source.Author)
+	target := bookspbv1.Book_builder{
+		Id:     &source.ID,
+		Title:  &source.Title,
+		Author: &source.Author,
+	}.Build()
 	return target
 }
 

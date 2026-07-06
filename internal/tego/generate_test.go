@@ -41,9 +41,12 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, content, "status = new(UintStatus(source.GetStatus()))")
 		assert.Contains(t, content, "target.Status = status")
 		assert.Contains(t, content, "if source.Name != nil {")
-		assert.Contains(t, content, "target.SetName(*source.Name)")
+		assert.Contains(t, content, "name = source.Name")
 		assert.Contains(t, content, "if source.Status != nil {")
-		assert.Contains(t, content, "target.SetStatus(generatedpb.UintStatus(*source.Status))")
+		assert.Contains(t, content, "status = new(generatedpb.UintStatus(*source.Status))")
+		assert.Contains(t, content, "target := generatedpb.Person_builder{")
+		assert.Contains(t, content, "Name:   name,")
+		assert.Contains(t, content, "Status: status,")
 	})
 
 	t.Run("renders external tego struct mapping calls with package qualifiers", func(t *testing.T) {
@@ -52,7 +55,7 @@ func TestGenerate(t *testing.T) {
 		content := generateParsedContent(t, plan)
 
 		assert.Contains(t, content, "target.Owner = external.OwnerFromProto(source.GetOwner())")
-		assert.Contains(t, content, "target.SetOwner(external.OwnerToProto(source.Owner))")
+		assert.Contains(t, content, "Owner: external.OwnerToProto(source.Owner)")
 	})
 
 	t.Run("renders service interfaces and rpc adapters", func(t *testing.T) {

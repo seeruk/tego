@@ -1287,14 +1287,15 @@ func ListTicketsRequestFromProto(source *yirapbv1.ListTicketsRequest) (ListTicke
 }
 
 func ListTicketsRequestToProto(source ListTicketsRequest) (*yirapbv1.ListTicketsRequest, error) {
-	target := new(yirapbv1.ListTicketsRequest)
-	target.SetProjectId(source.ProjectID)
 	filter, err := TicketFilterToProto(source.Filter)
 	if err != nil {
 		return nil, err
 	}
-	target.SetFilter(filter)
-	target.SetCursor(CursorRequestToProto(source.Cursor))
+	target := yirapbv1.ListTicketsRequest_builder{
+		ProjectId: &source.ProjectID,
+		Filter:    filter,
+		Cursor:    CursorRequestToProto(source.Cursor),
+	}.Build()
 	return target, nil
 }
 
@@ -1340,7 +1341,6 @@ func ListTicketsResponseFromProto(source *yirapbv1.ListTicketsResponse) (ListTic
 }
 
 func ListTicketsResponseToProto(source ListTicketsResponse) (*yirapbv1.ListTicketsResponse, error) {
-	target := new(yirapbv1.ListTicketsResponse)
 	tickets := make([]*yirapbv1.Ticket, len(source.Tickets))
 	for ticketsIndex, ticketsItem := range source.Tickets {
 		ticketsItemProto, err := TicketToProto(ticketsItem)
@@ -1349,10 +1349,8 @@ func ListTicketsResponseToProto(source ListTicketsResponse) (*yirapbv1.ListTicke
 		}
 		tickets[ticketsIndex] = ticketsItemProto
 	}
-	target.SetTickets(tickets)
 	ticketsByStatusEntries := make([]*yirapbv1.TicketsByStatus_Map, 0, len(source.TicketsByStatus))
 	for ticketsByStatusKey, ticketsByStatusValue := range source.TicketsByStatus {
-		ticketsByStatusEntry := new(yirapbv1.TicketsByStatus_Map)
 		ticketsByStatusValueProto := make([]*yirapbv1.Ticket, len(ticketsByStatusValue))
 		for ticketsByStatusValueProtoIndex, ticketsByStatusValueItem := range ticketsByStatusValue {
 			ticketsByStatusValueItemProto, err := TicketToProto(ticketsByStatusValueItem)
@@ -1361,14 +1359,20 @@ func ListTicketsResponseToProto(source ListTicketsResponse) (*yirapbv1.ListTicke
 			}
 			ticketsByStatusValueProto[ticketsByStatusValueProtoIndex] = ticketsByStatusValueItemProto
 		}
-		ticketsByStatusEntry.SetKey(yirapbv1.TicketStatus(ticketsByStatusKey))
-		ticketsByStatusEntry.SetValue(ticketsByStatusValueProto)
+		ticketsByStatusEntry := yirapbv1.TicketsByStatus_Map_builder{
+			Key:   new(yirapbv1.TicketStatus(ticketsByStatusKey)),
+			Value: ticketsByStatusValueProto,
+		}.Build()
 		ticketsByStatusEntries = append(ticketsByStatusEntries, ticketsByStatusEntry)
 	}
-	ticketsByStatus := new(yirapbv1.TicketsByStatus)
-	ticketsByStatus.SetEntries(ticketsByStatusEntries)
-	target.SetTicketsByStatus(ticketsByStatus)
-	target.SetCursor(CursorResponseToProto(source.Cursor))
+	ticketsByStatus := yirapbv1.TicketsByStatus_builder{
+		Entries: ticketsByStatusEntries,
+	}.Build()
+	target := yirapbv1.ListTicketsResponse_builder{
+		Tickets:         tickets,
+		TicketsByStatus: ticketsByStatus,
+		Cursor:          CursorResponseToProto(source.Cursor),
+	}.Build()
 	return target, nil
 }
 
@@ -1386,8 +1390,9 @@ func GetTicketRequestFromProto(source *yirapbv1.GetTicketRequest) GetTicketReque
 }
 
 func GetTicketRequestToProto(source GetTicketRequest) *yirapbv1.GetTicketRequest {
-	target := new(yirapbv1.GetTicketRequest)
-	target.SetTicketId(source.TicketID)
+	target := yirapbv1.GetTicketRequest_builder{
+		TicketId: &source.TicketID,
+	}.Build()
 	return target
 }
 
@@ -1409,12 +1414,13 @@ func GetTicketResponseFromProto(source *yirapbv1.GetTicketResponse) (GetTicketRe
 }
 
 func GetTicketResponseToProto(source GetTicketResponse) (*yirapbv1.GetTicketResponse, error) {
-	target := new(yirapbv1.GetTicketResponse)
 	ticket, err := TicketToProto(source.Ticket)
 	if err != nil {
 		return nil, err
 	}
-	target.SetTicket(ticket)
+	target := yirapbv1.GetTicketResponse_builder{
+		Ticket: ticket,
+	}.Build()
 	return target, nil
 }
 
@@ -1436,12 +1442,13 @@ func CreateTicketRequestFromProto(source *yirapbv1.CreateTicketRequest) (CreateT
 }
 
 func CreateTicketRequestToProto(source CreateTicketRequest) (*yirapbv1.CreateTicketRequest, error) {
-	target := new(yirapbv1.CreateTicketRequest)
 	ticket, err := TicketDraftToProto(source.Ticket)
 	if err != nil {
 		return nil, err
 	}
-	target.SetTicket(ticket)
+	target := yirapbv1.CreateTicketRequest_builder{
+		Ticket: ticket,
+	}.Build()
 	return target, nil
 }
 
@@ -1463,12 +1470,13 @@ func CreateTicketResponseFromProto(source *yirapbv1.CreateTicketResponse) (Creat
 }
 
 func CreateTicketResponseToProto(source CreateTicketResponse) (*yirapbv1.CreateTicketResponse, error) {
-	target := new(yirapbv1.CreateTicketResponse)
 	ticket, err := TicketToProto(source.Ticket)
 	if err != nil {
 		return nil, err
 	}
-	target.SetTicket(ticket)
+	target := yirapbv1.CreateTicketResponse_builder{
+		Ticket: ticket,
+	}.Build()
 	return target, nil
 }
 
@@ -1491,13 +1499,14 @@ func UpdateTicketRequestFromProto(source *yirapbv1.UpdateTicketRequest) (UpdateT
 }
 
 func UpdateTicketRequestToProto(source UpdateTicketRequest) (*yirapbv1.UpdateTicketRequest, error) {
-	target := new(yirapbv1.UpdateTicketRequest)
-	target.SetTicketId(source.TicketID)
 	patch, err := TicketPatchToProto(source.Patch)
 	if err != nil {
 		return nil, err
 	}
-	target.SetPatch(patch)
+	target := yirapbv1.UpdateTicketRequest_builder{
+		TicketId: &source.TicketID,
+		Patch:    patch,
+	}.Build()
 	return target, nil
 }
 
@@ -1519,12 +1528,13 @@ func UpdateTicketResponseFromProto(source *yirapbv1.UpdateTicketResponse) (Updat
 }
 
 func UpdateTicketResponseToProto(source UpdateTicketResponse) (*yirapbv1.UpdateTicketResponse, error) {
-	target := new(yirapbv1.UpdateTicketResponse)
 	ticket, err := TicketToProto(source.Ticket)
 	if err != nil {
 		return nil, err
 	}
-	target.SetTicket(ticket)
+	target := yirapbv1.UpdateTicketResponse_builder{
+		Ticket: ticket,
+	}.Build()
 	return target, nil
 }
 
@@ -1543,9 +1553,10 @@ func CloseTicketRequestFromProto(source *yirapbv1.CloseTicketRequest) CloseTicke
 }
 
 func CloseTicketRequestToProto(source CloseTicketRequest) *yirapbv1.CloseTicketRequest {
-	target := new(yirapbv1.CloseTicketRequest)
-	target.SetTicketId(source.TicketID)
-	target.SetResolution(source.Resolution)
+	target := yirapbv1.CloseTicketRequest_builder{
+		TicketId:   &source.TicketID,
+		Resolution: &source.Resolution,
+	}.Build()
 	return target
 }
 
@@ -1562,7 +1573,7 @@ func CloseTicketResponseFromProto(source *yirapbv1.CloseTicketResponse) CloseTic
 }
 
 func CloseTicketResponseToProto(source CloseTicketResponse) *yirapbv1.CloseTicketResponse {
-	target := new(yirapbv1.CloseTicketResponse)
+	target := yirapbv1.CloseTicketResponse_builder{}.Build()
 	return target
 }
 
@@ -1581,9 +1592,10 @@ func WatchTicketEventsRequestFromProto(source *yirapbv1.WatchTicketEventsRequest
 }
 
 func WatchTicketEventsRequestToProto(source WatchTicketEventsRequest) *yirapbv1.WatchTicketEventsRequest {
-	target := new(yirapbv1.WatchTicketEventsRequest)
-	target.SetProjectId(source.ProjectID)
-	target.SetTicketId(source.TicketID)
+	target := yirapbv1.WatchTicketEventsRequest_builder{
+		ProjectId: &source.ProjectID,
+		TicketId:  &source.TicketID,
+	}.Build()
 	return target
 }
 
@@ -1601,12 +1613,13 @@ func WatchTicketEventsResponseFromProto(source *yirapbv1.WatchTicketEventsRespon
 }
 
 func WatchTicketEventsResponseToProto(source WatchTicketEventsResponse) (*yirapbv1.WatchTicketEventsResponse, error) {
-	target := new(yirapbv1.WatchTicketEventsResponse)
 	event, err := TicketEventToProto(source.Event)
 	if err != nil {
 		return nil, err
 	}
-	target.SetEvent(event)
+	target := yirapbv1.WatchTicketEventsResponse_builder{
+		Event: event,
+	}.Build()
 	return target, nil
 }
 
@@ -1624,12 +1637,13 @@ func ImportTicketEventsRequestFromProto(source *yirapbv1.ImportTicketEventsReque
 }
 
 func ImportTicketEventsRequestToProto(source ImportTicketEventsRequest) (*yirapbv1.ImportTicketEventsRequest, error) {
-	target := new(yirapbv1.ImportTicketEventsRequest)
 	event, err := TicketEventToProto(source.Event)
 	if err != nil {
 		return nil, err
 	}
-	target.SetEvent(event)
+	target := yirapbv1.ImportTicketEventsRequest_builder{
+		Event: event,
+	}.Build()
 	return target, nil
 }
 
@@ -1647,8 +1661,9 @@ func ImportTicketEventsResponseFromProto(source *yirapbv1.ImportTicketEventsResp
 }
 
 func ImportTicketEventsResponseToProto(source ImportTicketEventsResponse) *yirapbv1.ImportTicketEventsResponse {
-	target := new(yirapbv1.ImportTicketEventsResponse)
-	target.SetImportedCount(source.ImportedCount)
+	target := yirapbv1.ImportTicketEventsResponse_builder{
+		ImportedCount: &source.ImportedCount,
+	}.Build()
 	return target
 }
 
@@ -1666,12 +1681,13 @@ func SyncTicketEventsRequestFromProto(source *yirapbv1.SyncTicketEventsRequest) 
 }
 
 func SyncTicketEventsRequestToProto(source SyncTicketEventsRequest) (*yirapbv1.SyncTicketEventsRequest, error) {
-	target := new(yirapbv1.SyncTicketEventsRequest)
 	event, err := TicketEventToProto(source.Event)
 	if err != nil {
 		return nil, err
 	}
-	target.SetEvent(event)
+	target := yirapbv1.SyncTicketEventsRequest_builder{
+		Event: event,
+	}.Build()
 	return target, nil
 }
 
@@ -1689,12 +1705,13 @@ func SyncTicketEventsResponseFromProto(source *yirapbv1.SyncTicketEventsResponse
 }
 
 func SyncTicketEventsResponseToProto(source SyncTicketEventsResponse) (*yirapbv1.SyncTicketEventsResponse, error) {
-	target := new(yirapbv1.SyncTicketEventsResponse)
 	event, err := TicketEventToProto(source.Event)
 	if err != nil {
 		return nil, err
 	}
-	target.SetEvent(event)
+	target := yirapbv1.SyncTicketEventsResponse_builder{
+		Event: event,
+	}.Build()
 	return target, nil
 }
 
@@ -1767,45 +1784,37 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 }
 
 func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
-	target := new(yirapbv1.Ticket)
-	target.SetId(source.ID)
-	target.SetProjectId(source.ProjectID)
-	target.SetTitle(source.Title)
-	target.SetDescription(source.Description)
-	target.SetStatus(yirapbv1.TicketStatus(source.Status))
-	target.SetPriority(yirapbv1.TicketPriority(source.Priority))
 	var assignee *yirapbv1.NullablePerson
 	if source.Assignee != nil {
-		assignee = new(yirapbv1.NullablePerson)
-		assignee.SetPerson(PersonToProto(*source.Assignee))
+		assignee = yirapbv1.NullablePerson_builder{
+			Person: PersonToProto(*source.Assignee),
+		}.Build()
 	} else {
-		assignee = new(yirapbv1.NullablePerson)
-		assignee.SetNull(structpb.NullValue_NULL_VALUE)
+		assignee = yirapbv1.NullablePerson_builder{
+			Null: new(structpb.NullValue_NULL_VALUE),
+		}.Build()
 	}
-	target.SetAssignee(assignee)
-	target.SetReporter(PersonToProto(source.Reporter))
 	watchers := make([]*yirapbv1.Person, len(source.Watchers))
 	for watchersIndex, watchersItem := range source.Watchers {
 		watchers[watchersIndex] = PersonToProto(watchersItem)
 	}
-	watchers2 := new(yirapbv1.PersonList)
-	watchers2.SetPeople(watchers)
-	target.SetWatchers(watchers2)
-	labels := new(yirapbv1.Labels)
+	watchers2 := yirapbv1.PersonList_builder{
+		People: watchers,
+	}.Build()
 	labelsValues, err := types.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
-	labels.SetValues(labelsValues)
-	target.SetLabels(labels)
-	dueDate := new(yirapbv1.DueDate)
+	labels := yirapbv1.Labels_builder{
+		Values: labelsValues,
+	}.Build()
 	dueDateValue, err := types.DateToProto(source.DueDate)
 	if err != nil {
 		return nil, err
 	}
-	dueDate.SetValue(dueDateValue)
-	target.SetDueDate(dueDate)
-	target.SetVisibility(yirapbv1.Ticket_Visibility(source.Visibility))
+	dueDate := yirapbv1.DueDate_builder{
+		Value: &dueDateValue,
+	}.Build()
 	var metadata *structpb.Struct
 	if source.Metadata != nil {
 		metadata2, err := structpb.NewStruct(source.Metadata)
@@ -1814,20 +1823,21 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 		}
 		metadata = metadata2
 	}
-	target.SetMetadata(metadata)
-	switch source2 := source.Source.(type) {
+	var source2 *string
+	var source3 *anypb.Any
+	switch source4 := source.Source.(type) {
 	case nil:
 	case TicketManualSource:
-		target.SetManualSource(source2.ManualSource)
+		source2 = &source4.ManualSource
 	case *TicketManualSource:
-		if source2 != nil {
-			target.SetManualSource(source2.ManualSource)
+		if source4 != nil {
+			source2 = &source4.ManualSource
 		}
 	case TicketIntegrationSource:
-		target.SetIntegrationSource(source2.IntegrationSource)
+		source3 = source4.IntegrationSource
 	case *TicketIntegrationSource:
-		if source2 != nil {
-			target.SetIntegrationSource(source2.IntegrationSource)
+		if source4 != nil {
+			source3 = source4.IntegrationSource
 		}
 	default:
 		return nil, errors.New("unsupported oneof implementation")
@@ -1840,7 +1850,24 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 		}
 		events[eventsIndex] = eventsItemProto
 	}
-	target.SetEvents(events)
+	target := yirapbv1.Ticket_builder{
+		Id:                &source.ID,
+		ProjectId:         &source.ProjectID,
+		Title:             &source.Title,
+		Description:       &source.Description,
+		Status:            new(yirapbv1.TicketStatus(source.Status)),
+		Priority:          new(yirapbv1.TicketPriority(source.Priority)),
+		Assignee:          assignee,
+		Reporter:          PersonToProto(source.Reporter),
+		Watchers:          watchers2,
+		Labels:            labels,
+		DueDate:           dueDate,
+		Visibility:        new(yirapbv1.Ticket_Visibility(source.Visibility)),
+		Metadata:          metadata,
+		ManualSource:      source2,
+		IntegrationSource: source3,
+		Events:            events,
+	}.Build()
 	return target, nil
 }
 
@@ -1885,26 +1912,20 @@ func TicketDraftFromProto(source *yirapbv1.TicketDraft) (TicketDraft, error) {
 }
 
 func TicketDraftToProto(source TicketDraft) (*yirapbv1.TicketDraft, error) {
-	target := new(yirapbv1.TicketDraft)
-	target.SetProjectId(source.ProjectID)
-	target.SetTitle(source.Title)
-	target.SetDescription(source.Description)
-	target.SetPriority(yirapbv1.TicketPriority(source.Priority))
-	target.SetReporter(PersonToProto(source.Reporter))
-	dueDate := new(yirapbv1.DueDate)
 	dueDateValue, err := types.DateToProto(source.DueDate)
 	if err != nil {
 		return nil, err
 	}
-	dueDate.SetValue(dueDateValue)
-	target.SetDueDate(dueDate)
-	labels := new(yirapbv1.Labels)
+	dueDate := yirapbv1.DueDate_builder{
+		Value: &dueDateValue,
+	}.Build()
 	labelsValues, err := types.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
-	labels.SetValues(labelsValues)
-	target.SetLabels(labels)
+	labels := yirapbv1.Labels_builder{
+		Values: labelsValues,
+	}.Build()
 	var metadata *structpb.Struct
 	if source.Metadata != nil {
 		metadata2, err := structpb.NewStruct(source.Metadata)
@@ -1913,7 +1934,16 @@ func TicketDraftToProto(source TicketDraft) (*yirapbv1.TicketDraft, error) {
 		}
 		metadata = metadata2
 	}
-	target.SetMetadata(metadata)
+	target := yirapbv1.TicketDraft_builder{
+		ProjectId:   &source.ProjectID,
+		Title:       &source.Title,
+		Description: &source.Description,
+		Priority:    new(yirapbv1.TicketPriority(source.Priority)),
+		Reporter:    PersonToProto(source.Reporter),
+		DueDate:     dueDate,
+		Labels:      labels,
+		Metadata:    metadata,
+	}.Build()
 	return target, nil
 }
 
@@ -1995,60 +2025,81 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 }
 
 func TicketPatchToProto(source TicketPatch) (*yirapbv1.TicketPatch, error) {
-	target := new(yirapbv1.TicketPatch)
+	var title *string
 	if source.Title.IsPresent() {
-		target.SetTitle(source.Title.Get())
+		title = new(source.Title.Get())
 	}
+	var description *string
 	if source.Description.IsPresent() {
-		target.SetDescription(source.Description.Get())
+		description = new(source.Description.Get())
 	}
+	var status *yirapbv1.TicketStatus
 	if source.Status.IsPresent() {
-		target.SetStatus(yirapbv1.TicketStatus(source.Status.Get()))
+		status = new(yirapbv1.TicketStatus(source.Status.Get()))
 	}
+	var priority *yirapbv1.TicketPriority
 	if source.Priority.IsPresent() {
-		target.SetPriority(yirapbv1.TicketPriority(source.Priority.Get()))
+		priority = new(yirapbv1.TicketPriority(source.Priority.Get()))
 	}
+	var assignee *yirapbv1.NullablePerson
 	if source.Assignee.IsPresent() {
-		var assignee *yirapbv1.NullablePerson
+		var assignee2 *yirapbv1.NullablePerson
 		if source.Assignee.Get() != nil {
-			assignee = new(yirapbv1.NullablePerson)
-			assignee.SetPerson(PersonToProto(*source.Assignee.Get()))
+			assignee2 = yirapbv1.NullablePerson_builder{
+				Person: PersonToProto(*source.Assignee.Get()),
+			}.Build()
 		} else {
-			assignee = new(yirapbv1.NullablePerson)
-			assignee.SetNull(structpb.NullValue_NULL_VALUE)
+			assignee2 = yirapbv1.NullablePerson_builder{
+				Null: new(structpb.NullValue_NULL_VALUE),
+			}.Build()
 		}
-		target.SetAssignee(assignee)
+		assignee = assignee2
 	}
+	var dueDate *yirapbv1.DueDate
 	if source.DueDate.IsPresent() {
-		dueDate := new(yirapbv1.DueDate)
 		dueDateValue, err := types.DateToProto(source.DueDate.Get())
 		if err != nil {
 			return nil, err
 		}
-		dueDate.SetValue(dueDateValue)
-		target.SetDueDate(dueDate)
+		dueDate2 := yirapbv1.DueDate_builder{
+			Value: &dueDateValue,
+		}.Build()
+		dueDate = dueDate2
 	}
+	var labels *yirapbv1.Labels
 	if source.Labels.IsPresent() {
-		labels := new(yirapbv1.Labels)
 		labelsValues, err := types.LabelSetToProto(source.Labels.Get())
 		if err != nil {
 			return nil, err
 		}
-		labels.SetValues(labelsValues)
-		target.SetLabels(labels)
+		labels2 := yirapbv1.Labels_builder{
+			Values: labelsValues,
+		}.Build()
+		labels = labels2
 	}
+	var metadata *structpb.Struct
 	if source.Metadata.IsPresent() {
-		var metadata *structpb.Struct
+		var metadata2 *structpb.Struct
 		if source.Metadata.Get() != nil {
-			metadata2, err := structpb.NewStruct(source.Metadata.Get())
+			metadata3, err := structpb.NewStruct(source.Metadata.Get())
 			if err != nil {
 				return nil, err
 			}
-			metadata = metadata2
+			metadata2 = metadata3
 		}
-		target.SetMetadata(metadata)
+		metadata = metadata2
 	}
-	target.SetVersion(source.Version)
+	target := yirapbv1.TicketPatch_builder{
+		Title:       title,
+		Description: description,
+		Status:      status,
+		Priority:    priority,
+		Assignee:    assignee,
+		DueDate:     dueDate,
+		Labels:      labels,
+		Metadata:    metadata,
+		Version:     &source.Version,
+	}.Build()
 	return target, nil
 }
 
@@ -2084,28 +2135,32 @@ func TicketFilterFromProto(source *yirapbv1.TicketFilter) (TicketFilter, error) 
 }
 
 func TicketFilterToProto(source TicketFilter) (*yirapbv1.TicketFilter, error) {
-	target := new(yirapbv1.TicketFilter)
 	statuses := make([]yirapbv1.TicketStatus, len(source.Statuses))
 	for statusesIndex, statusesItem := range source.Statuses {
 		statuses[statusesIndex] = yirapbv1.TicketStatus(statusesItem)
 	}
-	target.SetStatuses(statuses)
 	var assignee *yirapbv1.NullablePerson
 	if source.Assignee != nil {
-		assignee = new(yirapbv1.NullablePerson)
-		assignee.SetPerson(PersonToProto(*source.Assignee))
+		assignee = yirapbv1.NullablePerson_builder{
+			Person: PersonToProto(*source.Assignee),
+		}.Build()
 	} else {
-		assignee = new(yirapbv1.NullablePerson)
-		assignee.SetNull(structpb.NullValue_NULL_VALUE)
+		assignee = yirapbv1.NullablePerson_builder{
+			Null: new(structpb.NullValue_NULL_VALUE),
+		}.Build()
 	}
-	target.SetAssignee(assignee)
-	labels := new(yirapbv1.Labels)
 	labelsValues, err := types.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
-	labels.SetValues(labelsValues)
-	target.SetLabels(labels)
+	labels := yirapbv1.Labels_builder{
+		Values: labelsValues,
+	}.Build()
+	target := yirapbv1.TicketFilter_builder{
+		Statuses: statuses,
+		Assignee: assignee,
+		Labels:   labels,
+	}.Build()
 	return target, nil
 }
 
@@ -2136,16 +2191,10 @@ func TicketEventFromProto(source *yirapbv1.TicketEvent) TicketEvent {
 }
 
 func TicketEventToProto(source TicketEvent) (*yirapbv1.TicketEvent, error) {
-	target := new(yirapbv1.TicketEvent)
-	target.SetId(source.ID)
-	target.SetKind(yirapbv1.TicketEvent_Kind(source.Kind))
-	target.SetActor(PersonToProto(source.Actor))
-	target.SetNote(source.Note)
 	payload, err := structpb.NewValue(source.Payload)
 	if err != nil {
 		return nil, err
 	}
-	target.SetPayload(payload)
 	var attachments *structpb.ListValue
 	if source.Attachments != nil {
 		attachments2, err := structpb.NewList(source.Attachments)
@@ -2154,7 +2203,14 @@ func TicketEventToProto(source TicketEvent) (*yirapbv1.TicketEvent, error) {
 		}
 		attachments = attachments2
 	}
-	target.SetAttachments(attachments)
+	target := yirapbv1.TicketEvent_builder{
+		Id:          &source.ID,
+		Kind:        new(yirapbv1.TicketEvent_Kind(source.Kind)),
+		Actor:       PersonToProto(source.Actor),
+		Note:        &source.Note,
+		Payload:     payload,
+		Attachments: attachments,
+	}.Build()
 	return target, nil
 }
 
@@ -2174,10 +2230,11 @@ func PersonFromProto(source *yirapbv1.Person) Person {
 }
 
 func PersonToProto(source Person) *yirapbv1.Person {
-	target := new(yirapbv1.Person)
-	target.SetId(source.ID)
-	target.SetDisplayName(source.DisplayName)
-	target.SetEmail(source.Email)
+	target := yirapbv1.Person_builder{
+		Id:          &source.ID,
+		DisplayName: &source.DisplayName,
+		Email:       &source.Email,
+	}.Build()
 	return target
 }
 
@@ -2196,9 +2253,10 @@ func CursorRequestFromProto(source *yirapbv1.CursorRequest) CursorRequest {
 }
 
 func CursorRequestToProto(source CursorRequest) *yirapbv1.CursorRequest {
-	target := new(yirapbv1.CursorRequest)
-	target.SetLimit(source.Limit)
-	target.SetAfterCursor(source.AfterCursor)
+	target := yirapbv1.CursorRequest_builder{
+		Limit:       &source.Limit,
+		AfterCursor: &source.AfterCursor,
+	}.Build()
 	return target
 }
 
@@ -2216,8 +2274,9 @@ func CursorResponseFromProto(source *yirapbv1.CursorResponse) CursorResponse {
 }
 
 func CursorResponseToProto(source CursorResponse) *yirapbv1.CursorResponse {
-	target := new(yirapbv1.CursorResponse)
-	target.SetNextCursor(source.NextCursor)
+	target := yirapbv1.CursorResponse_builder{
+		NextCursor: &source.NextCursor,
+	}.Build()
 	return target
 }
 
