@@ -28,3 +28,9 @@ Most examples keep their own `buf.gen.yaml`, proto source, and generated output 
 gRPC and Connect quickstarts deliberately share the same generated protobuf/Tego package in
 `quickstart`, with separate handwritten clients and servers in `quickstart-grpc` and
 `quickstart-connect`. The runnable examples include a little handwritten Go under `cmd/`.
+
+All examples can be regenerated with:
+
+```fish
+find . -type f -name 'buf.gen.yaml' -execdir buf generate \;
+```

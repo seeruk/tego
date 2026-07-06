@@ -328,8 +328,9 @@ func GetBookRequestFromProto(source *catalogpbv1.GetBookRequest) GetBookRequest 
 }
 
 func GetBookRequestToProto(source GetBookRequest) *catalogpbv1.GetBookRequest {
-	target := new(catalogpbv1.GetBookRequest)
-	target.SetId(source.ID)
+	target := catalogpbv1.GetBookRequest_builder{
+		Id: &source.ID,
+	}.Build()
 	return target
 }
 
@@ -347,8 +348,9 @@ func GetBookResponseFromProto(source *catalogpbv1.GetBookResponse) GetBookRespon
 }
 
 func GetBookResponseToProto(source GetBookResponse) *catalogpbv1.GetBookResponse {
-	target := new(catalogpbv1.GetBookResponse)
-	target.SetBook(BookToProto(source.Book))
+	target := catalogpbv1.GetBookResponse_builder{
+		Book: BookToProto(source.Book),
+	}.Build()
 	return target
 }
 
@@ -370,12 +372,13 @@ func BookFromProto(source *catalogpbv1.Book) Book {
 }
 
 func BookToProto(source Book) *catalogpbv1.Book {
-	target := new(catalogpbv1.Book)
-	target.SetId(source.ID)
-	target.SetTitle(source.Title)
-	target.SetAuthor(source.Author)
-	target.SetDisplayTitle(source.DisplayTitle)
-	target.SetCatalogRef(source.CatalogRef)
+	target := catalogpbv1.Book_builder{
+		Id:           &source.ID,
+		Title:        &source.Title,
+		Author:       &source.Author,
+		DisplayTitle: &source.DisplayTitle,
+		CatalogRef:   &source.CatalogRef,
+	}.Build()
 	return target
 }
 
