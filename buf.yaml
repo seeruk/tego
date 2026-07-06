@@ -6,6 +6,7 @@ modules:
   name: buf.build/seeruk-oss/tego
 - path: examples/quickstart/proto
 - path: examples/error-mapping/proto
+- path: examples/hooks/proto
 - path: examples/shapes/proto
 - path: examples/options/proto
 - path: examples/custom-types/proto

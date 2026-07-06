@@ -82,6 +82,7 @@ interfaces.
 - [Presence and patches](#presence-and-patches)
 - [Facade services](#facade-services)
 - [Transport adapters](#transport-adapters)
+- [Adapter hooks](#adapter-hooks)
 
 ### Generated Go Package
 
@@ -229,6 +230,13 @@ adapter. See [examples/quickstart-grpc](examples/quickstart-grpc),
 [examples/quickstart-connect](examples/quickstart-connect), and
 [examples/transport-override](examples/transport-override).
 
+### Adapter Hooks
+
+Adapters can run hooks around request and response mapping, giving you a place for validation,
+normalization, context setup, and response enrichment outside the service implementation. Generated
+service hooks are method-specific and typed, while `tego.InterfaceHooks` let you reuse hooks for
+values that implement an interface such as `Validate() error`. See [examples/hooks](examples/hooks).
+
 ### Error Mapping
 
 Facade implementations can return ordinary Go errors from your domain. At the transport boundary,
@@ -260,8 +268,8 @@ native transport errors back to domain errors before returning them to your code
 ## Examples
 
 The [examples suite](examples/README.md) is the best place to start. It has small, focused examples
-for gRPC, Connect, error mapping, generated shapes, options, custom types, patch semantics,
-streaming, transport overrides, and a kitchen-sink type reference.
+for gRPC, Connect, error mapping, adapter hooks, generated shapes, options, custom types, patch
+semantics, streaming, transport overrides, and a kitchen-sink type reference.
 
 Tego is intentionally focused on generated Go types, mapping code, facade service interfaces, and
 optional gRPC/Connect adapters. It does not try to own your transport, application framework,

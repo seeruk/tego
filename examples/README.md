@@ -18,9 +18,11 @@ without deciphering a large demo app.
 7. [presence-patch](presence-patch): patch inputs that distinguish leave unchanged, set value, and
    clear value.
 8. [streaming-grpc](streaming-grpc): server, client, and bidi streaming through facade iterators.
-9. [transport-override](transport-override): overriding one native gRPC method while delegating to
+9. [hooks](hooks): adapter-level mapping hooks for typed service hooks and reusable interface
+   hooks.
+10. [transport-override](transport-override): overriding one native gRPC method while delegating to
    the generated adapter.
-10. [kitchen-sink](kitchen-sink): a reference-style type coverage example.
+11. [kitchen-sink](kitchen-sink): a reference-style type coverage example.
 
 Most examples keep their own `buf.gen.yaml`, proto source, and generated output in one folder. The
 gRPC and Connect quickstarts deliberately share the same generated protobuf/Tego package in

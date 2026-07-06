@@ -59,8 +59,78 @@ func unimplementedGreeterServiceError(method string) error {
 	return fmt.Errorf("GreeterService.%s: %w", method, tego.ErrUnimplemented)
 }
 
+type GreeterServiceHooks struct {
+	BeforeSayHelloRequestMapping  []GreeterServiceBeforeSayHelloRequestMappingHook
+	AfterSayHelloRequestMapping   []GreeterServiceAfterSayHelloRequestMappingHook
+	BeforeSayHelloResponseMapping []GreeterServiceBeforeSayHelloResponseMappingHook
+	AfterSayHelloResponseMapping  []GreeterServiceAfterSayHelloResponseMappingHook
+}
+
+type GreeterServiceBeforeSayHelloRequestMappingHook func(context.Context, tego.RPCInfo, *hellopbv1.SayHelloRequest) (context.Context, *hellopbv1.SayHelloRequest, error)
+
+type GreeterServiceAfterSayHelloRequestMappingHook func(context.Context, tego.RPCInfo, SayHelloRequest) (context.Context, SayHelloRequest, error)
+
+type GreeterServiceBeforeSayHelloResponseMappingHook func(context.Context, tego.RPCInfo, SayHelloResponse) (SayHelloResponse, error)
+
+type GreeterServiceAfterSayHelloResponseMappingHook func(context.Context, tego.RPCInfo, *hellopbv1.SayHelloResponse) (*hellopbv1.SayHelloResponse, error)
+
+func (h *GreeterServiceHooks) AddBeforeSayHelloRequestMappingHook(hooks ...GreeterServiceBeforeSayHelloRequestMappingHook) *GreeterServiceHooks {
+	h.BeforeSayHelloRequestMapping = append(h.BeforeSayHelloRequestMapping, hooks...)
+	return h
+}
+
+func (h *GreeterServiceHooks) SetBeforeSayHelloRequestMappingHooks(hooks ...GreeterServiceBeforeSayHelloRequestMappingHook) *GreeterServiceHooks {
+	h.BeforeSayHelloRequestMapping = hooks
+	return h
+}
+
+func (h *GreeterServiceHooks) AddAfterSayHelloRequestMappingHook(hooks ...GreeterServiceAfterSayHelloRequestMappingHook) *GreeterServiceHooks {
+	h.AfterSayHelloRequestMapping = append(h.AfterSayHelloRequestMapping, hooks...)
+	return h
+}
+
+func (h *GreeterServiceHooks) SetAfterSayHelloRequestMappingHooks(hooks ...GreeterServiceAfterSayHelloRequestMappingHook) *GreeterServiceHooks {
+	h.AfterSayHelloRequestMapping = hooks
+	return h
+}
+
+func (h *GreeterServiceHooks) AddBeforeSayHelloResponseMappingHook(hooks ...GreeterServiceBeforeSayHelloResponseMappingHook) *GreeterServiceHooks {
+	h.BeforeSayHelloResponseMapping = append(h.BeforeSayHelloResponseMapping, hooks...)
+	return h
+}
+
+func (h *GreeterServiceHooks) SetBeforeSayHelloResponseMappingHooks(hooks ...GreeterServiceBeforeSayHelloResponseMappingHook) *GreeterServiceHooks {
+	h.BeforeSayHelloResponseMapping = hooks
+	return h
+}
+
+func (h *GreeterServiceHooks) AddAfterSayHelloResponseMappingHook(hooks ...GreeterServiceAfterSayHelloResponseMappingHook) *GreeterServiceHooks {
+	h.AfterSayHelloResponseMapping = append(h.AfterSayHelloResponseMapping, hooks...)
+	return h
+}
+
+func (h *GreeterServiceHooks) SetAfterSayHelloResponseMappingHooks(hooks ...GreeterServiceAfterSayHelloResponseMappingHook) *GreeterServiceHooks {
+	h.AfterSayHelloResponseMapping = hooks
+	return h
+}
+
+func mergeGreeterServiceHooks(hooks ...GreeterServiceHooks) GreeterServiceHooks {
+	var merged GreeterServiceHooks
+	for _, hooks := range hooks {
+		merged.BeforeSayHelloRequestMapping = append(merged.BeforeSayHelloRequestMapping, hooks.BeforeSayHelloRequestMapping...)
+		merged.AfterSayHelloRequestMapping = append(merged.AfterSayHelloRequestMapping, hooks.AfterSayHelloRequestMapping...)
+		merged.BeforeSayHelloResponseMapping = append(merged.BeforeSayHelloResponseMapping, hooks.BeforeSayHelloResponseMapping...)
+		merged.AfterSayHelloResponseMapping = append(merged.AfterSayHelloResponseMapping, hooks.AfterSayHelloResponseMapping...)
+	}
+	return merged
+}
+
 func RegisterGreeterServiceGRPCServer(registrar grpc.ServiceRegistrar, service GreeterService, opts ...tego.GRPCServerOption) {
 	hellopbv1.RegisterGreeterServiceServer(registrar, NewGreeterServiceGRPCServer(service, opts...))
+}
+
+func RegisterGreeterServiceGRPCServerWithAdapter(registrar grpc.ServiceRegistrar, adapter *GreeterServiceGRPCAdapter, opts ...tego.GRPCServerOption) {
+	hellopbv1.RegisterGreeterServiceServer(registrar, NewGreeterServiceGRPCServerWithAdapter(adapter, opts...))
 }
 
 func NewGreeterServiceGRPCServer(service GreeterService, opts ...tego.GRPCServerOption) hellopbv1.GreeterServiceServer {
@@ -79,8 +149,10 @@ type greeterServiceGRPCServer struct {
 }
 
 type GreeterServiceGRPCAdapter struct {
-	service     GreeterService
-	errorMapper tego.ErrorMapper
+	service        GreeterService
+	errorMapper    tego.ErrorMapper
+	serviceHooks   GreeterServiceHooks
+	interfaceHooks tego.InterfaceHooks
 }
 
 func NewGreeterServiceGRPCAdapter(service GreeterService, opts ...tego.GRPCAdapterOption) *GreeterServiceGRPCAdapter {
@@ -98,17 +170,114 @@ func (a *GreeterServiceGRPCAdapter) mapError(err error) error {
 	return a.errorMapper(err)
 }
 
+func (a *GreeterServiceGRPCAdapter) AddServiceHooks(hooks GreeterServiceHooks) *GreeterServiceGRPCAdapter {
+	a.serviceHooks = mergeGreeterServiceHooks(a.serviceHooks, hooks)
+	return a
+}
+
+func (a *GreeterServiceGRPCAdapter) SetServiceHooks(hooks GreeterServiceHooks) *GreeterServiceGRPCAdapter {
+	a.serviceHooks = mergeGreeterServiceHooks(hooks)
+	return a
+}
+
+func (a *GreeterServiceGRPCAdapter) AddInterfaceHooks(hooks tego.InterfaceHooks) *GreeterServiceGRPCAdapter {
+	a.interfaceHooks = tego.MergeInterfaceHooks(a.interfaceHooks, hooks)
+	return a
+}
+
+func (a *GreeterServiceGRPCAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks) *GreeterServiceGRPCAdapter {
+	a.interfaceHooks = tego.MergeInterfaceHooks(hooks)
+	return a
+}
+
+func (a *GreeterServiceGRPCAdapter) runBeforeSayHelloRequestMapping(ctx context.Context, info tego.RPCInfo, value *hellopbv1.SayHelloRequest) (context.Context, *hellopbv1.SayHelloRequest, error) {
+	for _, hook := range a.serviceHooks.BeforeSayHelloRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *GreeterServiceGRPCAdapter) runAfterSayHelloRequestMapping(ctx context.Context, info tego.RPCInfo, value SayHelloRequest) (context.Context, SayHelloRequest, error) {
+	for _, hook := range a.serviceHooks.AfterSayHelloRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *GreeterServiceGRPCAdapter) runBeforeSayHelloResponseMapping(ctx context.Context, info tego.RPCInfo, value SayHelloResponse) (SayHelloResponse, error) {
+	for _, hook := range a.serviceHooks.BeforeSayHelloResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *GreeterServiceGRPCAdapter) runAfterSayHelloResponseMapping(ctx context.Context, info tego.RPCInfo, value *hellopbv1.SayHelloResponse) (*hellopbv1.SayHelloResponse, error) {
+	for _, hook := range a.serviceHooks.AfterSayHelloResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
 func (s *greeterServiceGRPCServer) SayHello(ctx context.Context, requestProto *hellopbv1.SayHelloRequest) (*hellopbv1.SayHelloResponse, error) {
 	return s.AdaptSayHello(ctx, requestProto)
 }
 
 func (a *GreeterServiceGRPCAdapter) AdaptSayHello(ctx context.Context, requestProto *hellopbv1.SayHelloRequest) (*hellopbv1.SayHelloResponse, error) {
+	info := tego.RPCInfo{Service: "hello.v1.GreeterService", Method: "SayHello", Procedure: "/hello.v1.GreeterService/SayHello"}
+	ctx, requestProto, err := a.runBeforeSayHelloRequestMapping(ctx, info, requestProto)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	request := SayHelloRequestFromProto(requestProto)
+	ctx, request, err = a.runAfterSayHelloRequestMapping(ctx, info, request)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	response, err := SayHelloResponseFromInline(a.service.SayHello(SayHelloRequestToInline(ctx, request)))
 	if err != nil {
 		return nil, a.mapError(err)
 	}
+	response, err = a.runBeforeSayHelloResponseMapping(ctx, info, response)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	responseProto := SayHelloResponseToProto(response)
+	responseProto, err = a.runAfterSayHelloResponseMapping(ctx, info, responseProto)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	return responseProto, nil
 }
 
@@ -159,8 +328,10 @@ type greeterServiceConnectHandler struct {
 }
 
 type GreeterServiceConnectAdapter struct {
-	service     GreeterService
-	errorMapper tego.ErrorMapper
+	service        GreeterService
+	errorMapper    tego.ErrorMapper
+	serviceHooks   GreeterServiceHooks
+	interfaceHooks tego.InterfaceHooks
 }
 
 func NewGreeterServiceConnectAdapter(service GreeterService, opts ...tego.ConnectAdapterOption) *GreeterServiceConnectAdapter {
@@ -178,17 +349,115 @@ func (a *GreeterServiceConnectAdapter) mapError(err error) error {
 	return a.errorMapper(err)
 }
 
+func (a *GreeterServiceConnectAdapter) AddServiceHooks(hooks GreeterServiceHooks) *GreeterServiceConnectAdapter {
+	a.serviceHooks = mergeGreeterServiceHooks(a.serviceHooks, hooks)
+	return a
+}
+
+func (a *GreeterServiceConnectAdapter) SetServiceHooks(hooks GreeterServiceHooks) *GreeterServiceConnectAdapter {
+	a.serviceHooks = mergeGreeterServiceHooks(hooks)
+	return a
+}
+
+func (a *GreeterServiceConnectAdapter) AddInterfaceHooks(hooks tego.InterfaceHooks) *GreeterServiceConnectAdapter {
+	a.interfaceHooks = tego.MergeInterfaceHooks(a.interfaceHooks, hooks)
+	return a
+}
+
+func (a *GreeterServiceConnectAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks) *GreeterServiceConnectAdapter {
+	a.interfaceHooks = tego.MergeInterfaceHooks(hooks)
+	return a
+}
+
+func (a *GreeterServiceConnectAdapter) runBeforeSayHelloRequestMapping(ctx context.Context, info tego.RPCInfo, value *hellopbv1.SayHelloRequest) (context.Context, *hellopbv1.SayHelloRequest, error) {
+	for _, hook := range a.serviceHooks.BeforeSayHelloRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *GreeterServiceConnectAdapter) runAfterSayHelloRequestMapping(ctx context.Context, info tego.RPCInfo, value SayHelloRequest) (context.Context, SayHelloRequest, error) {
+	for _, hook := range a.serviceHooks.AfterSayHelloRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *GreeterServiceConnectAdapter) runBeforeSayHelloResponseMapping(ctx context.Context, info tego.RPCInfo, value SayHelloResponse) (SayHelloResponse, error) {
+	for _, hook := range a.serviceHooks.BeforeSayHelloResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *GreeterServiceConnectAdapter) runAfterSayHelloResponseMapping(ctx context.Context, info tego.RPCInfo, value *hellopbv1.SayHelloResponse) (*hellopbv1.SayHelloResponse, error) {
+	for _, hook := range a.serviceHooks.AfterSayHelloResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
 func (s *greeterServiceConnectHandler) SayHello(ctx context.Context, requestProto *connect.Request[hellopbv1.SayHelloRequest]) (*connect.Response[hellopbv1.SayHelloResponse], error) {
 	return s.AdaptSayHello(ctx, requestProto)
 }
 
 func (a *GreeterServiceConnectAdapter) AdaptSayHello(ctx context.Context, requestProto *connect.Request[hellopbv1.SayHelloRequest]) (*connect.Response[hellopbv1.SayHelloResponse], error) {
-	request := SayHelloRequestFromProto(requestProto.Msg)
+	info := tego.RPCInfo{Service: "hello.v1.GreeterService", Method: "SayHello", Procedure: "/hello.v1.GreeterService/SayHello"}
+	requestProtoMsg := requestProto.Msg
+	ctx, requestProtoMsg, err := a.runBeforeSayHelloRequestMapping(ctx, info, requestProtoMsg)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
+	request := SayHelloRequestFromProto(requestProtoMsg)
+	ctx, request, err = a.runAfterSayHelloRequestMapping(ctx, info, request)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	response, err := SayHelloResponseFromInline(a.service.SayHello(SayHelloRequestToInline(ctx, request)))
 	if err != nil {
 		return nil, a.mapError(err)
 	}
+	response, err = a.runBeforeSayHelloResponseMapping(ctx, info, response)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	responseProto := SayHelloResponseToProto(response)
+	responseProto, err = a.runAfterSayHelloResponseMapping(ctx, info, responseProto)
+	if err != nil {
+		return nil, a.mapError(err)
+	}
 	return connect.NewResponse(responseProto), nil
 }
 

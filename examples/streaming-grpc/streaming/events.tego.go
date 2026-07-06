@@ -89,8 +89,190 @@ func unimplementedEventServiceError(method string) error {
 	return fmt.Errorf("EventService.%s: %w", method, tego.ErrUnimplemented)
 }
 
+type EventServiceHooks struct {
+	BeforeWatchRequestMapping   []EventServiceBeforeWatchRequestMappingHook
+	AfterWatchRequestMapping    []EventServiceAfterWatchRequestMappingHook
+	BeforeWatchResponseMapping  []EventServiceBeforeWatchResponseMappingHook
+	AfterWatchResponseMapping   []EventServiceAfterWatchResponseMappingHook
+	BeforeImportRequestMapping  []EventServiceBeforeImportRequestMappingHook
+	AfterImportRequestMapping   []EventServiceAfterImportRequestMappingHook
+	BeforeImportResponseMapping []EventServiceBeforeImportResponseMappingHook
+	AfterImportResponseMapping  []EventServiceAfterImportResponseMappingHook
+	BeforeChatRequestMapping    []EventServiceBeforeChatRequestMappingHook
+	AfterChatRequestMapping     []EventServiceAfterChatRequestMappingHook
+	BeforeChatResponseMapping   []EventServiceBeforeChatResponseMappingHook
+	AfterChatResponseMapping    []EventServiceAfterChatResponseMappingHook
+}
+
+type EventServiceBeforeWatchRequestMappingHook func(context.Context, tego.RPCInfo, *streamingpbv1.WatchRequest) (context.Context, *streamingpbv1.WatchRequest, error)
+
+type EventServiceAfterWatchRequestMappingHook func(context.Context, tego.RPCInfo, WatchRequest) (context.Context, WatchRequest, error)
+
+type EventServiceBeforeWatchResponseMappingHook func(context.Context, tego.RPCInfo, WatchResponse) (WatchResponse, error)
+
+type EventServiceAfterWatchResponseMappingHook func(context.Context, tego.RPCInfo, *streamingpbv1.WatchResponse) (*streamingpbv1.WatchResponse, error)
+
+type EventServiceBeforeImportRequestMappingHook func(context.Context, tego.RPCInfo, *streamingpbv1.ImportRequest) (context.Context, *streamingpbv1.ImportRequest, error)
+
+type EventServiceAfterImportRequestMappingHook func(context.Context, tego.RPCInfo, ImportRequest) (context.Context, ImportRequest, error)
+
+type EventServiceBeforeImportResponseMappingHook func(context.Context, tego.RPCInfo, ImportResponse) (ImportResponse, error)
+
+type EventServiceAfterImportResponseMappingHook func(context.Context, tego.RPCInfo, *streamingpbv1.ImportResponse) (*streamingpbv1.ImportResponse, error)
+
+type EventServiceBeforeChatRequestMappingHook func(context.Context, tego.RPCInfo, *streamingpbv1.ChatRequest) (context.Context, *streamingpbv1.ChatRequest, error)
+
+type EventServiceAfterChatRequestMappingHook func(context.Context, tego.RPCInfo, ChatRequest) (context.Context, ChatRequest, error)
+
+type EventServiceBeforeChatResponseMappingHook func(context.Context, tego.RPCInfo, ChatResponse) (ChatResponse, error)
+
+type EventServiceAfterChatResponseMappingHook func(context.Context, tego.RPCInfo, *streamingpbv1.ChatResponse) (*streamingpbv1.ChatResponse, error)
+
+func (h *EventServiceHooks) AddBeforeWatchRequestMappingHook(hooks ...EventServiceBeforeWatchRequestMappingHook) *EventServiceHooks {
+	h.BeforeWatchRequestMapping = append(h.BeforeWatchRequestMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetBeforeWatchRequestMappingHooks(hooks ...EventServiceBeforeWatchRequestMappingHook) *EventServiceHooks {
+	h.BeforeWatchRequestMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddAfterWatchRequestMappingHook(hooks ...EventServiceAfterWatchRequestMappingHook) *EventServiceHooks {
+	h.AfterWatchRequestMapping = append(h.AfterWatchRequestMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetAfterWatchRequestMappingHooks(hooks ...EventServiceAfterWatchRequestMappingHook) *EventServiceHooks {
+	h.AfterWatchRequestMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddBeforeWatchResponseMappingHook(hooks ...EventServiceBeforeWatchResponseMappingHook) *EventServiceHooks {
+	h.BeforeWatchResponseMapping = append(h.BeforeWatchResponseMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetBeforeWatchResponseMappingHooks(hooks ...EventServiceBeforeWatchResponseMappingHook) *EventServiceHooks {
+	h.BeforeWatchResponseMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddAfterWatchResponseMappingHook(hooks ...EventServiceAfterWatchResponseMappingHook) *EventServiceHooks {
+	h.AfterWatchResponseMapping = append(h.AfterWatchResponseMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetAfterWatchResponseMappingHooks(hooks ...EventServiceAfterWatchResponseMappingHook) *EventServiceHooks {
+	h.AfterWatchResponseMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddBeforeImportRequestMappingHook(hooks ...EventServiceBeforeImportRequestMappingHook) *EventServiceHooks {
+	h.BeforeImportRequestMapping = append(h.BeforeImportRequestMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetBeforeImportRequestMappingHooks(hooks ...EventServiceBeforeImportRequestMappingHook) *EventServiceHooks {
+	h.BeforeImportRequestMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddAfterImportRequestMappingHook(hooks ...EventServiceAfterImportRequestMappingHook) *EventServiceHooks {
+	h.AfterImportRequestMapping = append(h.AfterImportRequestMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetAfterImportRequestMappingHooks(hooks ...EventServiceAfterImportRequestMappingHook) *EventServiceHooks {
+	h.AfterImportRequestMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddBeforeImportResponseMappingHook(hooks ...EventServiceBeforeImportResponseMappingHook) *EventServiceHooks {
+	h.BeforeImportResponseMapping = append(h.BeforeImportResponseMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetBeforeImportResponseMappingHooks(hooks ...EventServiceBeforeImportResponseMappingHook) *EventServiceHooks {
+	h.BeforeImportResponseMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddAfterImportResponseMappingHook(hooks ...EventServiceAfterImportResponseMappingHook) *EventServiceHooks {
+	h.AfterImportResponseMapping = append(h.AfterImportResponseMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetAfterImportResponseMappingHooks(hooks ...EventServiceAfterImportResponseMappingHook) *EventServiceHooks {
+	h.AfterImportResponseMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddBeforeChatRequestMappingHook(hooks ...EventServiceBeforeChatRequestMappingHook) *EventServiceHooks {
+	h.BeforeChatRequestMapping = append(h.BeforeChatRequestMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetBeforeChatRequestMappingHooks(hooks ...EventServiceBeforeChatRequestMappingHook) *EventServiceHooks {
+	h.BeforeChatRequestMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddAfterChatRequestMappingHook(hooks ...EventServiceAfterChatRequestMappingHook) *EventServiceHooks {
+	h.AfterChatRequestMapping = append(h.AfterChatRequestMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetAfterChatRequestMappingHooks(hooks ...EventServiceAfterChatRequestMappingHook) *EventServiceHooks {
+	h.AfterChatRequestMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddBeforeChatResponseMappingHook(hooks ...EventServiceBeforeChatResponseMappingHook) *EventServiceHooks {
+	h.BeforeChatResponseMapping = append(h.BeforeChatResponseMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetBeforeChatResponseMappingHooks(hooks ...EventServiceBeforeChatResponseMappingHook) *EventServiceHooks {
+	h.BeforeChatResponseMapping = hooks
+	return h
+}
+
+func (h *EventServiceHooks) AddAfterChatResponseMappingHook(hooks ...EventServiceAfterChatResponseMappingHook) *EventServiceHooks {
+	h.AfterChatResponseMapping = append(h.AfterChatResponseMapping, hooks...)
+	return h
+}
+
+func (h *EventServiceHooks) SetAfterChatResponseMappingHooks(hooks ...EventServiceAfterChatResponseMappingHook) *EventServiceHooks {
+	h.AfterChatResponseMapping = hooks
+	return h
+}
+
+func mergeEventServiceHooks(hooks ...EventServiceHooks) EventServiceHooks {
+	var merged EventServiceHooks
+	for _, hooks := range hooks {
+		merged.BeforeWatchRequestMapping = append(merged.BeforeWatchRequestMapping, hooks.BeforeWatchRequestMapping...)
+		merged.AfterWatchRequestMapping = append(merged.AfterWatchRequestMapping, hooks.AfterWatchRequestMapping...)
+		merged.BeforeWatchResponseMapping = append(merged.BeforeWatchResponseMapping, hooks.BeforeWatchResponseMapping...)
+		merged.AfterWatchResponseMapping = append(merged.AfterWatchResponseMapping, hooks.AfterWatchResponseMapping...)
+		merged.BeforeImportRequestMapping = append(merged.BeforeImportRequestMapping, hooks.BeforeImportRequestMapping...)
+		merged.AfterImportRequestMapping = append(merged.AfterImportRequestMapping, hooks.AfterImportRequestMapping...)
+		merged.BeforeImportResponseMapping = append(merged.BeforeImportResponseMapping, hooks.BeforeImportResponseMapping...)
+		merged.AfterImportResponseMapping = append(merged.AfterImportResponseMapping, hooks.AfterImportResponseMapping...)
+		merged.BeforeChatRequestMapping = append(merged.BeforeChatRequestMapping, hooks.BeforeChatRequestMapping...)
+		merged.AfterChatRequestMapping = append(merged.AfterChatRequestMapping, hooks.AfterChatRequestMapping...)
+		merged.BeforeChatResponseMapping = append(merged.BeforeChatResponseMapping, hooks.BeforeChatResponseMapping...)
+		merged.AfterChatResponseMapping = append(merged.AfterChatResponseMapping, hooks.AfterChatResponseMapping...)
+	}
+	return merged
+}
+
 func RegisterEventServiceGRPCServer(registrar grpc.ServiceRegistrar, service EventService, opts ...tego.GRPCServerOption) {
 	streamingpbv1.RegisterEventServiceServer(registrar, NewEventServiceGRPCServer(service, opts...))
+}
+
+func RegisterEventServiceGRPCServerWithAdapter(registrar grpc.ServiceRegistrar, adapter *EventServiceGRPCAdapter, opts ...tego.GRPCServerOption) {
+	streamingpbv1.RegisterEventServiceServer(registrar, NewEventServiceGRPCServerWithAdapter(adapter, opts...))
 }
 
 func NewEventServiceGRPCServer(service EventService, opts ...tego.GRPCServerOption) streamingpbv1.EventServiceServer {
@@ -109,8 +291,10 @@ type eventServiceGRPCServer struct {
 }
 
 type EventServiceGRPCAdapter struct {
-	service     EventService
-	errorMapper tego.ErrorMapper
+	service        EventService
+	errorMapper    tego.ErrorMapper
+	serviceHooks   EventServiceHooks
+	interfaceHooks tego.InterfaceHooks
 }
 
 func NewEventServiceGRPCAdapter(service EventService, opts ...tego.GRPCAdapterOption) *EventServiceGRPCAdapter {
@@ -128,13 +312,222 @@ func (a *EventServiceGRPCAdapter) mapError(err error) error {
 	return a.errorMapper(err)
 }
 
+func (a *EventServiceGRPCAdapter) AddServiceHooks(hooks EventServiceHooks) *EventServiceGRPCAdapter {
+	a.serviceHooks = mergeEventServiceHooks(a.serviceHooks, hooks)
+	return a
+}
+
+func (a *EventServiceGRPCAdapter) SetServiceHooks(hooks EventServiceHooks) *EventServiceGRPCAdapter {
+	a.serviceHooks = mergeEventServiceHooks(hooks)
+	return a
+}
+
+func (a *EventServiceGRPCAdapter) AddInterfaceHooks(hooks tego.InterfaceHooks) *EventServiceGRPCAdapter {
+	a.interfaceHooks = tego.MergeInterfaceHooks(a.interfaceHooks, hooks)
+	return a
+}
+
+func (a *EventServiceGRPCAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks) *EventServiceGRPCAdapter {
+	a.interfaceHooks = tego.MergeInterfaceHooks(hooks)
+	return a
+}
+
+func (a *EventServiceGRPCAdapter) runBeforeWatchRequestMapping(ctx context.Context, info tego.RPCInfo, value *streamingpbv1.WatchRequest) (context.Context, *streamingpbv1.WatchRequest, error) {
+	for _, hook := range a.serviceHooks.BeforeWatchRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runAfterWatchRequestMapping(ctx context.Context, info tego.RPCInfo, value WatchRequest) (context.Context, WatchRequest, error) {
+	for _, hook := range a.serviceHooks.AfterWatchRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runBeforeWatchResponseMapping(ctx context.Context, info tego.RPCInfo, value WatchResponse) (WatchResponse, error) {
+	for _, hook := range a.serviceHooks.BeforeWatchResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runAfterWatchResponseMapping(ctx context.Context, info tego.RPCInfo, value *streamingpbv1.WatchResponse) (*streamingpbv1.WatchResponse, error) {
+	for _, hook := range a.serviceHooks.AfterWatchResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runBeforeImportRequestMapping(ctx context.Context, info tego.RPCInfo, value *streamingpbv1.ImportRequest) (context.Context, *streamingpbv1.ImportRequest, error) {
+	for _, hook := range a.serviceHooks.BeforeImportRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runAfterImportRequestMapping(ctx context.Context, info tego.RPCInfo, value ImportRequest) (context.Context, ImportRequest, error) {
+	for _, hook := range a.serviceHooks.AfterImportRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runBeforeImportResponseMapping(ctx context.Context, info tego.RPCInfo, value ImportResponse) (ImportResponse, error) {
+	for _, hook := range a.serviceHooks.BeforeImportResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runAfterImportResponseMapping(ctx context.Context, info tego.RPCInfo, value *streamingpbv1.ImportResponse) (*streamingpbv1.ImportResponse, error) {
+	for _, hook := range a.serviceHooks.AfterImportResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runBeforeChatRequestMapping(ctx context.Context, info tego.RPCInfo, value *streamingpbv1.ChatRequest) (context.Context, *streamingpbv1.ChatRequest, error) {
+	for _, hook := range a.serviceHooks.BeforeChatRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runAfterChatRequestMapping(ctx context.Context, info tego.RPCInfo, value ChatRequest) (context.Context, ChatRequest, error) {
+	for _, hook := range a.serviceHooks.AfterChatRequestMapping {
+		var err error
+		ctx, value, err = hook(ctx, info, value)
+		if err != nil {
+			return ctx, value, err
+		}
+	}
+	var err error
+	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	if err != nil {
+		return ctx, value, err
+	}
+	return ctx, value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runBeforeChatResponseMapping(ctx context.Context, info tego.RPCInfo, value ChatResponse) (ChatResponse, error) {
+	for _, hook := range a.serviceHooks.BeforeChatResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
+func (a *EventServiceGRPCAdapter) runAfterChatResponseMapping(ctx context.Context, info tego.RPCInfo, value *streamingpbv1.ChatResponse) (*streamingpbv1.ChatResponse, error) {
+	for _, hook := range a.serviceHooks.AfterChatResponseMapping {
+		var err error
+		value, err = hook(ctx, info, value)
+		if err != nil {
+			return value, err
+		}
+	}
+	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+		return value, err
+	}
+	return value, nil
+}
+
 func (s *eventServiceGRPCServer) Watch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.WatchResponse]) error {
 	return s.AdaptWatch(requestProto, stream)
 }
 
 func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRequest, stream grpc.ServerStreamingServer[streamingpbv1.WatchResponse]) error {
 	ctx := stream.Context()
+	info := tego.RPCInfo{Service: "streaming.v1.EventService", Method: "Watch", Procedure: "/streaming.v1.EventService/Watch"}
+	ctx, requestProto, err := a.runBeforeWatchRequestMapping(ctx, info, requestProto)
+	if err != nil {
+		return a.mapError(err)
+	}
 	request := WatchRequestFromProto(requestProto)
+	ctx, request, err = a.runAfterWatchRequestMapping(ctx, info, request)
+	if err != nil {
+		return a.mapError(err)
+	}
 	responses, err := a.service.Watch(WatchRequestToInline(ctx, request))
 	if err != nil {
 		return a.mapError(err)
@@ -146,7 +539,15 @@ func (a *EventServiceGRPCAdapter) AdaptWatch(requestProto *streamingpbv1.WatchRe
 		if err != nil {
 			return a.mapError(err)
 		}
+		response, err = a.runBeforeWatchResponseMapping(ctx, info, response)
+		if err != nil {
+			return a.mapError(err)
+		}
 		responseProto := WatchResponseToProto(response)
+		responseProto, err = a.runAfterWatchResponseMapping(ctx, info, responseProto)
+		if err != nil {
+			return a.mapError(err)
+		}
 		if err := stream.Send(responseProto); err != nil {
 			return err
 		}
@@ -159,6 +560,8 @@ func (s *eventServiceGRPCServer) Import(stream grpc.ClientStreamingServer[stream
 }
 
 func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[streamingpbv1.ImportRequest, streamingpbv1.ImportResponse]) error {
+	ctx := stream.Context()
+	info := tego.RPCInfo{Service: "streaming.v1.EventService", Method: "Import", Procedure: "/streaming.v1.EventService/Import"}
 	var receiveErr error
 	requests := func(yield func(ImportRequest, error) bool) {
 		for {
@@ -172,20 +575,44 @@ func (a *EventServiceGRPCAdapter) AdaptImport(stream grpc.ClientStreamingServer[
 				yield(zero, err)
 				return
 			}
+			ctx, requestProto, err = a.runBeforeImportRequestMapping(ctx, info, requestProto)
+			if err != nil {
+				err = a.mapError(err)
+				receiveErr = err
+				var zero ImportRequest
+				yield(zero, err)
+				return
+			}
 			request := ImportRequestFromProto(requestProto)
+			ctx, request, err = a.runAfterImportRequestMapping(ctx, info, request)
+			if err != nil {
+				err = a.mapError(err)
+				receiveErr = err
+				var zero ImportRequest
+				yield(zero, err)
+				return
+			}
 			if !yield(request, nil) {
 				return
 			}
 		}
 	}
-	response, err := ImportResponseFromInline(a.service.Import(stream.Context(), requests))
+	response, err := ImportResponseFromInline(a.service.Import(ctx, requests))
 	if err != nil {
 		return a.mapError(err)
 	}
 	if receiveErr != nil {
 		return receiveErr
 	}
+	response, err = a.runBeforeImportResponseMapping(ctx, info, response)
+	if err != nil {
+		return a.mapError(err)
+	}
 	responseProto := ImportResponseToProto(response)
+	responseProto, err = a.runAfterImportResponseMapping(ctx, info, responseProto)
+	if err != nil {
+		return a.mapError(err)
+	}
 	return stream.SendAndClose(responseProto)
 }
 
@@ -194,6 +621,8 @@ func (s *eventServiceGRPCServer) Chat(stream grpc.BidiStreamingServer[streamingp
 }
 
 func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[streamingpbv1.ChatRequest, streamingpbv1.ChatResponse]) error {
+	ctx := stream.Context()
+	info := tego.RPCInfo{Service: "streaming.v1.EventService", Method: "Chat", Procedure: "/streaming.v1.EventService/Chat"}
 	var receiveErr error
 	requests := func(yield func(ChatRequest, error) bool) {
 		for {
@@ -207,13 +636,29 @@ func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[stre
 				yield(zero, err)
 				return
 			}
+			ctx, requestProto, err = a.runBeforeChatRequestMapping(ctx, info, requestProto)
+			if err != nil {
+				err = a.mapError(err)
+				receiveErr = err
+				var zero ChatRequest
+				yield(zero, err)
+				return
+			}
 			request := ChatRequestFromProto(requestProto)
+			ctx, request, err = a.runAfterChatRequestMapping(ctx, info, request)
+			if err != nil {
+				err = a.mapError(err)
+				receiveErr = err
+				var zero ChatRequest
+				yield(zero, err)
+				return
+			}
 			if !yield(request, nil) {
 				return
 			}
 		}
 	}
-	responses, err := a.service.Chat(stream.Context(), requests)
+	responses, err := a.service.Chat(ctx, requests)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -222,7 +667,15 @@ func (a *EventServiceGRPCAdapter) AdaptChat(stream grpc.BidiStreamingServer[stre
 			if err != nil {
 				return a.mapError(err)
 			}
+			response, err = a.runBeforeChatResponseMapping(ctx, info, response)
+			if err != nil {
+				return a.mapError(err)
+			}
 			responseProto := ChatResponseToProto(response)
+			responseProto, err = a.runAfterChatResponseMapping(ctx, info, responseProto)
+			if err != nil {
+				return a.mapError(err)
+			}
 			if err := stream.Send(responseProto); err != nil {
 				return err
 			}
