@@ -21,14 +21,14 @@ catalog.RegisterCatalogServiceGRPCServerWithAdapter(server, adapter)
 
 The typed hooks show all four mapping slots:
 
-- `BeforeGetBookRequestMapping` trims and normalizes the protobuf request ID before Tego mapping.
-- `AfterGetBookRequestMapping` records the normalized ID in context before the facade method runs.
-- `BeforeGetBookResponseMapping` fills the Tego response display title before finalization.
-- `AfterGetBookResponseMapping` fills a protobuf-only legacy compatibility field after mapping.
+- `PreGetBookRequestMapping` trims and normalizes the protobuf request ID before Tego mapping.
+- `PostGetBookRequestMapping` records the normalized ID in context before the facade method runs.
+- `PreGetBookResponseMapping` fills the Tego response display title before finalization.
+- `PostGetBookResponseMapping` fills a protobuf-only legacy compatibility field after mapping.
 
-The interface hooks use `tego.InterfaceHooks` with `tego.AfterRequestMappingInterfaceHook` to
+The interface hooks use `tego.InterfaceHooks` with `tego.PostRequestMappingInterfaceHook` to
 validate Tego requests that implement `Validate() error`, and
-`tego.BeforeResponseMappingInterfaceHook` to finalize Tego responses that implement
+`tego.PreResponseMappingInterfaceHook` to finalize Tego responses that implement
 `Finalize() error`. In this example, finalization requires a dynamic catalog reference derived from
 the book ID, author, and title. Hook errors are mapped by the adapter's usual error mapper.
 

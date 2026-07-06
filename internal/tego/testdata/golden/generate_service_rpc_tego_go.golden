@@ -48,235 +48,235 @@ func unimplementedTicketServiceError(method string) error {
 }
 
 type TicketServiceHooks struct {
-	BeforeFetchTicketRequestMapping         []TicketServiceBeforeFetchTicketRequestMappingHook
-	AfterFetchTicketRequestMapping          []TicketServiceAfterFetchTicketRequestMappingHook
-	BeforeFetchTicketResponseMapping        []TicketServiceBeforeFetchTicketResponseMappingHook
-	AfterFetchTicketResponseMapping         []TicketServiceAfterFetchTicketResponseMappingHook
-	BeforeWatchTicketEventsRequestMapping   []TicketServiceBeforeWatchTicketEventsRequestMappingHook
-	AfterWatchTicketEventsRequestMapping    []TicketServiceAfterWatchTicketEventsRequestMappingHook
-	BeforeWatchTicketEventsResponseMapping  []TicketServiceBeforeWatchTicketEventsResponseMappingHook
-	AfterWatchTicketEventsResponseMapping   []TicketServiceAfterWatchTicketEventsResponseMappingHook
-	BeforeImportTicketEventsRequestMapping  []TicketServiceBeforeImportTicketEventsRequestMappingHook
-	AfterImportTicketEventsRequestMapping   []TicketServiceAfterImportTicketEventsRequestMappingHook
-	BeforeImportTicketEventsResponseMapping []TicketServiceBeforeImportTicketEventsResponseMappingHook
-	AfterImportTicketEventsResponseMapping  []TicketServiceAfterImportTicketEventsResponseMappingHook
-	BeforeSyncTicketEventsRequestMapping    []TicketServiceBeforeSyncTicketEventsRequestMappingHook
-	AfterSyncTicketEventsRequestMapping     []TicketServiceAfterSyncTicketEventsRequestMappingHook
-	BeforeSyncTicketEventsResponseMapping   []TicketServiceBeforeSyncTicketEventsResponseMappingHook
-	AfterSyncTicketEventsResponseMapping    []TicketServiceAfterSyncTicketEventsResponseMappingHook
+	PreFetchTicketRequestMapping          []TicketServicePreFetchTicketRequestMappingHook
+	PostFetchTicketRequestMapping         []TicketServicePostFetchTicketRequestMappingHook
+	PreFetchTicketResponseMapping         []TicketServicePreFetchTicketResponseMappingHook
+	PostFetchTicketResponseMapping        []TicketServicePostFetchTicketResponseMappingHook
+	PreWatchTicketEventsRequestMapping    []TicketServicePreWatchTicketEventsRequestMappingHook
+	PostWatchTicketEventsRequestMapping   []TicketServicePostWatchTicketEventsRequestMappingHook
+	PreWatchTicketEventsResponseMapping   []TicketServicePreWatchTicketEventsResponseMappingHook
+	PostWatchTicketEventsResponseMapping  []TicketServicePostWatchTicketEventsResponseMappingHook
+	PreImportTicketEventsRequestMapping   []TicketServicePreImportTicketEventsRequestMappingHook
+	PostImportTicketEventsRequestMapping  []TicketServicePostImportTicketEventsRequestMappingHook
+	PreImportTicketEventsResponseMapping  []TicketServicePreImportTicketEventsResponseMappingHook
+	PostImportTicketEventsResponseMapping []TicketServicePostImportTicketEventsResponseMappingHook
+	PreSyncTicketEventsRequestMapping     []TicketServicePreSyncTicketEventsRequestMappingHook
+	PostSyncTicketEventsRequestMapping    []TicketServicePostSyncTicketEventsRequestMappingHook
+	PreSyncTicketEventsResponseMapping    []TicketServicePreSyncTicketEventsResponseMappingHook
+	PostSyncTicketEventsResponseMapping   []TicketServicePostSyncTicketEventsResponseMappingHook
 }
 
-type TicketServiceBeforeFetchTicketRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.GetTicketRequest) (context.Context, *generatedpb.GetTicketRequest, error)
+type TicketServicePreFetchTicketRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.GetTicketRequest) (context.Context, *generatedpb.GetTicketRequest, error)
 
-type TicketServiceAfterFetchTicketRequestMappingHook func(context.Context, tego.RPCInfo, GetTicketRequest) (context.Context, GetTicketRequest, error)
+type TicketServicePostFetchTicketRequestMappingHook func(context.Context, tego.RPCInfo, GetTicketRequest) (context.Context, GetTicketRequest, error)
 
-type TicketServiceBeforeFetchTicketResponseMappingHook func(context.Context, tego.RPCInfo, GetTicketResponse) (GetTicketResponse, error)
+type TicketServicePreFetchTicketResponseMappingHook func(context.Context, tego.RPCInfo, GetTicketResponse) (GetTicketResponse, error)
 
-type TicketServiceAfterFetchTicketResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.GetTicketResponse) (*generatedpb.GetTicketResponse, error)
+type TicketServicePostFetchTicketResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.GetTicketResponse) (*generatedpb.GetTicketResponse, error)
 
-type TicketServiceBeforeWatchTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.WatchTicketEventsRequest) (context.Context, *generatedpb.WatchTicketEventsRequest, error)
+type TicketServicePreWatchTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.WatchTicketEventsRequest) (context.Context, *generatedpb.WatchTicketEventsRequest, error)
 
-type TicketServiceAfterWatchTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, WatchTicketEventsRequest) (context.Context, WatchTicketEventsRequest, error)
+type TicketServicePostWatchTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, WatchTicketEventsRequest) (context.Context, WatchTicketEventsRequest, error)
 
-type TicketServiceBeforeWatchTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (TicketEvent, error)
+type TicketServicePreWatchTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (TicketEvent, error)
 
-type TicketServiceAfterWatchTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error)
+type TicketServicePostWatchTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error)
 
-type TicketServiceBeforeImportTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error)
+type TicketServicePreImportTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error)
 
-type TicketServiceAfterImportTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (context.Context, TicketEvent, error)
+type TicketServicePostImportTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (context.Context, TicketEvent, error)
 
-type TicketServiceBeforeImportTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, ImportTicketEventsResponse) (ImportTicketEventsResponse, error)
+type TicketServicePreImportTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, ImportTicketEventsResponse) (ImportTicketEventsResponse, error)
 
-type TicketServiceAfterImportTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.ImportTicketEventsResponse) (*generatedpb.ImportTicketEventsResponse, error)
+type TicketServicePostImportTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.ImportTicketEventsResponse) (*generatedpb.ImportTicketEventsResponse, error)
 
-type TicketServiceBeforeSyncTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error)
+type TicketServicePreSyncTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error)
 
-type TicketServiceAfterSyncTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (context.Context, TicketEvent, error)
+type TicketServicePostSyncTicketEventsRequestMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (context.Context, TicketEvent, error)
 
-type TicketServiceBeforeSyncTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (TicketEvent, error)
+type TicketServicePreSyncTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, TicketEvent) (TicketEvent, error)
 
-type TicketServiceAfterSyncTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error)
+type TicketServicePostSyncTicketEventsResponseMappingHook func(context.Context, tego.RPCInfo, *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error)
 
-func (h *TicketServiceHooks) AddBeforeFetchTicketRequestMappingHook(hooks ...TicketServiceBeforeFetchTicketRequestMappingHook) *TicketServiceHooks {
-	h.BeforeFetchTicketRequestMapping = append(h.BeforeFetchTicketRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPreFetchTicketRequestMappingHook(hooks ...TicketServicePreFetchTicketRequestMappingHook) *TicketServiceHooks {
+	h.PreFetchTicketRequestMapping = append(h.PreFetchTicketRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeFetchTicketRequestMappingHooks(hooks ...TicketServiceBeforeFetchTicketRequestMappingHook) *TicketServiceHooks {
-	h.BeforeFetchTicketRequestMapping = hooks
+func (h *TicketServiceHooks) SetPreFetchTicketRequestMappingHooks(hooks ...TicketServicePreFetchTicketRequestMappingHook) *TicketServiceHooks {
+	h.PreFetchTicketRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterFetchTicketRequestMappingHook(hooks ...TicketServiceAfterFetchTicketRequestMappingHook) *TicketServiceHooks {
-	h.AfterFetchTicketRequestMapping = append(h.AfterFetchTicketRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPostFetchTicketRequestMappingHook(hooks ...TicketServicePostFetchTicketRequestMappingHook) *TicketServiceHooks {
+	h.PostFetchTicketRequestMapping = append(h.PostFetchTicketRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterFetchTicketRequestMappingHooks(hooks ...TicketServiceAfterFetchTicketRequestMappingHook) *TicketServiceHooks {
-	h.AfterFetchTicketRequestMapping = hooks
+func (h *TicketServiceHooks) SetPostFetchTicketRequestMappingHooks(hooks ...TicketServicePostFetchTicketRequestMappingHook) *TicketServiceHooks {
+	h.PostFetchTicketRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeFetchTicketResponseMappingHook(hooks ...TicketServiceBeforeFetchTicketResponseMappingHook) *TicketServiceHooks {
-	h.BeforeFetchTicketResponseMapping = append(h.BeforeFetchTicketResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPreFetchTicketResponseMappingHook(hooks ...TicketServicePreFetchTicketResponseMappingHook) *TicketServiceHooks {
+	h.PreFetchTicketResponseMapping = append(h.PreFetchTicketResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeFetchTicketResponseMappingHooks(hooks ...TicketServiceBeforeFetchTicketResponseMappingHook) *TicketServiceHooks {
-	h.BeforeFetchTicketResponseMapping = hooks
+func (h *TicketServiceHooks) SetPreFetchTicketResponseMappingHooks(hooks ...TicketServicePreFetchTicketResponseMappingHook) *TicketServiceHooks {
+	h.PreFetchTicketResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterFetchTicketResponseMappingHook(hooks ...TicketServiceAfterFetchTicketResponseMappingHook) *TicketServiceHooks {
-	h.AfterFetchTicketResponseMapping = append(h.AfterFetchTicketResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPostFetchTicketResponseMappingHook(hooks ...TicketServicePostFetchTicketResponseMappingHook) *TicketServiceHooks {
+	h.PostFetchTicketResponseMapping = append(h.PostFetchTicketResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterFetchTicketResponseMappingHooks(hooks ...TicketServiceAfterFetchTicketResponseMappingHook) *TicketServiceHooks {
-	h.AfterFetchTicketResponseMapping = hooks
+func (h *TicketServiceHooks) SetPostFetchTicketResponseMappingHooks(hooks ...TicketServicePostFetchTicketResponseMappingHook) *TicketServiceHooks {
+	h.PostFetchTicketResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeWatchTicketEventsRequestMappingHook(hooks ...TicketServiceBeforeWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.BeforeWatchTicketEventsRequestMapping = append(h.BeforeWatchTicketEventsRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPreWatchTicketEventsRequestMappingHook(hooks ...TicketServicePreWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PreWatchTicketEventsRequestMapping = append(h.PreWatchTicketEventsRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeWatchTicketEventsRequestMappingHooks(hooks ...TicketServiceBeforeWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.BeforeWatchTicketEventsRequestMapping = hooks
+func (h *TicketServiceHooks) SetPreWatchTicketEventsRequestMappingHooks(hooks ...TicketServicePreWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PreWatchTicketEventsRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterWatchTicketEventsRequestMappingHook(hooks ...TicketServiceAfterWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.AfterWatchTicketEventsRequestMapping = append(h.AfterWatchTicketEventsRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPostWatchTicketEventsRequestMappingHook(hooks ...TicketServicePostWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PostWatchTicketEventsRequestMapping = append(h.PostWatchTicketEventsRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterWatchTicketEventsRequestMappingHooks(hooks ...TicketServiceAfterWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.AfterWatchTicketEventsRequestMapping = hooks
+func (h *TicketServiceHooks) SetPostWatchTicketEventsRequestMappingHooks(hooks ...TicketServicePostWatchTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PostWatchTicketEventsRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeWatchTicketEventsResponseMappingHook(hooks ...TicketServiceBeforeWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.BeforeWatchTicketEventsResponseMapping = append(h.BeforeWatchTicketEventsResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPreWatchTicketEventsResponseMappingHook(hooks ...TicketServicePreWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PreWatchTicketEventsResponseMapping = append(h.PreWatchTicketEventsResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeWatchTicketEventsResponseMappingHooks(hooks ...TicketServiceBeforeWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.BeforeWatchTicketEventsResponseMapping = hooks
+func (h *TicketServiceHooks) SetPreWatchTicketEventsResponseMappingHooks(hooks ...TicketServicePreWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PreWatchTicketEventsResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterWatchTicketEventsResponseMappingHook(hooks ...TicketServiceAfterWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.AfterWatchTicketEventsResponseMapping = append(h.AfterWatchTicketEventsResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPostWatchTicketEventsResponseMappingHook(hooks ...TicketServicePostWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PostWatchTicketEventsResponseMapping = append(h.PostWatchTicketEventsResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterWatchTicketEventsResponseMappingHooks(hooks ...TicketServiceAfterWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.AfterWatchTicketEventsResponseMapping = hooks
+func (h *TicketServiceHooks) SetPostWatchTicketEventsResponseMappingHooks(hooks ...TicketServicePostWatchTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PostWatchTicketEventsResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeImportTicketEventsRequestMappingHook(hooks ...TicketServiceBeforeImportTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.BeforeImportTicketEventsRequestMapping = append(h.BeforeImportTicketEventsRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPreImportTicketEventsRequestMappingHook(hooks ...TicketServicePreImportTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PreImportTicketEventsRequestMapping = append(h.PreImportTicketEventsRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeImportTicketEventsRequestMappingHooks(hooks ...TicketServiceBeforeImportTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.BeforeImportTicketEventsRequestMapping = hooks
+func (h *TicketServiceHooks) SetPreImportTicketEventsRequestMappingHooks(hooks ...TicketServicePreImportTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PreImportTicketEventsRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterImportTicketEventsRequestMappingHook(hooks ...TicketServiceAfterImportTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.AfterImportTicketEventsRequestMapping = append(h.AfterImportTicketEventsRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPostImportTicketEventsRequestMappingHook(hooks ...TicketServicePostImportTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PostImportTicketEventsRequestMapping = append(h.PostImportTicketEventsRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterImportTicketEventsRequestMappingHooks(hooks ...TicketServiceAfterImportTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.AfterImportTicketEventsRequestMapping = hooks
+func (h *TicketServiceHooks) SetPostImportTicketEventsRequestMappingHooks(hooks ...TicketServicePostImportTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PostImportTicketEventsRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeImportTicketEventsResponseMappingHook(hooks ...TicketServiceBeforeImportTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.BeforeImportTicketEventsResponseMapping = append(h.BeforeImportTicketEventsResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPreImportTicketEventsResponseMappingHook(hooks ...TicketServicePreImportTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PreImportTicketEventsResponseMapping = append(h.PreImportTicketEventsResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeImportTicketEventsResponseMappingHooks(hooks ...TicketServiceBeforeImportTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.BeforeImportTicketEventsResponseMapping = hooks
+func (h *TicketServiceHooks) SetPreImportTicketEventsResponseMappingHooks(hooks ...TicketServicePreImportTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PreImportTicketEventsResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterImportTicketEventsResponseMappingHook(hooks ...TicketServiceAfterImportTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.AfterImportTicketEventsResponseMapping = append(h.AfterImportTicketEventsResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPostImportTicketEventsResponseMappingHook(hooks ...TicketServicePostImportTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PostImportTicketEventsResponseMapping = append(h.PostImportTicketEventsResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterImportTicketEventsResponseMappingHooks(hooks ...TicketServiceAfterImportTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.AfterImportTicketEventsResponseMapping = hooks
+func (h *TicketServiceHooks) SetPostImportTicketEventsResponseMappingHooks(hooks ...TicketServicePostImportTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PostImportTicketEventsResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeSyncTicketEventsRequestMappingHook(hooks ...TicketServiceBeforeSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.BeforeSyncTicketEventsRequestMapping = append(h.BeforeSyncTicketEventsRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPreSyncTicketEventsRequestMappingHook(hooks ...TicketServicePreSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PreSyncTicketEventsRequestMapping = append(h.PreSyncTicketEventsRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeSyncTicketEventsRequestMappingHooks(hooks ...TicketServiceBeforeSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.BeforeSyncTicketEventsRequestMapping = hooks
+func (h *TicketServiceHooks) SetPreSyncTicketEventsRequestMappingHooks(hooks ...TicketServicePreSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PreSyncTicketEventsRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterSyncTicketEventsRequestMappingHook(hooks ...TicketServiceAfterSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.AfterSyncTicketEventsRequestMapping = append(h.AfterSyncTicketEventsRequestMapping, hooks...)
+func (h *TicketServiceHooks) AddPostSyncTicketEventsRequestMappingHook(hooks ...TicketServicePostSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PostSyncTicketEventsRequestMapping = append(h.PostSyncTicketEventsRequestMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterSyncTicketEventsRequestMappingHooks(hooks ...TicketServiceAfterSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
-	h.AfterSyncTicketEventsRequestMapping = hooks
+func (h *TicketServiceHooks) SetPostSyncTicketEventsRequestMappingHooks(hooks ...TicketServicePostSyncTicketEventsRequestMappingHook) *TicketServiceHooks {
+	h.PostSyncTicketEventsRequestMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddBeforeSyncTicketEventsResponseMappingHook(hooks ...TicketServiceBeforeSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.BeforeSyncTicketEventsResponseMapping = append(h.BeforeSyncTicketEventsResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPreSyncTicketEventsResponseMappingHook(hooks ...TicketServicePreSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PreSyncTicketEventsResponseMapping = append(h.PreSyncTicketEventsResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetBeforeSyncTicketEventsResponseMappingHooks(hooks ...TicketServiceBeforeSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.BeforeSyncTicketEventsResponseMapping = hooks
+func (h *TicketServiceHooks) SetPreSyncTicketEventsResponseMappingHooks(hooks ...TicketServicePreSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PreSyncTicketEventsResponseMapping = hooks
 	return h
 }
 
-func (h *TicketServiceHooks) AddAfterSyncTicketEventsResponseMappingHook(hooks ...TicketServiceAfterSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.AfterSyncTicketEventsResponseMapping = append(h.AfterSyncTicketEventsResponseMapping, hooks...)
+func (h *TicketServiceHooks) AddPostSyncTicketEventsResponseMappingHook(hooks ...TicketServicePostSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PostSyncTicketEventsResponseMapping = append(h.PostSyncTicketEventsResponseMapping, hooks...)
 	return h
 }
 
-func (h *TicketServiceHooks) SetAfterSyncTicketEventsResponseMappingHooks(hooks ...TicketServiceAfterSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
-	h.AfterSyncTicketEventsResponseMapping = hooks
+func (h *TicketServiceHooks) SetPostSyncTicketEventsResponseMappingHooks(hooks ...TicketServicePostSyncTicketEventsResponseMappingHook) *TicketServiceHooks {
+	h.PostSyncTicketEventsResponseMapping = hooks
 	return h
 }
 
 func mergeTicketServiceHooks(hooks ...TicketServiceHooks) TicketServiceHooks {
 	var merged TicketServiceHooks
 	for _, hooks := range hooks {
-		merged.BeforeFetchTicketRequestMapping = append(merged.BeforeFetchTicketRequestMapping, hooks.BeforeFetchTicketRequestMapping...)
-		merged.AfterFetchTicketRequestMapping = append(merged.AfterFetchTicketRequestMapping, hooks.AfterFetchTicketRequestMapping...)
-		merged.BeforeFetchTicketResponseMapping = append(merged.BeforeFetchTicketResponseMapping, hooks.BeforeFetchTicketResponseMapping...)
-		merged.AfterFetchTicketResponseMapping = append(merged.AfterFetchTicketResponseMapping, hooks.AfterFetchTicketResponseMapping...)
-		merged.BeforeWatchTicketEventsRequestMapping = append(merged.BeforeWatchTicketEventsRequestMapping, hooks.BeforeWatchTicketEventsRequestMapping...)
-		merged.AfterWatchTicketEventsRequestMapping = append(merged.AfterWatchTicketEventsRequestMapping, hooks.AfterWatchTicketEventsRequestMapping...)
-		merged.BeforeWatchTicketEventsResponseMapping = append(merged.BeforeWatchTicketEventsResponseMapping, hooks.BeforeWatchTicketEventsResponseMapping...)
-		merged.AfterWatchTicketEventsResponseMapping = append(merged.AfterWatchTicketEventsResponseMapping, hooks.AfterWatchTicketEventsResponseMapping...)
-		merged.BeforeImportTicketEventsRequestMapping = append(merged.BeforeImportTicketEventsRequestMapping, hooks.BeforeImportTicketEventsRequestMapping...)
-		merged.AfterImportTicketEventsRequestMapping = append(merged.AfterImportTicketEventsRequestMapping, hooks.AfterImportTicketEventsRequestMapping...)
-		merged.BeforeImportTicketEventsResponseMapping = append(merged.BeforeImportTicketEventsResponseMapping, hooks.BeforeImportTicketEventsResponseMapping...)
-		merged.AfterImportTicketEventsResponseMapping = append(merged.AfterImportTicketEventsResponseMapping, hooks.AfterImportTicketEventsResponseMapping...)
-		merged.BeforeSyncTicketEventsRequestMapping = append(merged.BeforeSyncTicketEventsRequestMapping, hooks.BeforeSyncTicketEventsRequestMapping...)
-		merged.AfterSyncTicketEventsRequestMapping = append(merged.AfterSyncTicketEventsRequestMapping, hooks.AfterSyncTicketEventsRequestMapping...)
-		merged.BeforeSyncTicketEventsResponseMapping = append(merged.BeforeSyncTicketEventsResponseMapping, hooks.BeforeSyncTicketEventsResponseMapping...)
-		merged.AfterSyncTicketEventsResponseMapping = append(merged.AfterSyncTicketEventsResponseMapping, hooks.AfterSyncTicketEventsResponseMapping...)
+		merged.PreFetchTicketRequestMapping = append(merged.PreFetchTicketRequestMapping, hooks.PreFetchTicketRequestMapping...)
+		merged.PostFetchTicketRequestMapping = append(merged.PostFetchTicketRequestMapping, hooks.PostFetchTicketRequestMapping...)
+		merged.PreFetchTicketResponseMapping = append(merged.PreFetchTicketResponseMapping, hooks.PreFetchTicketResponseMapping...)
+		merged.PostFetchTicketResponseMapping = append(merged.PostFetchTicketResponseMapping, hooks.PostFetchTicketResponseMapping...)
+		merged.PreWatchTicketEventsRequestMapping = append(merged.PreWatchTicketEventsRequestMapping, hooks.PreWatchTicketEventsRequestMapping...)
+		merged.PostWatchTicketEventsRequestMapping = append(merged.PostWatchTicketEventsRequestMapping, hooks.PostWatchTicketEventsRequestMapping...)
+		merged.PreWatchTicketEventsResponseMapping = append(merged.PreWatchTicketEventsResponseMapping, hooks.PreWatchTicketEventsResponseMapping...)
+		merged.PostWatchTicketEventsResponseMapping = append(merged.PostWatchTicketEventsResponseMapping, hooks.PostWatchTicketEventsResponseMapping...)
+		merged.PreImportTicketEventsRequestMapping = append(merged.PreImportTicketEventsRequestMapping, hooks.PreImportTicketEventsRequestMapping...)
+		merged.PostImportTicketEventsRequestMapping = append(merged.PostImportTicketEventsRequestMapping, hooks.PostImportTicketEventsRequestMapping...)
+		merged.PreImportTicketEventsResponseMapping = append(merged.PreImportTicketEventsResponseMapping, hooks.PreImportTicketEventsResponseMapping...)
+		merged.PostImportTicketEventsResponseMapping = append(merged.PostImportTicketEventsResponseMapping, hooks.PostImportTicketEventsResponseMapping...)
+		merged.PreSyncTicketEventsRequestMapping = append(merged.PreSyncTicketEventsRequestMapping, hooks.PreSyncTicketEventsRequestMapping...)
+		merged.PostSyncTicketEventsRequestMapping = append(merged.PostSyncTicketEventsRequestMapping, hooks.PostSyncTicketEventsRequestMapping...)
+		merged.PreSyncTicketEventsResponseMapping = append(merged.PreSyncTicketEventsResponseMapping, hooks.PreSyncTicketEventsResponseMapping...)
+		merged.PostSyncTicketEventsResponseMapping = append(merged.PostSyncTicketEventsResponseMapping, hooks.PostSyncTicketEventsResponseMapping...)
 	}
 	return merged
 }
@@ -346,8 +346,8 @@ func (a *TicketServiceGRPCAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks) 
 	return a
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketRequest) (context.Context, *generatedpb.GetTicketRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeFetchTicketRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPreFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketRequest) (context.Context, *generatedpb.GetTicketRequest, error) {
+	for _, hook := range a.serviceHooks.PreFetchTicketRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -355,15 +355,15 @@ func (a *TicketServiceGRPCAdapter) runBeforeFetchTicketRequestMapping(ctx contex
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value GetTicketRequest) (context.Context, GetTicketRequest, error) {
-	for _, hook := range a.serviceHooks.AfterFetchTicketRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPostFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value GetTicketRequest) (context.Context, GetTicketRequest, error) {
+	for _, hook := range a.serviceHooks.PostFetchTicketRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -371,43 +371,43 @@ func (a *TicketServiceGRPCAdapter) runAfterFetchTicketRequestMapping(ctx context
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value GetTicketResponse) (GetTicketResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeFetchTicketResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPreFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value GetTicketResponse) (GetTicketResponse, error) {
+	for _, hook := range a.serviceHooks.PreFetchTicketResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketResponse) (*generatedpb.GetTicketResponse, error) {
-	for _, hook := range a.serviceHooks.AfterFetchTicketResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPostFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketResponse) (*generatedpb.GetTicketResponse, error) {
+	for _, hook := range a.serviceHooks.PostFetchTicketResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.WatchTicketEventsRequest) (context.Context, *generatedpb.WatchTicketEventsRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeWatchTicketEventsRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPreWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.WatchTicketEventsRequest) (context.Context, *generatedpb.WatchTicketEventsRequest, error) {
+	for _, hook := range a.serviceHooks.PreWatchTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -415,15 +415,15 @@ func (a *TicketServiceGRPCAdapter) runBeforeWatchTicketEventsRequestMapping(ctx 
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value WatchTicketEventsRequest) (context.Context, WatchTicketEventsRequest, error) {
-	for _, hook := range a.serviceHooks.AfterWatchTicketEventsRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPostWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value WatchTicketEventsRequest) (context.Context, WatchTicketEventsRequest, error) {
+	for _, hook := range a.serviceHooks.PostWatchTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -431,43 +431,43 @@ func (a *TicketServiceGRPCAdapter) runAfterWatchTicketEventsRequestMapping(ctx c
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeWatchTicketEventsResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPreWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreWatchTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterWatchTicketEventsResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPostWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostWatchTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeImportTicketEventsRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPreImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreImportTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -475,15 +475,15 @@ func (a *TicketServiceGRPCAdapter) runBeforeImportTicketEventsRequestMapping(ctx
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterImportTicketEventsRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPostImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostImportTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -491,43 +491,43 @@ func (a *TicketServiceGRPCAdapter) runAfterImportTicketEventsRequestMapping(ctx 
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value ImportTicketEventsResponse) (ImportTicketEventsResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeImportTicketEventsResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPreImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value ImportTicketEventsResponse) (ImportTicketEventsResponse, error) {
+	for _, hook := range a.serviceHooks.PreImportTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.ImportTicketEventsResponse) (*generatedpb.ImportTicketEventsResponse, error) {
-	for _, hook := range a.serviceHooks.AfterImportTicketEventsResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPostImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.ImportTicketEventsResponse) (*generatedpb.ImportTicketEventsResponse, error) {
+	for _, hook := range a.serviceHooks.PostImportTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeSyncTicketEventsRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPreSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreSyncTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -535,15 +535,15 @@ func (a *TicketServiceGRPCAdapter) runBeforeSyncTicketEventsRequestMapping(ctx c
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterSyncTicketEventsRequestMapping {
+func (a *TicketServiceGRPCAdapter) runPostSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostSyncTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -551,36 +551,36 @@ func (a *TicketServiceGRPCAdapter) runAfterSyncTicketEventsRequestMapping(ctx co
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runBeforeSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeSyncTicketEventsResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPreSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreSyncTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceGRPCAdapter) runAfterSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterSyncTicketEventsResponseMapping {
+func (a *TicketServiceGRPCAdapter) runPostSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostSyncTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -592,7 +592,7 @@ func (s *ticketServiceGRPCServer) GetTicket(ctx context.Context, requestProto *g
 
 func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestProto *generatedpb.GetTicketRequest) (*generatedpb.GetTicketResponse, error) {
 	info := tego.RPCInfo{Service: "", Method: "GetTicket", Procedure: ""}
-	ctx, requestProto, err := a.runBeforeFetchTicketRequestMapping(ctx, info, requestProto)
+	ctx, requestProto, err := a.runPreFetchTicketRequestMapping(ctx, info, requestProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -600,7 +600,7 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestPr
 	if err != nil {
 		return nil, err
 	}
-	ctx, request, err = a.runAfterFetchTicketRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostFetchTicketRequestMapping(ctx, info, request)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -608,7 +608,7 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestPr
 	if err != nil {
 		return nil, a.mapError(err)
 	}
-	response, err = a.runBeforeFetchTicketResponseMapping(ctx, info, response)
+	response, err = a.runPreFetchTicketResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -616,7 +616,7 @@ func (a *TicketServiceGRPCAdapter) AdaptGetTicket(ctx context.Context, requestPr
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err = a.runAfterFetchTicketResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostFetchTicketResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -630,7 +630,7 @@ func (s *ticketServiceGRPCServer) WatchTicketEvents(requestProto *generatedpb.Wa
 func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *generatedpb.WatchTicketEventsRequest, stream grpc.ServerStreamingServer[generatedpb.TicketEvent]) error {
 	ctx := stream.Context()
 	info := tego.RPCInfo{Service: "", Method: "WatchTicketEvents", Procedure: ""}
-	ctx, requestProto, err := a.runBeforeWatchTicketEventsRequestMapping(ctx, info, requestProto)
+	ctx, requestProto, err := a.runPreWatchTicketEventsRequestMapping(ctx, info, requestProto)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -638,7 +638,7 @@ func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *generate
 	if err != nil {
 		return err
 	}
-	ctx, request, err = a.runAfterWatchTicketEventsRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostWatchTicketEventsRequestMapping(ctx, info, request)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -653,7 +653,7 @@ func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *generate
 		if err != nil {
 			return a.mapError(err)
 		}
-		response, err = a.runBeforeWatchTicketEventsResponseMapping(ctx, info, response)
+		response, err = a.runPreWatchTicketEventsResponseMapping(ctx, info, response)
 		if err != nil {
 			return a.mapError(err)
 		}
@@ -661,7 +661,7 @@ func (a *TicketServiceGRPCAdapter) AdaptWatchTicketEvents(requestProto *generate
 		if err != nil {
 			return err
 		}
-		responseProto, err = a.runAfterWatchTicketEventsResponseMapping(ctx, info, responseProto)
+		responseProto, err = a.runPostWatchTicketEventsResponseMapping(ctx, info, responseProto)
 		if err != nil {
 			return a.mapError(err)
 		}
@@ -692,7 +692,7 @@ func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStr
 				yield(zero, err)
 				return
 			}
-			ctx, requestProto, err = a.runBeforeImportTicketEventsRequestMapping(ctx, info, requestProto)
+			ctx, requestProto, err = a.runPreImportTicketEventsRequestMapping(ctx, info, requestProto)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -707,7 +707,7 @@ func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStr
 				yield(zero, err)
 				return
 			}
-			ctx, request, err = a.runAfterImportTicketEventsRequestMapping(ctx, info, request)
+			ctx, request, err = a.runPostImportTicketEventsRequestMapping(ctx, info, request)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -727,7 +727,7 @@ func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStr
 	if receiveErr != nil {
 		return receiveErr
 	}
-	response, err = a.runBeforeImportTicketEventsResponseMapping(ctx, info, response)
+	response, err = a.runPreImportTicketEventsResponseMapping(ctx, info, response)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -735,7 +735,7 @@ func (a *TicketServiceGRPCAdapter) AdaptImportTicketEvents(stream grpc.ClientStr
 	if err != nil {
 		return err
 	}
-	responseProto, err = a.runAfterImportTicketEventsResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostImportTicketEventsResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -762,7 +762,7 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 				yield(zero, err)
 				return
 			}
-			ctx, requestProto, err = a.runBeforeSyncTicketEventsRequestMapping(ctx, info, requestProto)
+			ctx, requestProto, err = a.runPreSyncTicketEventsRequestMapping(ctx, info, requestProto)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -777,7 +777,7 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 				yield(zero, err)
 				return
 			}
-			ctx, request, err = a.runAfterSyncTicketEventsRequestMapping(ctx, info, request)
+			ctx, request, err = a.runPostSyncTicketEventsRequestMapping(ctx, info, request)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -799,7 +799,7 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 			if err != nil {
 				return a.mapError(err)
 			}
-			response, err = a.runBeforeSyncTicketEventsResponseMapping(ctx, info, response)
+			response, err = a.runPreSyncTicketEventsResponseMapping(ctx, info, response)
 			if err != nil {
 				return a.mapError(err)
 			}
@@ -807,7 +807,7 @@ func (a *TicketServiceGRPCAdapter) AdaptSyncTicketEvents(stream grpc.BidiStreami
 			if err != nil {
 				return err
 			}
-			responseProto, err = a.runAfterSyncTicketEventsResponseMapping(ctx, info, responseProto)
+			responseProto, err = a.runPostSyncTicketEventsResponseMapping(ctx, info, responseProto)
 			if err != nil {
 				return a.mapError(err)
 			}
@@ -1029,8 +1029,8 @@ func (a *TicketServiceConnectAdapter) SetInterfaceHooks(hooks tego.InterfaceHook
 	return a
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketRequest) (context.Context, *generatedpb.GetTicketRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeFetchTicketRequestMapping {
+func (a *TicketServiceConnectAdapter) runPreFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketRequest) (context.Context, *generatedpb.GetTicketRequest, error) {
+	for _, hook := range a.serviceHooks.PreFetchTicketRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1038,15 +1038,15 @@ func (a *TicketServiceConnectAdapter) runBeforeFetchTicketRequestMapping(ctx con
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value GetTicketRequest) (context.Context, GetTicketRequest, error) {
-	for _, hook := range a.serviceHooks.AfterFetchTicketRequestMapping {
+func (a *TicketServiceConnectAdapter) runPostFetchTicketRequestMapping(ctx context.Context, info tego.RPCInfo, value GetTicketRequest) (context.Context, GetTicketRequest, error) {
+	for _, hook := range a.serviceHooks.PostFetchTicketRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1054,43 +1054,43 @@ func (a *TicketServiceConnectAdapter) runAfterFetchTicketRequestMapping(ctx cont
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value GetTicketResponse) (GetTicketResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeFetchTicketResponseMapping {
+func (a *TicketServiceConnectAdapter) runPreFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value GetTicketResponse) (GetTicketResponse, error) {
+	for _, hook := range a.serviceHooks.PreFetchTicketResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketResponse) (*generatedpb.GetTicketResponse, error) {
-	for _, hook := range a.serviceHooks.AfterFetchTicketResponseMapping {
+func (a *TicketServiceConnectAdapter) runPostFetchTicketResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.GetTicketResponse) (*generatedpb.GetTicketResponse, error) {
+	for _, hook := range a.serviceHooks.PostFetchTicketResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.WatchTicketEventsRequest) (context.Context, *generatedpb.WatchTicketEventsRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeWatchTicketEventsRequestMapping {
+func (a *TicketServiceConnectAdapter) runPreWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.WatchTicketEventsRequest) (context.Context, *generatedpb.WatchTicketEventsRequest, error) {
+	for _, hook := range a.serviceHooks.PreWatchTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1098,15 +1098,15 @@ func (a *TicketServiceConnectAdapter) runBeforeWatchTicketEventsRequestMapping(c
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value WatchTicketEventsRequest) (context.Context, WatchTicketEventsRequest, error) {
-	for _, hook := range a.serviceHooks.AfterWatchTicketEventsRequestMapping {
+func (a *TicketServiceConnectAdapter) runPostWatchTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value WatchTicketEventsRequest) (context.Context, WatchTicketEventsRequest, error) {
+	for _, hook := range a.serviceHooks.PostWatchTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1114,43 +1114,43 @@ func (a *TicketServiceConnectAdapter) runAfterWatchTicketEventsRequestMapping(ct
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeWatchTicketEventsResponseMapping {
+func (a *TicketServiceConnectAdapter) runPreWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreWatchTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterWatchTicketEventsResponseMapping {
+func (a *TicketServiceConnectAdapter) runPostWatchTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostWatchTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeImportTicketEventsRequestMapping {
+func (a *TicketServiceConnectAdapter) runPreImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreImportTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1158,15 +1158,15 @@ func (a *TicketServiceConnectAdapter) runBeforeImportTicketEventsRequestMapping(
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterImportTicketEventsRequestMapping {
+func (a *TicketServiceConnectAdapter) runPostImportTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostImportTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1174,43 +1174,43 @@ func (a *TicketServiceConnectAdapter) runAfterImportTicketEventsRequestMapping(c
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value ImportTicketEventsResponse) (ImportTicketEventsResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeImportTicketEventsResponseMapping {
+func (a *TicketServiceConnectAdapter) runPreImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value ImportTicketEventsResponse) (ImportTicketEventsResponse, error) {
+	for _, hook := range a.serviceHooks.PreImportTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.ImportTicketEventsResponse) (*generatedpb.ImportTicketEventsResponse, error) {
-	for _, hook := range a.serviceHooks.AfterImportTicketEventsResponseMapping {
+func (a *TicketServiceConnectAdapter) runPostImportTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.ImportTicketEventsResponse) (*generatedpb.ImportTicketEventsResponse, error) {
+	for _, hook := range a.serviceHooks.PostImportTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeSyncTicketEventsRequestMapping {
+func (a *TicketServiceConnectAdapter) runPreSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (context.Context, *generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreSyncTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1218,15 +1218,15 @@ func (a *TicketServiceConnectAdapter) runBeforeSyncTicketEventsRequestMapping(ct
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterSyncTicketEventsRequestMapping {
+func (a *TicketServiceConnectAdapter) runPostSyncTicketEventsRequestMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (context.Context, TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostSyncTicketEventsRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -1234,36 +1234,36 @@ func (a *TicketServiceConnectAdapter) runAfterSyncTicketEventsRequestMapping(ctx
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runBeforeSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
-	for _, hook := range a.serviceHooks.BeforeSyncTicketEventsResponseMapping {
+func (a *TicketServiceConnectAdapter) runPreSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value TicketEvent) (TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PreSyncTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *TicketServiceConnectAdapter) runAfterSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
-	for _, hook := range a.serviceHooks.AfterSyncTicketEventsResponseMapping {
+func (a *TicketServiceConnectAdapter) runPostSyncTicketEventsResponseMapping(ctx context.Context, info tego.RPCInfo, value *generatedpb.TicketEvent) (*generatedpb.TicketEvent, error) {
+	for _, hook := range a.serviceHooks.PostSyncTicketEventsResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -1276,7 +1276,7 @@ func (s *ticketServiceConnectHandler) GetTicket(ctx context.Context, requestProt
 func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, requestProto *connect.Request[generatedpb.GetTicketRequest]) (*connect.Response[generatedpb.GetTicketResponse], error) {
 	info := tego.RPCInfo{Service: "", Method: "GetTicket", Procedure: ""}
 	requestProtoMsg := requestProto.Msg
-	ctx, requestProtoMsg, err := a.runBeforeFetchTicketRequestMapping(ctx, info, requestProtoMsg)
+	ctx, requestProtoMsg, err := a.runPreFetchTicketRequestMapping(ctx, info, requestProtoMsg)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -1284,7 +1284,7 @@ func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, reques
 	if err != nil {
 		return nil, err
 	}
-	ctx, request, err = a.runAfterFetchTicketRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostFetchTicketRequestMapping(ctx, info, request)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -1292,7 +1292,7 @@ func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, reques
 	if err != nil {
 		return nil, a.mapError(err)
 	}
-	response, err = a.runBeforeFetchTicketResponseMapping(ctx, info, response)
+	response, err = a.runPreFetchTicketResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -1300,7 +1300,7 @@ func (a *TicketServiceConnectAdapter) AdaptGetTicket(ctx context.Context, reques
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err = a.runAfterFetchTicketResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostFetchTicketResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -1314,7 +1314,7 @@ func (s *ticketServiceConnectHandler) WatchTicketEvents(ctx context.Context, req
 func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context, requestProto *connect.Request[generatedpb.WatchTicketEventsRequest], stream *connect.ServerStream[generatedpb.TicketEvent]) error {
 	info := tego.RPCInfo{Service: "", Method: "WatchTicketEvents", Procedure: ""}
 	requestProtoMsg := requestProto.Msg
-	ctx, requestProtoMsg, err := a.runBeforeWatchTicketEventsRequestMapping(ctx, info, requestProtoMsg)
+	ctx, requestProtoMsg, err := a.runPreWatchTicketEventsRequestMapping(ctx, info, requestProtoMsg)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -1322,7 +1322,7 @@ func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context
 	if err != nil {
 		return err
 	}
-	ctx, request, err = a.runAfterWatchTicketEventsRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostWatchTicketEventsRequestMapping(ctx, info, request)
 	if err != nil {
 		return a.mapError(err)
 	}
@@ -1337,7 +1337,7 @@ func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context
 		if err != nil {
 			return a.mapError(err)
 		}
-		response, err = a.runBeforeWatchTicketEventsResponseMapping(ctx, info, response)
+		response, err = a.runPreWatchTicketEventsResponseMapping(ctx, info, response)
 		if err != nil {
 			return a.mapError(err)
 		}
@@ -1345,7 +1345,7 @@ func (a *TicketServiceConnectAdapter) AdaptWatchTicketEvents(ctx context.Context
 		if err != nil {
 			return err
 		}
-		responseProto, err = a.runAfterWatchTicketEventsResponseMapping(ctx, info, responseProto)
+		responseProto, err = a.runPostWatchTicketEventsResponseMapping(ctx, info, responseProto)
 		if err != nil {
 			return a.mapError(err)
 		}
@@ -1366,7 +1366,7 @@ func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Contex
 	requests := func(yield func(TicketEvent, error) bool) {
 		for stream.Receive() {
 			requestProto := stream.Msg()
-			ctx, requestProto, err := a.runBeforeImportTicketEventsRequestMapping(ctx, info, requestProto)
+			ctx, requestProto, err := a.runPreImportTicketEventsRequestMapping(ctx, info, requestProto)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -1381,7 +1381,7 @@ func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Contex
 				yield(zero, err)
 				return
 			}
-			ctx, request, err = a.runAfterImportTicketEventsRequestMapping(ctx, info, request)
+			ctx, request, err = a.runPostImportTicketEventsRequestMapping(ctx, info, request)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -1406,7 +1406,7 @@ func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Contex
 	if receiveErr != nil {
 		return nil, receiveErr
 	}
-	response, err = a.runBeforeImportTicketEventsResponseMapping(ctx, info, response)
+	response, err = a.runPreImportTicketEventsResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -1414,7 +1414,7 @@ func (a *TicketServiceConnectAdapter) AdaptImportTicketEvents(ctx context.Contex
 	if err != nil {
 		return nil, err
 	}
-	responseProto, err = a.runAfterImportTicketEventsResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostImportTicketEventsResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -1440,7 +1440,7 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 				yield(zero, err)
 				return
 			}
-			ctx, requestProto, err = a.runBeforeSyncTicketEventsRequestMapping(ctx, info, requestProto)
+			ctx, requestProto, err = a.runPreSyncTicketEventsRequestMapping(ctx, info, requestProto)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -1455,7 +1455,7 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 				yield(zero, err)
 				return
 			}
-			ctx, request, err = a.runAfterSyncTicketEventsRequestMapping(ctx, info, request)
+			ctx, request, err = a.runPostSyncTicketEventsRequestMapping(ctx, info, request)
 			if err != nil {
 				err = a.mapError(err)
 				receiveErr = err
@@ -1477,7 +1477,7 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 			if err != nil {
 				return a.mapError(err)
 			}
-			response, err = a.runBeforeSyncTicketEventsResponseMapping(ctx, info, response)
+			response, err = a.runPreSyncTicketEventsResponseMapping(ctx, info, response)
 			if err != nil {
 				return a.mapError(err)
 			}
@@ -1485,7 +1485,7 @@ func (a *TicketServiceConnectAdapter) AdaptSyncTicketEvents(ctx context.Context,
 			if err != nil {
 				return err
 			}
-			responseProto, err = a.runAfterSyncTicketEventsResponseMapping(ctx, info, responseProto)
+			responseProto, err = a.runPostSyncTicketEventsResponseMapping(ctx, info, responseProto)
 			if err != nil {
 				return a.mapError(err)
 			}

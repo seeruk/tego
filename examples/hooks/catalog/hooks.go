@@ -11,7 +11,7 @@ import (
 
 func ServiceHooks() CatalogServiceHooks {
 	var hooks CatalogServiceHooks
-	hooks.AddBeforeGetBookRequestMappingHook(
+	hooks.AddPreGetBookRequestMappingHook(
 		// Normalize the raw protobuf request before Tego maps it.
 		func(ctx context.Context, info tego.RPCInfo, request *catalogpbv1.GetBookRequest) (context.Context, *catalogpbv1.GetBookRequest, error) {
 			id := strings.ToLower(strings.TrimSpace(request.GetId()))
@@ -19,13 +19,13 @@ func ServiceHooks() CatalogServiceHooks {
 			return ctx, request, nil
 		},
 	)
-	hooks.AddAfterGetBookRequestMappingHook(
+	hooks.AddPostGetBookRequestMappingHook(
 		// Capture mapped request data in context before the facade method runs.
 		func(ctx context.Context, info tego.RPCInfo, request GetBookRequest) (context.Context, GetBookRequest, error) {
 			return contextWithBookID(ctx, request.ID), request, nil
 		},
 	)
-	hooks.AddBeforeGetBookResponseMappingHook(
+	hooks.AddPreGetBookResponseMappingHook(
 		// Fill presentation fields before reusable response finalizers run.
 		func(ctx context.Context, info tego.RPCInfo, response GetBookResponse) (GetBookResponse, error) {
 			if response.Book.DisplayTitle == "" {
@@ -34,7 +34,7 @@ func ServiceHooks() CatalogServiceHooks {
 			return response, nil
 		},
 	)
-	hooks.SetAfterGetBookResponseMappingHooks(
+	hooks.SetPostGetBookResponseMappingHooks(
 		// Populate a protobuf-only compatibility field after Tego mapping.
 		func(ctx context.Context, info tego.RPCInfo, response *catalogpbv1.GetBookResponse) (*catalogpbv1.GetBookResponse, error) {
 			book := response.GetBook()
@@ -55,11 +55,10 @@ func ServiceHooks() CatalogServiceHooks {
 
 func InterfaceHooks() tego.InterfaceHooks {
 	var hooks tego.InterfaceHooks
-	hooks.AddAfterRequestMappingHook(tego.AfterRequestMappingInterfaceHook(validate))
-	hooks.AddBeforeResponseMappingHook(tego.BeforeResponseMappingInterfaceHook(finalize))
-	hooks.AddAfterRequestMappingHook(tego.AfterRequestMappingInterfaceHook(func(ctx context.Context, info tego.RPCInfo, i any) (context.Context, error) {
-		// It's worth noting, you can use `any` as the "interface" type if you just wanted to
-		// intercept ALL requests or responses in the service, based on which hook you add.
+	hooks.AddPostRequestMappingHook(tego.PostRequestMappingInterfaceHook(validate))
+	hooks.AddPreResponseMappingHook(tego.PreResponseMappingInterfaceHook(finalize))
+	hooks.AddPostRequestMappingHook(tego.PostRequestMappingAnyHook(func(ctx context.Context, info tego.RPCInfo, i any) (context.Context, error) {
+		// Any hooks can inspect all requests or responses in the service, based on which hook you add.
 		fmt.Printf("%T\n", i)
 		return ctx, nil
 	}))

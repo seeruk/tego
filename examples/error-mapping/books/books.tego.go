@@ -66,67 +66,67 @@ func unimplementedBookServiceError(method string) error {
 }
 
 type BookServiceHooks struct {
-	BeforeGetBookRequestMapping  []BookServiceBeforeGetBookRequestMappingHook
-	AfterGetBookRequestMapping   []BookServiceAfterGetBookRequestMappingHook
-	BeforeGetBookResponseMapping []BookServiceBeforeGetBookResponseMappingHook
-	AfterGetBookResponseMapping  []BookServiceAfterGetBookResponseMappingHook
+	PreGetBookRequestMapping   []BookServicePreGetBookRequestMappingHook
+	PostGetBookRequestMapping  []BookServicePostGetBookRequestMappingHook
+	PreGetBookResponseMapping  []BookServicePreGetBookResponseMappingHook
+	PostGetBookResponseMapping []BookServicePostGetBookResponseMappingHook
 }
 
-type BookServiceBeforeGetBookRequestMappingHook func(context.Context, tego.RPCInfo, *bookspbv1.GetBookRequest) (context.Context, *bookspbv1.GetBookRequest, error)
+type BookServicePreGetBookRequestMappingHook func(context.Context, tego.RPCInfo, *bookspbv1.GetBookRequest) (context.Context, *bookspbv1.GetBookRequest, error)
 
-type BookServiceAfterGetBookRequestMappingHook func(context.Context, tego.RPCInfo, GetBookRequest) (context.Context, GetBookRequest, error)
+type BookServicePostGetBookRequestMappingHook func(context.Context, tego.RPCInfo, GetBookRequest) (context.Context, GetBookRequest, error)
 
-type BookServiceBeforeGetBookResponseMappingHook func(context.Context, tego.RPCInfo, GetBookResponse) (GetBookResponse, error)
+type BookServicePreGetBookResponseMappingHook func(context.Context, tego.RPCInfo, GetBookResponse) (GetBookResponse, error)
 
-type BookServiceAfterGetBookResponseMappingHook func(context.Context, tego.RPCInfo, *bookspbv1.GetBookResponse) (*bookspbv1.GetBookResponse, error)
+type BookServicePostGetBookResponseMappingHook func(context.Context, tego.RPCInfo, *bookspbv1.GetBookResponse) (*bookspbv1.GetBookResponse, error)
 
-func (h *BookServiceHooks) AddBeforeGetBookRequestMappingHook(hooks ...BookServiceBeforeGetBookRequestMappingHook) *BookServiceHooks {
-	h.BeforeGetBookRequestMapping = append(h.BeforeGetBookRequestMapping, hooks...)
+func (h *BookServiceHooks) AddPreGetBookRequestMappingHook(hooks ...BookServicePreGetBookRequestMappingHook) *BookServiceHooks {
+	h.PreGetBookRequestMapping = append(h.PreGetBookRequestMapping, hooks...)
 	return h
 }
 
-func (h *BookServiceHooks) SetBeforeGetBookRequestMappingHooks(hooks ...BookServiceBeforeGetBookRequestMappingHook) *BookServiceHooks {
-	h.BeforeGetBookRequestMapping = hooks
+func (h *BookServiceHooks) SetPreGetBookRequestMappingHooks(hooks ...BookServicePreGetBookRequestMappingHook) *BookServiceHooks {
+	h.PreGetBookRequestMapping = hooks
 	return h
 }
 
-func (h *BookServiceHooks) AddAfterGetBookRequestMappingHook(hooks ...BookServiceAfterGetBookRequestMappingHook) *BookServiceHooks {
-	h.AfterGetBookRequestMapping = append(h.AfterGetBookRequestMapping, hooks...)
+func (h *BookServiceHooks) AddPostGetBookRequestMappingHook(hooks ...BookServicePostGetBookRequestMappingHook) *BookServiceHooks {
+	h.PostGetBookRequestMapping = append(h.PostGetBookRequestMapping, hooks...)
 	return h
 }
 
-func (h *BookServiceHooks) SetAfterGetBookRequestMappingHooks(hooks ...BookServiceAfterGetBookRequestMappingHook) *BookServiceHooks {
-	h.AfterGetBookRequestMapping = hooks
+func (h *BookServiceHooks) SetPostGetBookRequestMappingHooks(hooks ...BookServicePostGetBookRequestMappingHook) *BookServiceHooks {
+	h.PostGetBookRequestMapping = hooks
 	return h
 }
 
-func (h *BookServiceHooks) AddBeforeGetBookResponseMappingHook(hooks ...BookServiceBeforeGetBookResponseMappingHook) *BookServiceHooks {
-	h.BeforeGetBookResponseMapping = append(h.BeforeGetBookResponseMapping, hooks...)
+func (h *BookServiceHooks) AddPreGetBookResponseMappingHook(hooks ...BookServicePreGetBookResponseMappingHook) *BookServiceHooks {
+	h.PreGetBookResponseMapping = append(h.PreGetBookResponseMapping, hooks...)
 	return h
 }
 
-func (h *BookServiceHooks) SetBeforeGetBookResponseMappingHooks(hooks ...BookServiceBeforeGetBookResponseMappingHook) *BookServiceHooks {
-	h.BeforeGetBookResponseMapping = hooks
+func (h *BookServiceHooks) SetPreGetBookResponseMappingHooks(hooks ...BookServicePreGetBookResponseMappingHook) *BookServiceHooks {
+	h.PreGetBookResponseMapping = hooks
 	return h
 }
 
-func (h *BookServiceHooks) AddAfterGetBookResponseMappingHook(hooks ...BookServiceAfterGetBookResponseMappingHook) *BookServiceHooks {
-	h.AfterGetBookResponseMapping = append(h.AfterGetBookResponseMapping, hooks...)
+func (h *BookServiceHooks) AddPostGetBookResponseMappingHook(hooks ...BookServicePostGetBookResponseMappingHook) *BookServiceHooks {
+	h.PostGetBookResponseMapping = append(h.PostGetBookResponseMapping, hooks...)
 	return h
 }
 
-func (h *BookServiceHooks) SetAfterGetBookResponseMappingHooks(hooks ...BookServiceAfterGetBookResponseMappingHook) *BookServiceHooks {
-	h.AfterGetBookResponseMapping = hooks
+func (h *BookServiceHooks) SetPostGetBookResponseMappingHooks(hooks ...BookServicePostGetBookResponseMappingHook) *BookServiceHooks {
+	h.PostGetBookResponseMapping = hooks
 	return h
 }
 
 func mergeBookServiceHooks(hooks ...BookServiceHooks) BookServiceHooks {
 	var merged BookServiceHooks
 	for _, hooks := range hooks {
-		merged.BeforeGetBookRequestMapping = append(merged.BeforeGetBookRequestMapping, hooks.BeforeGetBookRequestMapping...)
-		merged.AfterGetBookRequestMapping = append(merged.AfterGetBookRequestMapping, hooks.AfterGetBookRequestMapping...)
-		merged.BeforeGetBookResponseMapping = append(merged.BeforeGetBookResponseMapping, hooks.BeforeGetBookResponseMapping...)
-		merged.AfterGetBookResponseMapping = append(merged.AfterGetBookResponseMapping, hooks.AfterGetBookResponseMapping...)
+		merged.PreGetBookRequestMapping = append(merged.PreGetBookRequestMapping, hooks.PreGetBookRequestMapping...)
+		merged.PostGetBookRequestMapping = append(merged.PostGetBookRequestMapping, hooks.PostGetBookRequestMapping...)
+		merged.PreGetBookResponseMapping = append(merged.PreGetBookResponseMapping, hooks.PreGetBookResponseMapping...)
+		merged.PostGetBookResponseMapping = append(merged.PostGetBookResponseMapping, hooks.PostGetBookResponseMapping...)
 	}
 	return merged
 }
@@ -196,8 +196,8 @@ func (a *BookServiceGRPCAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks) *B
 	return a
 }
 
-func (a *BookServiceGRPCAdapter) runBeforeGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookRequest) (context.Context, *bookspbv1.GetBookRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeGetBookRequestMapping {
+func (a *BookServiceGRPCAdapter) runPreGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookRequest) (context.Context, *bookspbv1.GetBookRequest, error) {
+	for _, hook := range a.serviceHooks.PreGetBookRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -205,15 +205,15 @@ func (a *BookServiceGRPCAdapter) runBeforeGetBookRequestMapping(ctx context.Cont
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *BookServiceGRPCAdapter) runAfterGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value GetBookRequest) (context.Context, GetBookRequest, error) {
-	for _, hook := range a.serviceHooks.AfterGetBookRequestMapping {
+func (a *BookServiceGRPCAdapter) runPostGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value GetBookRequest) (context.Context, GetBookRequest, error) {
+	for _, hook := range a.serviceHooks.PostGetBookRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -221,36 +221,36 @@ func (a *BookServiceGRPCAdapter) runAfterGetBookRequestMapping(ctx context.Conte
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *BookServiceGRPCAdapter) runBeforeGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value GetBookResponse) (GetBookResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeGetBookResponseMapping {
+func (a *BookServiceGRPCAdapter) runPreGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value GetBookResponse) (GetBookResponse, error) {
+	for _, hook := range a.serviceHooks.PreGetBookResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *BookServiceGRPCAdapter) runAfterGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookResponse) (*bookspbv1.GetBookResponse, error) {
-	for _, hook := range a.serviceHooks.AfterGetBookResponseMapping {
+func (a *BookServiceGRPCAdapter) runPostGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookResponse) (*bookspbv1.GetBookResponse, error) {
+	for _, hook := range a.serviceHooks.PostGetBookResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -262,12 +262,12 @@ func (s *bookServiceGRPCServer) GetBook(ctx context.Context, requestProto *books
 
 func (a *BookServiceGRPCAdapter) AdaptGetBook(ctx context.Context, requestProto *bookspbv1.GetBookRequest) (*bookspbv1.GetBookResponse, error) {
 	info := tego.RPCInfo{Service: "books.v1.BookService", Method: "GetBook", Procedure: "/books.v1.BookService/GetBook"}
-	ctx, requestProto, err := a.runBeforeGetBookRequestMapping(ctx, info, requestProto)
+	ctx, requestProto, err := a.runPreGetBookRequestMapping(ctx, info, requestProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	request := GetBookRequestFromProto(requestProto)
-	ctx, request, err = a.runAfterGetBookRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostGetBookRequestMapping(ctx, info, request)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -275,12 +275,12 @@ func (a *BookServiceGRPCAdapter) AdaptGetBook(ctx context.Context, requestProto 
 	if err != nil {
 		return nil, a.mapError(err)
 	}
-	response, err = a.runBeforeGetBookResponseMapping(ctx, info, response)
+	response, err = a.runPreGetBookResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	responseProto := GetBookResponseToProto(response)
-	responseProto, err = a.runAfterGetBookResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostGetBookResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -375,8 +375,8 @@ func (a *BookServiceConnectAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks)
 	return a
 }
 
-func (a *BookServiceConnectAdapter) runBeforeGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookRequest) (context.Context, *bookspbv1.GetBookRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeGetBookRequestMapping {
+func (a *BookServiceConnectAdapter) runPreGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookRequest) (context.Context, *bookspbv1.GetBookRequest, error) {
+	for _, hook := range a.serviceHooks.PreGetBookRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -384,15 +384,15 @@ func (a *BookServiceConnectAdapter) runBeforeGetBookRequestMapping(ctx context.C
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *BookServiceConnectAdapter) runAfterGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value GetBookRequest) (context.Context, GetBookRequest, error) {
-	for _, hook := range a.serviceHooks.AfterGetBookRequestMapping {
+func (a *BookServiceConnectAdapter) runPostGetBookRequestMapping(ctx context.Context, info tego.RPCInfo, value GetBookRequest) (context.Context, GetBookRequest, error) {
+	for _, hook := range a.serviceHooks.PostGetBookRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -400,36 +400,36 @@ func (a *BookServiceConnectAdapter) runAfterGetBookRequestMapping(ctx context.Co
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *BookServiceConnectAdapter) runBeforeGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value GetBookResponse) (GetBookResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeGetBookResponseMapping {
+func (a *BookServiceConnectAdapter) runPreGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value GetBookResponse) (GetBookResponse, error) {
+	for _, hook := range a.serviceHooks.PreGetBookResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *BookServiceConnectAdapter) runAfterGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookResponse) (*bookspbv1.GetBookResponse, error) {
-	for _, hook := range a.serviceHooks.AfterGetBookResponseMapping {
+func (a *BookServiceConnectAdapter) runPostGetBookResponseMapping(ctx context.Context, info tego.RPCInfo, value *bookspbv1.GetBookResponse) (*bookspbv1.GetBookResponse, error) {
+	for _, hook := range a.serviceHooks.PostGetBookResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -442,12 +442,12 @@ func (s *bookServiceConnectHandler) GetBook(ctx context.Context, requestProto *c
 func (a *BookServiceConnectAdapter) AdaptGetBook(ctx context.Context, requestProto *connect.Request[bookspbv1.GetBookRequest]) (*connect.Response[bookspbv1.GetBookResponse], error) {
 	info := tego.RPCInfo{Service: "books.v1.BookService", Method: "GetBook", Procedure: "/books.v1.BookService/GetBook"}
 	requestProtoMsg := requestProto.Msg
-	ctx, requestProtoMsg, err := a.runBeforeGetBookRequestMapping(ctx, info, requestProtoMsg)
+	ctx, requestProtoMsg, err := a.runPreGetBookRequestMapping(ctx, info, requestProtoMsg)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	request := GetBookRequestFromProto(requestProtoMsg)
-	ctx, request, err = a.runAfterGetBookRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostGetBookRequestMapping(ctx, info, request)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -455,12 +455,12 @@ func (a *BookServiceConnectAdapter) AdaptGetBook(ctx context.Context, requestPro
 	if err != nil {
 		return nil, a.mapError(err)
 	}
-	response, err = a.runBeforeGetBookResponseMapping(ctx, info, response)
+	response, err = a.runPreGetBookResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	responseProto := GetBookResponseToProto(response)
-	responseProto, err = a.runAfterGetBookResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostGetBookResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}

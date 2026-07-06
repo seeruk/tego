@@ -100,123 +100,123 @@ func unimplementedProfileServiceError(method string) error {
 }
 
 type ProfileServiceHooks struct {
-	BeforeGetProfileRequestMapping     []ProfileServiceBeforeGetProfileRequestMappingHook
-	AfterGetProfileRequestMapping      []ProfileServiceAfterGetProfileRequestMappingHook
-	BeforeGetProfileResponseMapping    []ProfileServiceBeforeGetProfileResponseMappingHook
-	AfterGetProfileResponseMapping     []ProfileServiceAfterGetProfileResponseMappingHook
-	BeforeDeleteProfileRequestMapping  []ProfileServiceBeforeDeleteProfileRequestMappingHook
-	AfterDeleteProfileRequestMapping   []ProfileServiceAfterDeleteProfileRequestMappingHook
-	BeforeDeleteProfileResponseMapping []ProfileServiceBeforeDeleteProfileResponseMappingHook
-	AfterDeleteProfileResponseMapping  []ProfileServiceAfterDeleteProfileResponseMappingHook
+	PreGetProfileRequestMapping      []ProfileServicePreGetProfileRequestMappingHook
+	PostGetProfileRequestMapping     []ProfileServicePostGetProfileRequestMappingHook
+	PreGetProfileResponseMapping     []ProfileServicePreGetProfileResponseMappingHook
+	PostGetProfileResponseMapping    []ProfileServicePostGetProfileResponseMappingHook
+	PreDeleteProfileRequestMapping   []ProfileServicePreDeleteProfileRequestMappingHook
+	PostDeleteProfileRequestMapping  []ProfileServicePostDeleteProfileRequestMappingHook
+	PreDeleteProfileResponseMapping  []ProfileServicePreDeleteProfileResponseMappingHook
+	PostDeleteProfileResponseMapping []ProfileServicePostDeleteProfileResponseMappingHook
 }
 
-type ProfileServiceBeforeGetProfileRequestMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.GetProfileRequest) (context.Context, *overridepbv1.GetProfileRequest, error)
+type ProfileServicePreGetProfileRequestMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.GetProfileRequest) (context.Context, *overridepbv1.GetProfileRequest, error)
 
-type ProfileServiceAfterGetProfileRequestMappingHook func(context.Context, tego.RPCInfo, GetProfileRequest) (context.Context, GetProfileRequest, error)
+type ProfileServicePostGetProfileRequestMappingHook func(context.Context, tego.RPCInfo, GetProfileRequest) (context.Context, GetProfileRequest, error)
 
-type ProfileServiceBeforeGetProfileResponseMappingHook func(context.Context, tego.RPCInfo, GetProfileResponse) (GetProfileResponse, error)
+type ProfileServicePreGetProfileResponseMappingHook func(context.Context, tego.RPCInfo, GetProfileResponse) (GetProfileResponse, error)
 
-type ProfileServiceAfterGetProfileResponseMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.GetProfileResponse) (*overridepbv1.GetProfileResponse, error)
+type ProfileServicePostGetProfileResponseMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.GetProfileResponse) (*overridepbv1.GetProfileResponse, error)
 
-type ProfileServiceBeforeDeleteProfileRequestMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.DeleteProfileRequest) (context.Context, *overridepbv1.DeleteProfileRequest, error)
+type ProfileServicePreDeleteProfileRequestMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.DeleteProfileRequest) (context.Context, *overridepbv1.DeleteProfileRequest, error)
 
-type ProfileServiceAfterDeleteProfileRequestMappingHook func(context.Context, tego.RPCInfo, DeleteProfileRequest) (context.Context, DeleteProfileRequest, error)
+type ProfileServicePostDeleteProfileRequestMappingHook func(context.Context, tego.RPCInfo, DeleteProfileRequest) (context.Context, DeleteProfileRequest, error)
 
-type ProfileServiceBeforeDeleteProfileResponseMappingHook func(context.Context, tego.RPCInfo, DeleteProfileResponse) (DeleteProfileResponse, error)
+type ProfileServicePreDeleteProfileResponseMappingHook func(context.Context, tego.RPCInfo, DeleteProfileResponse) (DeleteProfileResponse, error)
 
-type ProfileServiceAfterDeleteProfileResponseMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.DeleteProfileResponse) (*overridepbv1.DeleteProfileResponse, error)
+type ProfileServicePostDeleteProfileResponseMappingHook func(context.Context, tego.RPCInfo, *overridepbv1.DeleteProfileResponse) (*overridepbv1.DeleteProfileResponse, error)
 
-func (h *ProfileServiceHooks) AddBeforeGetProfileRequestMappingHook(hooks ...ProfileServiceBeforeGetProfileRequestMappingHook) *ProfileServiceHooks {
-	h.BeforeGetProfileRequestMapping = append(h.BeforeGetProfileRequestMapping, hooks...)
+func (h *ProfileServiceHooks) AddPreGetProfileRequestMappingHook(hooks ...ProfileServicePreGetProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PreGetProfileRequestMapping = append(h.PreGetProfileRequestMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetBeforeGetProfileRequestMappingHooks(hooks ...ProfileServiceBeforeGetProfileRequestMappingHook) *ProfileServiceHooks {
-	h.BeforeGetProfileRequestMapping = hooks
+func (h *ProfileServiceHooks) SetPreGetProfileRequestMappingHooks(hooks ...ProfileServicePreGetProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PreGetProfileRequestMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddAfterGetProfileRequestMappingHook(hooks ...ProfileServiceAfterGetProfileRequestMappingHook) *ProfileServiceHooks {
-	h.AfterGetProfileRequestMapping = append(h.AfterGetProfileRequestMapping, hooks...)
+func (h *ProfileServiceHooks) AddPostGetProfileRequestMappingHook(hooks ...ProfileServicePostGetProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PostGetProfileRequestMapping = append(h.PostGetProfileRequestMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetAfterGetProfileRequestMappingHooks(hooks ...ProfileServiceAfterGetProfileRequestMappingHook) *ProfileServiceHooks {
-	h.AfterGetProfileRequestMapping = hooks
+func (h *ProfileServiceHooks) SetPostGetProfileRequestMappingHooks(hooks ...ProfileServicePostGetProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PostGetProfileRequestMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddBeforeGetProfileResponseMappingHook(hooks ...ProfileServiceBeforeGetProfileResponseMappingHook) *ProfileServiceHooks {
-	h.BeforeGetProfileResponseMapping = append(h.BeforeGetProfileResponseMapping, hooks...)
+func (h *ProfileServiceHooks) AddPreGetProfileResponseMappingHook(hooks ...ProfileServicePreGetProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PreGetProfileResponseMapping = append(h.PreGetProfileResponseMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetBeforeGetProfileResponseMappingHooks(hooks ...ProfileServiceBeforeGetProfileResponseMappingHook) *ProfileServiceHooks {
-	h.BeforeGetProfileResponseMapping = hooks
+func (h *ProfileServiceHooks) SetPreGetProfileResponseMappingHooks(hooks ...ProfileServicePreGetProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PreGetProfileResponseMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddAfterGetProfileResponseMappingHook(hooks ...ProfileServiceAfterGetProfileResponseMappingHook) *ProfileServiceHooks {
-	h.AfterGetProfileResponseMapping = append(h.AfterGetProfileResponseMapping, hooks...)
+func (h *ProfileServiceHooks) AddPostGetProfileResponseMappingHook(hooks ...ProfileServicePostGetProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PostGetProfileResponseMapping = append(h.PostGetProfileResponseMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetAfterGetProfileResponseMappingHooks(hooks ...ProfileServiceAfterGetProfileResponseMappingHook) *ProfileServiceHooks {
-	h.AfterGetProfileResponseMapping = hooks
+func (h *ProfileServiceHooks) SetPostGetProfileResponseMappingHooks(hooks ...ProfileServicePostGetProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PostGetProfileResponseMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddBeforeDeleteProfileRequestMappingHook(hooks ...ProfileServiceBeforeDeleteProfileRequestMappingHook) *ProfileServiceHooks {
-	h.BeforeDeleteProfileRequestMapping = append(h.BeforeDeleteProfileRequestMapping, hooks...)
+func (h *ProfileServiceHooks) AddPreDeleteProfileRequestMappingHook(hooks ...ProfileServicePreDeleteProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PreDeleteProfileRequestMapping = append(h.PreDeleteProfileRequestMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetBeforeDeleteProfileRequestMappingHooks(hooks ...ProfileServiceBeforeDeleteProfileRequestMappingHook) *ProfileServiceHooks {
-	h.BeforeDeleteProfileRequestMapping = hooks
+func (h *ProfileServiceHooks) SetPreDeleteProfileRequestMappingHooks(hooks ...ProfileServicePreDeleteProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PreDeleteProfileRequestMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddAfterDeleteProfileRequestMappingHook(hooks ...ProfileServiceAfterDeleteProfileRequestMappingHook) *ProfileServiceHooks {
-	h.AfterDeleteProfileRequestMapping = append(h.AfterDeleteProfileRequestMapping, hooks...)
+func (h *ProfileServiceHooks) AddPostDeleteProfileRequestMappingHook(hooks ...ProfileServicePostDeleteProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PostDeleteProfileRequestMapping = append(h.PostDeleteProfileRequestMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetAfterDeleteProfileRequestMappingHooks(hooks ...ProfileServiceAfterDeleteProfileRequestMappingHook) *ProfileServiceHooks {
-	h.AfterDeleteProfileRequestMapping = hooks
+func (h *ProfileServiceHooks) SetPostDeleteProfileRequestMappingHooks(hooks ...ProfileServicePostDeleteProfileRequestMappingHook) *ProfileServiceHooks {
+	h.PostDeleteProfileRequestMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddBeforeDeleteProfileResponseMappingHook(hooks ...ProfileServiceBeforeDeleteProfileResponseMappingHook) *ProfileServiceHooks {
-	h.BeforeDeleteProfileResponseMapping = append(h.BeforeDeleteProfileResponseMapping, hooks...)
+func (h *ProfileServiceHooks) AddPreDeleteProfileResponseMappingHook(hooks ...ProfileServicePreDeleteProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PreDeleteProfileResponseMapping = append(h.PreDeleteProfileResponseMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetBeforeDeleteProfileResponseMappingHooks(hooks ...ProfileServiceBeforeDeleteProfileResponseMappingHook) *ProfileServiceHooks {
-	h.BeforeDeleteProfileResponseMapping = hooks
+func (h *ProfileServiceHooks) SetPreDeleteProfileResponseMappingHooks(hooks ...ProfileServicePreDeleteProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PreDeleteProfileResponseMapping = hooks
 	return h
 }
 
-func (h *ProfileServiceHooks) AddAfterDeleteProfileResponseMappingHook(hooks ...ProfileServiceAfterDeleteProfileResponseMappingHook) *ProfileServiceHooks {
-	h.AfterDeleteProfileResponseMapping = append(h.AfterDeleteProfileResponseMapping, hooks...)
+func (h *ProfileServiceHooks) AddPostDeleteProfileResponseMappingHook(hooks ...ProfileServicePostDeleteProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PostDeleteProfileResponseMapping = append(h.PostDeleteProfileResponseMapping, hooks...)
 	return h
 }
 
-func (h *ProfileServiceHooks) SetAfterDeleteProfileResponseMappingHooks(hooks ...ProfileServiceAfterDeleteProfileResponseMappingHook) *ProfileServiceHooks {
-	h.AfterDeleteProfileResponseMapping = hooks
+func (h *ProfileServiceHooks) SetPostDeleteProfileResponseMappingHooks(hooks ...ProfileServicePostDeleteProfileResponseMappingHook) *ProfileServiceHooks {
+	h.PostDeleteProfileResponseMapping = hooks
 	return h
 }
 
 func mergeProfileServiceHooks(hooks ...ProfileServiceHooks) ProfileServiceHooks {
 	var merged ProfileServiceHooks
 	for _, hooks := range hooks {
-		merged.BeforeGetProfileRequestMapping = append(merged.BeforeGetProfileRequestMapping, hooks.BeforeGetProfileRequestMapping...)
-		merged.AfterGetProfileRequestMapping = append(merged.AfterGetProfileRequestMapping, hooks.AfterGetProfileRequestMapping...)
-		merged.BeforeGetProfileResponseMapping = append(merged.BeforeGetProfileResponseMapping, hooks.BeforeGetProfileResponseMapping...)
-		merged.AfterGetProfileResponseMapping = append(merged.AfterGetProfileResponseMapping, hooks.AfterGetProfileResponseMapping...)
-		merged.BeforeDeleteProfileRequestMapping = append(merged.BeforeDeleteProfileRequestMapping, hooks.BeforeDeleteProfileRequestMapping...)
-		merged.AfterDeleteProfileRequestMapping = append(merged.AfterDeleteProfileRequestMapping, hooks.AfterDeleteProfileRequestMapping...)
-		merged.BeforeDeleteProfileResponseMapping = append(merged.BeforeDeleteProfileResponseMapping, hooks.BeforeDeleteProfileResponseMapping...)
-		merged.AfterDeleteProfileResponseMapping = append(merged.AfterDeleteProfileResponseMapping, hooks.AfterDeleteProfileResponseMapping...)
+		merged.PreGetProfileRequestMapping = append(merged.PreGetProfileRequestMapping, hooks.PreGetProfileRequestMapping...)
+		merged.PostGetProfileRequestMapping = append(merged.PostGetProfileRequestMapping, hooks.PostGetProfileRequestMapping...)
+		merged.PreGetProfileResponseMapping = append(merged.PreGetProfileResponseMapping, hooks.PreGetProfileResponseMapping...)
+		merged.PostGetProfileResponseMapping = append(merged.PostGetProfileResponseMapping, hooks.PostGetProfileResponseMapping...)
+		merged.PreDeleteProfileRequestMapping = append(merged.PreDeleteProfileRequestMapping, hooks.PreDeleteProfileRequestMapping...)
+		merged.PostDeleteProfileRequestMapping = append(merged.PostDeleteProfileRequestMapping, hooks.PostDeleteProfileRequestMapping...)
+		merged.PreDeleteProfileResponseMapping = append(merged.PreDeleteProfileResponseMapping, hooks.PreDeleteProfileResponseMapping...)
+		merged.PostDeleteProfileResponseMapping = append(merged.PostDeleteProfileResponseMapping, hooks.PostDeleteProfileResponseMapping...)
 	}
 	return merged
 }
@@ -286,8 +286,8 @@ func (a *ProfileServiceGRPCAdapter) SetInterfaceHooks(hooks tego.InterfaceHooks)
 	return a
 }
 
-func (a *ProfileServiceGRPCAdapter) runBeforeGetProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.GetProfileRequest) (context.Context, *overridepbv1.GetProfileRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeGetProfileRequestMapping {
+func (a *ProfileServiceGRPCAdapter) runPreGetProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.GetProfileRequest) (context.Context, *overridepbv1.GetProfileRequest, error) {
+	for _, hook := range a.serviceHooks.PreGetProfileRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -295,15 +295,15 @@ func (a *ProfileServiceGRPCAdapter) runBeforeGetProfileRequestMapping(ctx contex
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runAfterGetProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value GetProfileRequest) (context.Context, GetProfileRequest, error) {
-	for _, hook := range a.serviceHooks.AfterGetProfileRequestMapping {
+func (a *ProfileServiceGRPCAdapter) runPostGetProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value GetProfileRequest) (context.Context, GetProfileRequest, error) {
+	for _, hook := range a.serviceHooks.PostGetProfileRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -311,43 +311,43 @@ func (a *ProfileServiceGRPCAdapter) runAfterGetProfileRequestMapping(ctx context
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runBeforeGetProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value GetProfileResponse) (GetProfileResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeGetProfileResponseMapping {
+func (a *ProfileServiceGRPCAdapter) runPreGetProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value GetProfileResponse) (GetProfileResponse, error) {
+	for _, hook := range a.serviceHooks.PreGetProfileResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runAfterGetProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.GetProfileResponse) (*overridepbv1.GetProfileResponse, error) {
-	for _, hook := range a.serviceHooks.AfterGetProfileResponseMapping {
+func (a *ProfileServiceGRPCAdapter) runPostGetProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.GetProfileResponse) (*overridepbv1.GetProfileResponse, error) {
+	for _, hook := range a.serviceHooks.PostGetProfileResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runBeforeDeleteProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.DeleteProfileRequest) (context.Context, *overridepbv1.DeleteProfileRequest, error) {
-	for _, hook := range a.serviceHooks.BeforeDeleteProfileRequestMapping {
+func (a *ProfileServiceGRPCAdapter) runPreDeleteProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.DeleteProfileRequest) (context.Context, *overridepbv1.DeleteProfileRequest, error) {
+	for _, hook := range a.serviceHooks.PreDeleteProfileRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -355,15 +355,15 @@ func (a *ProfileServiceGRPCAdapter) runBeforeDeleteProfileRequestMapping(ctx con
 		}
 	}
 	var err error
-	ctx, err = tego.RunBeforeRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.BeforeRequestMapping)
+	ctx, err = tego.RunPreRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PreRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runAfterDeleteProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value DeleteProfileRequest) (context.Context, DeleteProfileRequest, error) {
-	for _, hook := range a.serviceHooks.AfterDeleteProfileRequestMapping {
+func (a *ProfileServiceGRPCAdapter) runPostDeleteProfileRequestMapping(ctx context.Context, info tego.RPCInfo, value DeleteProfileRequest) (context.Context, DeleteProfileRequest, error) {
+	for _, hook := range a.serviceHooks.PostDeleteProfileRequestMapping {
 		var err error
 		ctx, value, err = hook(ctx, info, value)
 		if err != nil {
@@ -371,36 +371,36 @@ func (a *ProfileServiceGRPCAdapter) runAfterDeleteProfileRequestMapping(ctx cont
 		}
 	}
 	var err error
-	ctx, err = tego.RunAfterRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterRequestMapping)
+	ctx, err = tego.RunPostRequestMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostRequestMapping)
 	if err != nil {
 		return ctx, value, err
 	}
 	return ctx, value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runBeforeDeleteProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value DeleteProfileResponse) (DeleteProfileResponse, error) {
-	for _, hook := range a.serviceHooks.BeforeDeleteProfileResponseMapping {
+func (a *ProfileServiceGRPCAdapter) runPreDeleteProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value DeleteProfileResponse) (DeleteProfileResponse, error) {
+	for _, hook := range a.serviceHooks.PreDeleteProfileResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunBeforeResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.BeforeResponseMapping); err != nil {
+	if err := tego.RunPreResponseMappingInterfaceHooks(ctx, info, &value, a.interfaceHooks.PreResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
 }
 
-func (a *ProfileServiceGRPCAdapter) runAfterDeleteProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.DeleteProfileResponse) (*overridepbv1.DeleteProfileResponse, error) {
-	for _, hook := range a.serviceHooks.AfterDeleteProfileResponseMapping {
+func (a *ProfileServiceGRPCAdapter) runPostDeleteProfileResponseMapping(ctx context.Context, info tego.RPCInfo, value *overridepbv1.DeleteProfileResponse) (*overridepbv1.DeleteProfileResponse, error) {
+	for _, hook := range a.serviceHooks.PostDeleteProfileResponseMapping {
 		var err error
 		value, err = hook(ctx, info, value)
 		if err != nil {
 			return value, err
 		}
 	}
-	if err := tego.RunAfterResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.AfterResponseMapping); err != nil {
+	if err := tego.RunPostResponseMappingInterfaceHooks(ctx, info, value, a.interfaceHooks.PostResponseMapping); err != nil {
 		return value, err
 	}
 	return value, nil
@@ -412,12 +412,12 @@ func (s *profileServiceGRPCServer) GetProfile(ctx context.Context, requestProto 
 
 func (a *ProfileServiceGRPCAdapter) AdaptGetProfile(ctx context.Context, requestProto *overridepbv1.GetProfileRequest) (*overridepbv1.GetProfileResponse, error) {
 	info := tego.RPCInfo{Service: "override.v1.ProfileService", Method: "GetProfile", Procedure: "/override.v1.ProfileService/GetProfile"}
-	ctx, requestProto, err := a.runBeforeGetProfileRequestMapping(ctx, info, requestProto)
+	ctx, requestProto, err := a.runPreGetProfileRequestMapping(ctx, info, requestProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	request := GetProfileRequestFromProto(requestProto)
-	ctx, request, err = a.runAfterGetProfileRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostGetProfileRequestMapping(ctx, info, request)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -425,12 +425,12 @@ func (a *ProfileServiceGRPCAdapter) AdaptGetProfile(ctx context.Context, request
 	if err != nil {
 		return nil, a.mapError(err)
 	}
-	response, err = a.runBeforeGetProfileResponseMapping(ctx, info, response)
+	response, err = a.runPreGetProfileResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	responseProto := GetProfileResponseToProto(response)
-	responseProto, err = a.runAfterGetProfileResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostGetProfileResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -443,12 +443,12 @@ func (s *profileServiceGRPCServer) DeleteProfile(ctx context.Context, requestPro
 
 func (a *ProfileServiceGRPCAdapter) AdaptDeleteProfile(ctx context.Context, requestProto *overridepbv1.DeleteProfileRequest) (*overridepbv1.DeleteProfileResponse, error) {
 	info := tego.RPCInfo{Service: "override.v1.ProfileService", Method: "DeleteProfile", Procedure: "/override.v1.ProfileService/DeleteProfile"}
-	ctx, requestProto, err := a.runBeforeDeleteProfileRequestMapping(ctx, info, requestProto)
+	ctx, requestProto, err := a.runPreDeleteProfileRequestMapping(ctx, info, requestProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	request := DeleteProfileRequestFromProto(requestProto)
-	ctx, request, err = a.runAfterDeleteProfileRequestMapping(ctx, info, request)
+	ctx, request, err = a.runPostDeleteProfileRequestMapping(ctx, info, request)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
@@ -456,12 +456,12 @@ func (a *ProfileServiceGRPCAdapter) AdaptDeleteProfile(ctx context.Context, requ
 	if err != nil {
 		return nil, a.mapError(err)
 	}
-	response, err = a.runBeforeDeleteProfileResponseMapping(ctx, info, response)
+	response, err = a.runPreDeleteProfileResponseMapping(ctx, info, response)
 	if err != nil {
 		return nil, a.mapError(err)
 	}
 	responseProto := DeleteProfileResponseToProto(response)
-	responseProto, err = a.runAfterDeleteProfileResponseMapping(ctx, info, responseProto)
+	responseProto, err = a.runPostDeleteProfileResponseMapping(ctx, info, responseProto)
 	if err != nil {
 		return nil, a.mapError(err)
 	}

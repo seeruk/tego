@@ -43,93 +43,93 @@ func (v *hookFinalized) Finalize() error {
 }
 
 func TestMergeInterfaceHooks(t *testing.T) {
-	beforeRequest := BeforeRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+	beforeRequest := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 		return ctx, nil
 	})
-	afterRequest := AfterRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+	afterRequest := PostRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 		return ctx, nil
 	})
-	beforeResponse := BeforeResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+	beforeResponse := PreResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
 		return nil
 	})
-	afterResponse := AfterResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+	afterResponse := PostResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
 		return nil
 	})
 
 	merged := MergeInterfaceHooks(
 		InterfaceHooks{
-			BeforeRequestMapping:  []BeforeRequestMappingInterfaceHookFunc{beforeRequest},
-			BeforeResponseMapping: []BeforeResponseMappingInterfaceHookFunc{beforeResponse},
+			PreRequestMapping:  []PreRequestMappingInterfaceHookFunc{beforeRequest},
+			PreResponseMapping: []PreResponseMappingInterfaceHookFunc{beforeResponse},
 		},
 		InterfaceHooks{
-			AfterRequestMapping:  []AfterRequestMappingInterfaceHookFunc{afterRequest},
-			AfterResponseMapping: []AfterResponseMappingInterfaceHookFunc{afterResponse},
+			PostRequestMapping:  []PostRequestMappingInterfaceHookFunc{afterRequest},
+			PostResponseMapping: []PostResponseMappingInterfaceHookFunc{afterResponse},
 		},
 	)
 
-	assert.Len(t, merged.BeforeRequestMapping, 1)
-	assert.Len(t, merged.AfterRequestMapping, 1)
-	assert.Len(t, merged.BeforeResponseMapping, 1)
-	assert.Len(t, merged.AfterResponseMapping, 1)
+	assert.Len(t, merged.PreRequestMapping, 1)
+	assert.Len(t, merged.PostRequestMapping, 1)
+	assert.Len(t, merged.PreResponseMapping, 1)
+	assert.Len(t, merged.PostResponseMapping, 1)
 }
 
 func TestInterfaceHookHelpers(t *testing.T) {
-	beforeRequest := BeforeRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+	beforeRequest := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 		return ctx, nil
 	})
-	anotherBeforeRequest := BeforeRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+	anotherPreRequest := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 		return ctx, nil
 	})
-	afterRequest := AfterRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+	afterRequest := PostRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 		return ctx, nil
 	})
-	beforeResponse := BeforeResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+	beforeResponse := PreResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
 		return nil
 	})
-	afterResponse := AfterResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+	afterResponse := PostResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
 		return nil
 	})
 
 	var hooks InterfaceHooks
 	returned := hooks.
-		AddBeforeRequestMappingHook(beforeRequest, anotherBeforeRequest).
-		AddAfterRequestMappingHook(afterRequest).
-		AddBeforeResponseMappingHook(beforeResponse).
-		AddAfterResponseMappingHook(afterResponse)
+		AddPreRequestMappingHook(beforeRequest, anotherPreRequest).
+		AddPostRequestMappingHook(afterRequest).
+		AddPreResponseMappingHook(beforeResponse).
+		AddPostResponseMappingHook(afterResponse)
 
 	require.Same(t, &hooks, returned)
-	assert.Len(t, hooks.BeforeRequestMapping, 2)
-	assert.Len(t, hooks.AfterRequestMapping, 1)
-	assert.Len(t, hooks.BeforeResponseMapping, 1)
-	assert.Len(t, hooks.AfterResponseMapping, 1)
+	assert.Len(t, hooks.PreRequestMapping, 2)
+	assert.Len(t, hooks.PostRequestMapping, 1)
+	assert.Len(t, hooks.PreResponseMapping, 1)
+	assert.Len(t, hooks.PostResponseMapping, 1)
 
-	hooks.SetBeforeRequestMappingHooks(beforeRequest)
-	assert.Len(t, hooks.BeforeRequestMapping, 1)
+	hooks.SetPreRequestMappingHooks(beforeRequest)
+	assert.Len(t, hooks.PreRequestMapping, 1)
 
-	hooks.SetBeforeRequestMappingHooks()
-	hooks.SetAfterRequestMappingHooks()
-	hooks.SetBeforeResponseMappingHooks()
-	hooks.SetAfterResponseMappingHooks()
-	assert.Empty(t, hooks.BeforeRequestMapping)
-	assert.Empty(t, hooks.AfterRequestMapping)
-	assert.Empty(t, hooks.BeforeResponseMapping)
-	assert.Empty(t, hooks.AfterResponseMapping)
+	hooks.SetPreRequestMappingHooks()
+	hooks.SetPostRequestMappingHooks()
+	hooks.SetPreResponseMappingHooks()
+	hooks.SetPostResponseMappingHooks()
+	assert.Empty(t, hooks.PreRequestMapping)
+	assert.Empty(t, hooks.PostRequestMapping)
+	assert.Empty(t, hooks.PreResponseMapping)
+	assert.Empty(t, hooks.PostResponseMapping)
 }
 
 func TestRequestMappingInterfaceHooks(t *testing.T) {
 	t.Run("matches value receiver interfaces", func(t *testing.T) {
 		var called bool
-		hook := AfterRequestMappingInterfaceHook(func(ctx context.Context, info RPCInfo, value hookValidator) (context.Context, error) {
+		hook := PostRequestMappingInterfaceHook(func(ctx context.Context, info RPCInfo, value hookValidator) (context.Context, error) {
 			called = true
 			assert.Equal(t, "books.v1.BookService", info.Service)
 			return context.WithValue(ctx, contextKey("validated"), true), value.Validate()
 		})
 
-		ctx, err := RunAfterRequestMappingInterfaceHooks(
+		ctx, err := RunPostRequestMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{Service: "books.v1.BookService"},
 			hookValueValidated{},
-			[]AfterRequestMappingInterfaceHookFunc{hook},
+			[]PostRequestMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -139,16 +139,16 @@ func TestRequestMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("matches pointer receiver interfaces", func(t *testing.T) {
 		var called bool
-		hook := BeforeRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, value hookValidator) (context.Context, error) {
+		hook := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, value hookValidator) (context.Context, error) {
 			called = true
 			return ctx, value.Validate()
 		})
 
-		ctx, err := RunBeforeRequestMappingInterfaceHooks(
+		ctx, err := RunPreRequestMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			hookPointerValidated{},
-			[]BeforeRequestMappingInterfaceHookFunc{hook},
+			[]PreRequestMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -158,16 +158,16 @@ func TestRequestMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("skips non matching values", func(t *testing.T) {
 		var called bool
-		hook := AfterRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+		hook := PostRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 			called = true
 			return ctx, nil
 		})
 
-		_, err := RunAfterRequestMappingInterfaceHooks(
+		_, err := RunPostRequestMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			"not validated",
-			[]AfterRequestMappingInterfaceHookFunc{hook},
+			[]PostRequestMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -176,15 +176,15 @@ func TestRequestMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("returns hook errors", func(t *testing.T) {
 		wantErr := errors.New("invalid")
-		hook := BeforeRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, value hookValidator) (context.Context, error) {
+		hook := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, value hookValidator) (context.Context, error) {
 			return ctx, value.Validate()
 		})
 
-		_, err := RunBeforeRequestMappingInterfaceHooks(
+		_, err := RunPreRequestMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			hookValueValidated{err: wantErr},
-			[]BeforeRequestMappingInterfaceHookFunc{hook},
+			[]PreRequestMappingInterfaceHookFunc{hook},
 		)
 
 		require.ErrorIs(t, err, wantErr)
@@ -194,35 +194,35 @@ func TestRequestMappingInterfaceHooks(t *testing.T) {
 func TestAnyInterfaceHooks(t *testing.T) {
 	t.Run("matches every mapping slot", func(t *testing.T) {
 		var calls []string
-		beforeRequest := BeforeRequestMappingAnyHook(func(ctx context.Context, _ RPCInfo, value any) (context.Context, error) {
+		beforeRequest := PreRequestMappingAnyHook(func(ctx context.Context, _ RPCInfo, value any) (context.Context, error) {
 			calls = append(calls, "before-request:"+value.(string))
 			return context.WithValue(ctx, contextKey("before-request"), true), nil
 		})
-		afterRequest := AfterRequestMappingAnyHook(func(ctx context.Context, _ RPCInfo, value any) (context.Context, error) {
+		afterRequest := PostRequestMappingAnyHook(func(ctx context.Context, _ RPCInfo, value any) (context.Context, error) {
 			calls = append(calls, "after-request:"+value.(string))
 			return context.WithValue(ctx, contextKey("after-request"), true), nil
 		})
-		beforeResponse := BeforeResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, value any) error {
+		beforeResponse := PreResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, value any) error {
 			calls = append(calls, "before-response:"+value.(string))
 			return nil
 		})
-		afterResponse := AfterResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, value any) error {
+		afterResponse := PostResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, value any) error {
 			calls = append(calls, "after-response:"+value.(string))
 			return nil
 		})
 
-		ctx, err := RunBeforeRequestMappingInterfaceHooks(context.Background(), RPCInfo{}, "value", []BeforeRequestMappingInterfaceHookFunc{beforeRequest})
+		ctx, err := RunPreRequestMappingInterfaceHooks(context.Background(), RPCInfo{}, "value", []PreRequestMappingInterfaceHookFunc{beforeRequest})
 		require.NoError(t, err)
 		assert.Equal(t, true, ctx.Value(contextKey("before-request")))
 
-		ctx, err = RunAfterRequestMappingInterfaceHooks(ctx, RPCInfo{}, "value", []AfterRequestMappingInterfaceHookFunc{afterRequest})
+		ctx, err = RunPostRequestMappingInterfaceHooks(ctx, RPCInfo{}, "value", []PostRequestMappingInterfaceHookFunc{afterRequest})
 		require.NoError(t, err)
 		assert.Equal(t, true, ctx.Value(contextKey("after-request")))
 
-		err = RunBeforeResponseMappingInterfaceHooks(ctx, RPCInfo{}, "value", []BeforeResponseMappingInterfaceHookFunc{beforeResponse})
+		err = RunPreResponseMappingInterfaceHooks(ctx, RPCInfo{}, "value", []PreResponseMappingInterfaceHookFunc{beforeResponse})
 		require.NoError(t, err)
 
-		err = RunAfterResponseMappingInterfaceHooks(ctx, RPCInfo{}, "value", []AfterResponseMappingInterfaceHookFunc{afterResponse})
+		err = RunPostResponseMappingInterfaceHooks(ctx, RPCInfo{}, "value", []PostResponseMappingInterfaceHookFunc{afterResponse})
 		require.NoError(t, err)
 
 		assert.Equal(t, []string{
@@ -237,7 +237,7 @@ func TestAnyInterfaceHooks(t *testing.T) {
 		var validated bool
 		var finalized bool
 		value := hookMultiPurpose{}
-		hook := BeforeResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, value any) error {
+		hook := PreResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, value any) error {
 			if validator, ok := value.(hookValidator); ok {
 				validated = true
 				if err := validator.Validate(); err != nil {
@@ -251,11 +251,11 @@ func TestAnyInterfaceHooks(t *testing.T) {
 			return nil
 		})
 
-		err := RunBeforeResponseMappingInterfaceHooks(
+		err := RunPreResponseMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			&value,
-			[]BeforeResponseMappingInterfaceHookFunc{hook},
+			[]PreResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -266,15 +266,15 @@ func TestAnyInterfaceHooks(t *testing.T) {
 
 	t.Run("returns hook errors", func(t *testing.T) {
 		wantErr := errors.New("any hook failed")
-		hook := AfterResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, _ any) error {
+		hook := PostResponseMappingAnyHook(func(_ context.Context, _ RPCInfo, _ any) error {
 			return wantErr
 		})
 
-		err := RunAfterResponseMappingInterfaceHooks(
+		err := RunPostResponseMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			"value",
-			[]AfterResponseMappingInterfaceHookFunc{hook},
+			[]PostResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.ErrorIs(t, err, wantErr)
@@ -284,18 +284,18 @@ func TestAnyInterfaceHooks(t *testing.T) {
 func TestResponseMappingInterfaceHooks(t *testing.T) {
 	t.Run("matches value receiver interfaces", func(t *testing.T) {
 		var called bool
-		hook := BeforeResponseMappingInterfaceHook(func(infoCtx context.Context, info RPCInfo, value hookValidator) error {
+		hook := PreResponseMappingInterfaceHook(func(infoCtx context.Context, info RPCInfo, value hookValidator) error {
 			called = true
 			assert.Equal(t, "GetBook", info.Method)
 			assert.Equal(t, true, infoCtx.Value(contextKey("response")))
 			return value.Validate()
 		})
 
-		err := RunBeforeResponseMappingInterfaceHooks(
+		err := RunPreResponseMappingInterfaceHooks(
 			context.WithValue(context.Background(), contextKey("response"), true),
 			RPCInfo{Method: "GetBook"},
 			hookValueValidated{},
-			[]BeforeResponseMappingInterfaceHookFunc{hook},
+			[]PreResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -304,16 +304,16 @@ func TestResponseMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("matches pointer receiver interfaces", func(t *testing.T) {
 		var called bool
-		hook := AfterResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, value hookValidator) error {
+		hook := PostResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, value hookValidator) error {
 			called = true
 			return value.Validate()
 		})
 
-		err := RunAfterResponseMappingInterfaceHooks(
+		err := RunPostResponseMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			hookPointerValidated{},
-			[]AfterResponseMappingInterfaceHookFunc{hook},
+			[]PostResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -322,15 +322,15 @@ func TestResponseMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("preserves pointer receiver mutations for addressable values", func(t *testing.T) {
 		value := hookFinalized{}
-		hook := BeforeResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, value hookFinalizer) error {
+		hook := PreResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, value hookFinalizer) error {
 			return value.Finalize()
 		})
 
-		err := RunBeforeResponseMappingInterfaceHooks(
+		err := RunPreResponseMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			&value,
-			[]BeforeResponseMappingInterfaceHookFunc{hook},
+			[]PreResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -339,16 +339,16 @@ func TestResponseMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("skips non matching values", func(t *testing.T) {
 		var called bool
-		hook := BeforeResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+		hook := PreResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
 			called = true
 			return nil
 		})
 
-		err := RunBeforeResponseMappingInterfaceHooks(
+		err := RunPreResponseMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			"not validated",
-			[]BeforeResponseMappingInterfaceHookFunc{hook},
+			[]PreResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.NoError(t, err)
@@ -357,15 +357,15 @@ func TestResponseMappingInterfaceHooks(t *testing.T) {
 
 	t.Run("returns hook errors", func(t *testing.T) {
 		wantErr := errors.New("invalid")
-		hook := AfterResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, value hookValidator) error {
+		hook := PostResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, value hookValidator) error {
 			return value.Validate()
 		})
 
-		err := RunAfterResponseMappingInterfaceHooks(
+		err := RunPostResponseMappingInterfaceHooks(
 			context.Background(),
 			RPCInfo{},
 			hookValueValidated{err: wantErr},
-			[]AfterResponseMappingInterfaceHookFunc{hook},
+			[]PostResponseMappingInterfaceHookFunc{hook},
 		)
 
 		require.ErrorIs(t, err, wantErr)

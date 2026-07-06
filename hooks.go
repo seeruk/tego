@@ -9,106 +9,106 @@ type RPCInfo struct {
 	Procedure string
 }
 
-// BeforeRequestMappingInterfaceHookFunc applies to protobuf requests before request mapping.
-type BeforeRequestMappingInterfaceHookFunc struct {
+// PreRequestMappingInterfaceHookFunc applies to protobuf requests before request mapping.
+type PreRequestMappingInterfaceHookFunc struct {
 	run func(context.Context, RPCInfo, any) (context.Context, bool, error)
 }
 
-// AfterRequestMappingInterfaceHookFunc applies to Tego requests after request mapping.
-type AfterRequestMappingInterfaceHookFunc struct {
+// PostRequestMappingInterfaceHookFunc applies to Tego requests after request mapping.
+type PostRequestMappingInterfaceHookFunc struct {
 	run func(context.Context, RPCInfo, any) (context.Context, bool, error)
 }
 
-// BeforeResponseMappingInterfaceHookFunc applies to Tego responses before response mapping.
-type BeforeResponseMappingInterfaceHookFunc struct {
+// PreResponseMappingInterfaceHookFunc applies to Tego responses before response mapping.
+type PreResponseMappingInterfaceHookFunc struct {
 	run func(context.Context, RPCInfo, any) (bool, error)
 }
 
-// AfterResponseMappingInterfaceHookFunc applies to protobuf responses after response mapping.
-type AfterResponseMappingInterfaceHookFunc struct {
+// PostResponseMappingInterfaceHookFunc applies to protobuf responses after response mapping.
+type PostResponseMappingInterfaceHookFunc struct {
 	run func(context.Context, RPCInfo, any) (bool, error)
 }
 
 // InterfaceHooks groups reusable hooks matched by Go interface implementation.
 type InterfaceHooks struct {
-	BeforeRequestMapping  []BeforeRequestMappingInterfaceHookFunc
-	AfterRequestMapping   []AfterRequestMappingInterfaceHookFunc
-	BeforeResponseMapping []BeforeResponseMappingInterfaceHookFunc
-	AfterResponseMapping  []AfterResponseMappingInterfaceHookFunc
+	PreRequestMapping   []PreRequestMappingInterfaceHookFunc
+	PostRequestMapping  []PostRequestMappingInterfaceHookFunc
+	PreResponseMapping  []PreResponseMappingInterfaceHookFunc
+	PostResponseMapping []PostResponseMappingInterfaceHookFunc
 }
 
 // MergeInterfaceHooks appends matching hook slots from all hook groups.
 func MergeInterfaceHooks(hooks ...InterfaceHooks) InterfaceHooks {
 	var merged InterfaceHooks
 	for _, hooks := range hooks {
-		merged.BeforeRequestMapping = append(merged.BeforeRequestMapping, hooks.BeforeRequestMapping...)
-		merged.AfterRequestMapping = append(merged.AfterRequestMapping, hooks.AfterRequestMapping...)
-		merged.BeforeResponseMapping = append(merged.BeforeResponseMapping, hooks.BeforeResponseMapping...)
-		merged.AfterResponseMapping = append(merged.AfterResponseMapping, hooks.AfterResponseMapping...)
+		merged.PreRequestMapping = append(merged.PreRequestMapping, hooks.PreRequestMapping...)
+		merged.PostRequestMapping = append(merged.PostRequestMapping, hooks.PostRequestMapping...)
+		merged.PreResponseMapping = append(merged.PreResponseMapping, hooks.PreResponseMapping...)
+		merged.PostResponseMapping = append(merged.PostResponseMapping, hooks.PostResponseMapping...)
 	}
 	return merged
 }
 
-// AddBeforeRequestMappingHook appends hooks for protobuf requests before request mapping.
-func (h *InterfaceHooks) AddBeforeRequestMappingHook(hooks ...BeforeRequestMappingInterfaceHookFunc) *InterfaceHooks {
-	h.BeforeRequestMapping = append(h.BeforeRequestMapping, hooks...)
+// AddPreRequestMappingHook appends hooks for protobuf requests before request mapping.
+func (h *InterfaceHooks) AddPreRequestMappingHook(hooks ...PreRequestMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PreRequestMapping = append(h.PreRequestMapping, hooks...)
 	return h
 }
 
-// SetBeforeRequestMappingHooks replaces hooks for protobuf requests before request mapping.
-func (h *InterfaceHooks) SetBeforeRequestMappingHooks(hooks ...BeforeRequestMappingInterfaceHookFunc) *InterfaceHooks {
-	h.BeforeRequestMapping = hooks
+// SetPreRequestMappingHooks replaces hooks for protobuf requests before request mapping.
+func (h *InterfaceHooks) SetPreRequestMappingHooks(hooks ...PreRequestMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PreRequestMapping = hooks
 	return h
 }
 
-// AddAfterRequestMappingHook appends hooks for Tego requests after request mapping.
-func (h *InterfaceHooks) AddAfterRequestMappingHook(hooks ...AfterRequestMappingInterfaceHookFunc) *InterfaceHooks {
-	h.AfterRequestMapping = append(h.AfterRequestMapping, hooks...)
+// AddPostRequestMappingHook appends hooks for Tego requests after request mapping.
+func (h *InterfaceHooks) AddPostRequestMappingHook(hooks ...PostRequestMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PostRequestMapping = append(h.PostRequestMapping, hooks...)
 	return h
 }
 
-// SetAfterRequestMappingHooks replaces hooks for Tego requests after request mapping.
-func (h *InterfaceHooks) SetAfterRequestMappingHooks(hooks ...AfterRequestMappingInterfaceHookFunc) *InterfaceHooks {
-	h.AfterRequestMapping = hooks
+// SetPostRequestMappingHooks replaces hooks for Tego requests after request mapping.
+func (h *InterfaceHooks) SetPostRequestMappingHooks(hooks ...PostRequestMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PostRequestMapping = hooks
 	return h
 }
 
-// AddBeforeResponseMappingHook appends hooks for Tego responses before response mapping.
-func (h *InterfaceHooks) AddBeforeResponseMappingHook(hooks ...BeforeResponseMappingInterfaceHookFunc) *InterfaceHooks {
-	h.BeforeResponseMapping = append(h.BeforeResponseMapping, hooks...)
+// AddPreResponseMappingHook appends hooks for Tego responses before response mapping.
+func (h *InterfaceHooks) AddPreResponseMappingHook(hooks ...PreResponseMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PreResponseMapping = append(h.PreResponseMapping, hooks...)
 	return h
 }
 
-// SetBeforeResponseMappingHooks replaces hooks for Tego responses before response mapping.
-func (h *InterfaceHooks) SetBeforeResponseMappingHooks(hooks ...BeforeResponseMappingInterfaceHookFunc) *InterfaceHooks {
-	h.BeforeResponseMapping = hooks
+// SetPreResponseMappingHooks replaces hooks for Tego responses before response mapping.
+func (h *InterfaceHooks) SetPreResponseMappingHooks(hooks ...PreResponseMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PreResponseMapping = hooks
 	return h
 }
 
-// AddAfterResponseMappingHook appends hooks for protobuf responses after response mapping.
-func (h *InterfaceHooks) AddAfterResponseMappingHook(hooks ...AfterResponseMappingInterfaceHookFunc) *InterfaceHooks {
-	h.AfterResponseMapping = append(h.AfterResponseMapping, hooks...)
+// AddPostResponseMappingHook appends hooks for protobuf responses after response mapping.
+func (h *InterfaceHooks) AddPostResponseMappingHook(hooks ...PostResponseMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PostResponseMapping = append(h.PostResponseMapping, hooks...)
 	return h
 }
 
-// SetAfterResponseMappingHooks replaces hooks for protobuf responses after response mapping.
-func (h *InterfaceHooks) SetAfterResponseMappingHooks(hooks ...AfterResponseMappingInterfaceHookFunc) *InterfaceHooks {
-	h.AfterResponseMapping = hooks
+// SetPostResponseMappingHooks replaces hooks for protobuf responses after response mapping.
+func (h *InterfaceHooks) SetPostResponseMappingHooks(hooks ...PostResponseMappingInterfaceHookFunc) *InterfaceHooks {
+	h.PostResponseMapping = hooks
 	return h
 }
 
-// BeforeRequestMappingAnyHook adapts a hook that applies to every protobuf request before request mapping.
-func BeforeRequestMappingAnyHook(
+// PreRequestMappingAnyHook adapts a hook that applies to every protobuf request before request mapping.
+func PreRequestMappingAnyHook(
 	hook func(context.Context, RPCInfo, any) (context.Context, error),
-) BeforeRequestMappingInterfaceHookFunc {
-	return BeforeRequestMappingInterfaceHook[any](hook)
+) PreRequestMappingInterfaceHookFunc {
+	return PreRequestMappingInterfaceHook[any](hook)
 }
 
-// BeforeRequestMappingInterfaceHook adapts a typed interface hook for protobuf requests.
-func BeforeRequestMappingInterfaceHook[I any](
+// PreRequestMappingInterfaceHook adapts a typed interface hook for protobuf requests.
+func PreRequestMappingInterfaceHook[I any](
 	hook func(context.Context, RPCInfo, I) (context.Context, error),
-) BeforeRequestMappingInterfaceHookFunc {
-	return BeforeRequestMappingInterfaceHookFunc{
+) PreRequestMappingInterfaceHookFunc {
+	return PreRequestMappingInterfaceHookFunc{
 		run: func(ctx context.Context, info RPCInfo, value any) (context.Context, bool, error) {
 			typed, ok := value.(I)
 			if !ok {
@@ -120,18 +120,18 @@ func BeforeRequestMappingInterfaceHook[I any](
 	}
 }
 
-// AfterRequestMappingAnyHook adapts a hook that applies to every Tego request after request mapping.
-func AfterRequestMappingAnyHook(
+// PostRequestMappingAnyHook adapts a hook that applies to every Tego request after request mapping.
+func PostRequestMappingAnyHook(
 	hook func(context.Context, RPCInfo, any) (context.Context, error),
-) AfterRequestMappingInterfaceHookFunc {
-	return AfterRequestMappingInterfaceHook[any](hook)
+) PostRequestMappingInterfaceHookFunc {
+	return PostRequestMappingInterfaceHook[any](hook)
 }
 
-// AfterRequestMappingInterfaceHook adapts a typed interface hook for Tego requests.
-func AfterRequestMappingInterfaceHook[I any](
+// PostRequestMappingInterfaceHook adapts a typed interface hook for Tego requests.
+func PostRequestMappingInterfaceHook[I any](
 	hook func(context.Context, RPCInfo, I) (context.Context, error),
-) AfterRequestMappingInterfaceHookFunc {
-	return AfterRequestMappingInterfaceHookFunc{
+) PostRequestMappingInterfaceHookFunc {
+	return PostRequestMappingInterfaceHookFunc{
 		run: func(ctx context.Context, info RPCInfo, value any) (context.Context, bool, error) {
 			typed, ok := value.(I)
 			if !ok {
@@ -143,18 +143,18 @@ func AfterRequestMappingInterfaceHook[I any](
 	}
 }
 
-// BeforeResponseMappingAnyHook adapts a hook that applies to every Tego response before response mapping.
-func BeforeResponseMappingAnyHook(
+// PreResponseMappingAnyHook adapts a hook that applies to every Tego response before response mapping.
+func PreResponseMappingAnyHook(
 	hook func(context.Context, RPCInfo, any) error,
-) BeforeResponseMappingInterfaceHookFunc {
-	return BeforeResponseMappingInterfaceHook[any](hook)
+) PreResponseMappingInterfaceHookFunc {
+	return PreResponseMappingInterfaceHook[any](hook)
 }
 
-// BeforeResponseMappingInterfaceHook adapts a typed interface hook for Tego responses.
-func BeforeResponseMappingInterfaceHook[I any](
+// PreResponseMappingInterfaceHook adapts a typed interface hook for Tego responses.
+func PreResponseMappingInterfaceHook[I any](
 	hook func(context.Context, RPCInfo, I) error,
-) BeforeResponseMappingInterfaceHookFunc {
-	return BeforeResponseMappingInterfaceHookFunc{
+) PreResponseMappingInterfaceHookFunc {
+	return PreResponseMappingInterfaceHookFunc{
 		run: func(ctx context.Context, info RPCInfo, value any) (bool, error) {
 			typed, ok := value.(I)
 			if !ok {
@@ -165,18 +165,18 @@ func BeforeResponseMappingInterfaceHook[I any](
 	}
 }
 
-// AfterResponseMappingAnyHook adapts a hook that applies to every protobuf response after response mapping.
-func AfterResponseMappingAnyHook(
+// PostResponseMappingAnyHook adapts a hook that applies to every protobuf response after response mapping.
+func PostResponseMappingAnyHook(
 	hook func(context.Context, RPCInfo, any) error,
-) AfterResponseMappingInterfaceHookFunc {
-	return AfterResponseMappingInterfaceHook[any](hook)
+) PostResponseMappingInterfaceHookFunc {
+	return PostResponseMappingInterfaceHook[any](hook)
 }
 
-// AfterResponseMappingInterfaceHook adapts a typed interface hook for protobuf responses.
-func AfterResponseMappingInterfaceHook[I any](
+// PostResponseMappingInterfaceHook adapts a typed interface hook for protobuf responses.
+func PostResponseMappingInterfaceHook[I any](
 	hook func(context.Context, RPCInfo, I) error,
-) AfterResponseMappingInterfaceHookFunc {
-	return AfterResponseMappingInterfaceHookFunc{
+) PostResponseMappingInterfaceHookFunc {
+	return PostResponseMappingInterfaceHookFunc{
 		run: func(ctx context.Context, info RPCInfo, value any) (bool, error) {
 			typed, ok := value.(I)
 			if !ok {
@@ -187,12 +187,12 @@ func AfterResponseMappingInterfaceHook[I any](
 	}
 }
 
-// RunBeforeRequestMappingInterfaceHooks runs matching before-request mapping interface hooks.
-func RunBeforeRequestMappingInterfaceHooks[T any](
+// RunPreRequestMappingInterfaceHooks runs matching before-request mapping interface hooks.
+func RunPreRequestMappingInterfaceHooks[T any](
 	ctx context.Context,
 	info RPCInfo,
 	value T,
-	hooks []BeforeRequestMappingInterfaceHookFunc,
+	hooks []PreRequestMappingInterfaceHookFunc,
 ) (context.Context, error) {
 	for _, hook := range hooks {
 		var err error
@@ -204,12 +204,12 @@ func RunBeforeRequestMappingInterfaceHooks[T any](
 	return ctx, nil
 }
 
-// RunAfterRequestMappingInterfaceHooks runs matching after-request mapping interface hooks.
-func RunAfterRequestMappingInterfaceHooks[T any](
+// RunPostRequestMappingInterfaceHooks runs matching after-request mapping interface hooks.
+func RunPostRequestMappingInterfaceHooks[T any](
 	ctx context.Context,
 	info RPCInfo,
 	value T,
-	hooks []AfterRequestMappingInterfaceHookFunc,
+	hooks []PostRequestMappingInterfaceHookFunc,
 ) (context.Context, error) {
 	for _, hook := range hooks {
 		var err error
@@ -221,12 +221,12 @@ func RunAfterRequestMappingInterfaceHooks[T any](
 	return ctx, nil
 }
 
-// RunBeforeResponseMappingInterfaceHooks runs matching before-response mapping interface hooks.
-func RunBeforeResponseMappingInterfaceHooks[T any](
+// RunPreResponseMappingInterfaceHooks runs matching before-response mapping interface hooks.
+func RunPreResponseMappingInterfaceHooks[T any](
 	ctx context.Context,
 	info RPCInfo,
 	value T,
-	hooks []BeforeResponseMappingInterfaceHookFunc,
+	hooks []PreResponseMappingInterfaceHookFunc,
 ) error {
 	for _, hook := range hooks {
 		if err := runResponseInterfaceHook(ctx, info, value, hook.run); err != nil {
@@ -236,12 +236,12 @@ func RunBeforeResponseMappingInterfaceHooks[T any](
 	return nil
 }
 
-// RunAfterResponseMappingInterfaceHooks runs matching after-response mapping interface hooks.
-func RunAfterResponseMappingInterfaceHooks[T any](
+// RunPostResponseMappingInterfaceHooks runs matching after-response mapping interface hooks.
+func RunPostResponseMappingInterfaceHooks[T any](
 	ctx context.Context,
 	info RPCInfo,
 	value T,
-	hooks []AfterResponseMappingInterfaceHookFunc,
+	hooks []PostResponseMappingInterfaceHookFunc,
 ) error {
 	for _, hook := range hooks {
 		if err := runResponseInterfaceHook(ctx, info, value, hook.run); err != nil {

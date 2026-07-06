@@ -352,10 +352,10 @@ func generateServiceHooks(g *protogen.GeneratedFile, service ServicePlan) error 
 	hooksType := serviceHooksTypeName(service)
 	g.P("type ", hooksType, " struct {")
 	for _, method := range service.Methods {
-		g.P("\t", hookFieldName("Before", method, "Request"), " []", hookTypeName(service, "Before", method, "Request"))
-		g.P("\t", hookFieldName("After", method, "Request"), " []", hookTypeName(service, "After", method, "Request"))
-		g.P("\t", hookFieldName("Before", method, "Response"), " []", hookTypeName(service, "Before", method, "Response"))
-		g.P("\t", hookFieldName("After", method, "Response"), " []", hookTypeName(service, "After", method, "Response"))
+		g.P("\t", hookFieldName("Pre", method, "Request"), " []", hookTypeName(service, "Pre", method, "Request"))
+		g.P("\t", hookFieldName("Post", method, "Request"), " []", hookTypeName(service, "Post", method, "Request"))
+		g.P("\t", hookFieldName("Pre", method, "Response"), " []", hookTypeName(service, "Pre", method, "Response"))
+		g.P("\t", hookFieldName("Post", method, "Response"), " []", hookTypeName(service, "Post", method, "Response"))
 	}
 	g.P("}")
 	g.P()
@@ -380,13 +380,13 @@ func generateServiceHooks(g *protogen.GeneratedFile, service ServicePlan) error 
 
 		contextType := generateContextType(g)
 		rpcInfo := generateTegoSymbol(g, "RPCInfo")
-		g.P("type ", hookTypeName(service, "Before", method, "Request"), " func(", contextType, ", ", rpcInfo, ", ", requestProto, ") (", contextType, ", ", requestProto, ", error)")
+		g.P("type ", hookTypeName(service, "Pre", method, "Request"), " func(", contextType, ", ", rpcInfo, ", ", requestProto, ") (", contextType, ", ", requestProto, ", error)")
 		g.P()
-		g.P("type ", hookTypeName(service, "After", method, "Request"), " func(", contextType, ", ", rpcInfo, ", ", request, ") (", contextType, ", ", request, ", error)")
+		g.P("type ", hookTypeName(service, "Post", method, "Request"), " func(", contextType, ", ", rpcInfo, ", ", request, ") (", contextType, ", ", request, ", error)")
 		g.P()
-		g.P("type ", hookTypeName(service, "Before", method, "Response"), " func(", contextType, ", ", rpcInfo, ", ", response, ") (", response, ", error)")
+		g.P("type ", hookTypeName(service, "Pre", method, "Response"), " func(", contextType, ", ", rpcInfo, ", ", response, ") (", response, ", error)")
 		g.P()
-		g.P("type ", hookTypeName(service, "After", method, "Response"), " func(", contextType, ", ", rpcInfo, ", ", responseProto, ") (", responseProto, ", error)")
+		g.P("type ", hookTypeName(service, "Post", method, "Response"), " func(", contextType, ", ", rpcInfo, ", ", responseProto, ") (", responseProto, ", error)")
 		g.P()
 	}
 
@@ -446,10 +446,10 @@ type hookSlot struct {
 
 func hookSlots() []hookSlot {
 	return []hookSlot{
-		{when: "Before", side: "Request"},
-		{when: "After", side: "Request"},
-		{when: "Before", side: "Response"},
-		{when: "After", side: "Response"},
+		{when: "Pre", side: "Request"},
+		{when: "Post", side: "Request"},
+		{when: "Pre", side: "Response"},
+		{when: "Post", side: "Response"},
 	}
 }
 
@@ -598,16 +598,16 @@ func generateAdapterHookMethods(g *protogen.GeneratedFile, service ServicePlan, 
 
 func generateAdapterHookRunners(g *protogen.GeneratedFile, service ServicePlan, adapterName string) error {
 	for _, method := range service.Methods {
-		if err := generateAdapterHookRunner(g, service, adapterName, method, "Before", "Request", method.Request.ProtoType); err != nil {
+		if err := generateAdapterHookRunner(g, service, adapterName, method, "Pre", "Request", method.Request.ProtoType); err != nil {
 			return err
 		}
-		if err := generateAdapterHookRunner(g, service, adapterName, method, "After", "Request", method.Request.Type); err != nil {
+		if err := generateAdapterHookRunner(g, service, adapterName, method, "Post", "Request", method.Request.Type); err != nil {
 			return err
 		}
-		if err := generateAdapterHookRunner(g, service, adapterName, method, "Before", "Response", method.Response.Type); err != nil {
+		if err := generateAdapterHookRunner(g, service, adapterName, method, "Pre", "Response", method.Response.Type); err != nil {
 			return err
 		}
-		if err := generateAdapterHookRunner(g, service, adapterName, method, "After", "Response", method.Response.ProtoType); err != nil {
+		if err := generateAdapterHookRunner(g, service, adapterName, method, "Post", "Response", method.Response.ProtoType); err != nil {
 			return err
 		}
 	}
@@ -660,7 +660,7 @@ func generateAdapterHookRunner(
 	g.P("\t\t}")
 	g.P("\t}")
 	interfaceHookValue := "value"
-	if when == "Before" {
+	if when == "Pre" {
 		interfaceHookValue = "&value"
 	}
 	g.P("\tif err := ", responseInterfaceHookRunnerSymbol(g, when), "(ctx, info, ", interfaceHookValue, ", a.interfaceHooks.", interfaceHookFieldName(when, side), "); err != nil {")
@@ -681,17 +681,17 @@ func interfaceHookFieldName(when string, side string) string {
 }
 
 func requestInterfaceHookRunnerSymbol(g *protogen.GeneratedFile, when string) string {
-	if when == "Before" {
-		return generateTegoSymbol(g, "RunBeforeRequestMappingInterfaceHooks")
+	if when == "Pre" {
+		return generateTegoSymbol(g, "RunPreRequestMappingInterfaceHooks")
 	}
-	return generateTegoSymbol(g, "RunAfterRequestMappingInterfaceHooks")
+	return generateTegoSymbol(g, "RunPostRequestMappingInterfaceHooks")
 }
 
 func responseInterfaceHookRunnerSymbol(g *protogen.GeneratedFile, when string) string {
-	if when == "Before" {
-		return generateTegoSymbol(g, "RunBeforeResponseMappingInterfaceHooks")
+	if when == "Pre" {
+		return generateTegoSymbol(g, "RunPreResponseMappingInterfaceHooks")
 	}
-	return generateTegoSymbol(g, "RunAfterResponseMappingInterfaceHooks")
+	return generateTegoSymbol(g, "RunPostResponseMappingInterfaceHooks")
 }
 
 func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
@@ -797,14 +797,14 @@ func generateGRPCAdapterUnaryMethodBody(
 ) error {
 	ctx := newMappingRenderContext(g, true, "nil, err")
 	ctx.line("info := " + serviceRPCInfoExpr(g, service, method))
-	ctx.line("ctx, requestProto, err := a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProto)")
+	ctx.line("ctx, requestProto, err := a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
@@ -814,14 +814,14 @@ func generateGRPCAdapterUnaryMethodBody(
 		ctx.line("if err := " + call + "; err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
-		ctx.line("response, err := a." + hookRunnerName("Before", method, "Response") + "(ctx, info, struct{}{})")
+		ctx.line("response, err := a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, struct{}{})")
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
 		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
-		ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
@@ -837,14 +837,14 @@ func generateGRPCAdapterUnaryMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
@@ -860,14 +860,14 @@ func generateGRPCAdapterServerStreamingMethodBody(
 	ctx := newMappingRenderContext(g, true, "err")
 	ctx.line("ctx := stream.Context()")
 	ctx.line("info := " + serviceRPCInfoExpr(g, service, method))
-	ctx.line("ctx, requestProto, err := a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProto)")
+	ctx.line("ctx, requestProto, err := a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
@@ -883,14 +883,14 @@ func generateGRPCAdapterServerStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
@@ -927,7 +927,7 @@ func generateGRPCAdapterClientStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	ctx.line("ctx, requestProto, err = a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProto)")
+	ctx.line("ctx, requestProto, err = a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -938,7 +938,7 @@ func generateGRPCAdapterClientStreamingMethodBody(
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -960,14 +960,14 @@ func generateGRPCAdapterClientStreamingMethodBody(
 		ctx.line("if receiveErr != nil {")
 		ctx.line("return receiveErr")
 		ctx.line("}")
-		ctx.line("response, err := a." + hookRunnerName("Before", method, "Response") + "(ctx, info, struct{}{})")
+		ctx.line("response, err := a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, struct{}{})")
 		ctx.line("if err != nil {")
 		ctx.line("return a.mapError(err)")
 		ctx.line("}")
 		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
-		ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 		ctx.line("if err != nil {")
 		ctx.line("return a.mapError(err)")
 		ctx.line("}")
@@ -987,14 +987,14 @@ func generateGRPCAdapterClientStreamingMethodBody(
 	ctx.line("if receiveErr != nil {")
 	ctx.line("return receiveErr")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
@@ -1027,7 +1027,7 @@ func generateGRPCAdapterBidiStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	ctx.line("ctx, requestProto, err = a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProto)")
+	ctx.line("ctx, requestProto, err = a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -1038,7 +1038,7 @@ func generateGRPCAdapterBidiStreamingMethodBody(
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -1061,14 +1061,14 @@ func generateGRPCAdapterBidiStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
@@ -1485,14 +1485,14 @@ func generateConnectAdapterUnaryMethodBody(
 	ctx := newMappingRenderContext(g, true, "nil, err")
 	ctx.line("info := " + serviceRPCInfoExpr(g, service, method))
 	ctx.line("requestProtoMsg := requestProto.Msg")
-	ctx.line("ctx, requestProtoMsg, err := a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProtoMsg)")
+	ctx.line("ctx, requestProtoMsg, err := a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProtoMsg)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProtoMsg"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
@@ -1502,14 +1502,14 @@ func generateConnectAdapterUnaryMethodBody(
 		ctx.line("if err := " + call + "; err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
-		ctx.line("response, err := a." + hookRunnerName("Before", method, "Response") + "(ctx, info, struct{}{})")
+		ctx.line("response, err := a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, struct{}{})")
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
 		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
-		ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
@@ -1525,14 +1525,14 @@ func generateConnectAdapterUnaryMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
@@ -1548,14 +1548,14 @@ func generateConnectAdapterServerStreamingMethodBody(
 	ctx := newMappingRenderContext(g, true, "err")
 	ctx.line("info := " + serviceRPCInfoExpr(g, service, method))
 	ctx.line("requestProtoMsg := requestProto.Msg")
-	ctx.line("ctx, requestProtoMsg, err := a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProtoMsg)")
+	ctx.line("ctx, requestProtoMsg, err := a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProtoMsg)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProtoMsg"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
@@ -1571,14 +1571,14 @@ func generateConnectAdapterServerStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
@@ -1605,7 +1605,7 @@ func generateConnectAdapterClientStreamingMethodBody(
 	ctx.line("requests := func(yield func(" + requestType + ", error) bool) {")
 	ctx.line("for stream.Receive() {")
 	ctx.line("requestProto := stream.Msg()")
-	ctx.line("ctx, requestProto, err := a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProto)")
+	ctx.line("ctx, requestProto, err := a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -1616,7 +1616,7 @@ func generateConnectAdapterClientStreamingMethodBody(
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -1643,14 +1643,14 @@ func generateConnectAdapterClientStreamingMethodBody(
 		ctx.line("if receiveErr != nil {")
 		ctx.line("return nil, receiveErr")
 		ctx.line("}")
-		ctx.line("response, err := a." + hookRunnerName("Before", method, "Response") + "(ctx, info, struct{}{})")
+		ctx.line("response, err := a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, struct{}{})")
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
 		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
-		ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
@@ -1670,14 +1670,14 @@ func generateConnectAdapterClientStreamingMethodBody(
 	ctx.line("if receiveErr != nil {")
 	ctx.line("return nil, receiveErr")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
@@ -1709,7 +1709,7 @@ func generateConnectAdapterBidiStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	ctx.line("ctx, requestProto, err = a." + hookRunnerName("Before", method, "Request") + "(ctx, info, requestProto)")
+	ctx.line("ctx, requestProto, err = a." + hookRunnerName("Pre", method, "Request") + "(ctx, info, requestProto)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -1720,7 +1720,7 @@ func generateConnectAdapterBidiStreamingMethodBody(
 	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
-	ctx.line("ctx, request, err = a." + hookRunnerName("After", method, "Request") + "(ctx, info, request)")
+	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
 	ctx.line("if err != nil {")
 	ctx.line("err = a.mapError(err)")
 	ctx.line("receiveErr = err")
@@ -1743,14 +1743,14 @@ func generateConnectAdapterBidiStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	ctx.line("response, err = a." + hookRunnerName("Before", method, "Response") + "(ctx, info, response)")
+	ctx.line("response, err = a." + hookRunnerName("Pre", method, "Response") + "(ctx, info, response)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
 	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
-	ctx.line("responseProto, err = a." + hookRunnerName("After", method, "Response") + "(ctx, info, responseProto)")
+	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
