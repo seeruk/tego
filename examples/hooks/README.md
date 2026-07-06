@@ -10,10 +10,8 @@ by the generated adapter. Once you have your adapter, you can pass it to other h
 Tego:
 
 ```go
-adapter := catalog.NewCatalogServiceGRPCAdapter(
-	catalog.Catalog{},
-	tego.WithErrorMapper(grpcError),
-).AddServiceHooks(catalog.ServiceHooks()).
+adapter := catalog.NewCatalogServiceGRPCAdapter(catalog.Catalog{}, tego.WithErrorMapper(grpcError)).
+	AddServiceHooks(catalog.ServiceHooks()).
 	AddInterfaceHooks(catalog.InterfaceHooks())
 
 catalog.RegisterCatalogServiceGRPCServerWithAdapter(server, adapter)
