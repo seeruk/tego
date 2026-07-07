@@ -14,7 +14,10 @@ import (
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
-const plannerTestPkg = "github.com/seeruk/tego/internal/tego/testdata/plannertest"
+const (
+	plannerTestPkg           = "github.com/seeruk/tego/internal/tego/testdata/plannertest"
+	wrapperspbTestImportPath = "google.golang.org/protobuf/types/known/wrapperspb"
+)
 
 func buildYiraDescriptorIndex(t *testing.T) *DescriptorIndex {
 	t.Helper()

@@ -413,11 +413,11 @@ func generatorTestFilePlan() FilePlan {
 	durationType := TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Duration"}}
 	protoStringWrapperType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
 		Kind: TypeKindExternal,
-		Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "StringValue"},
+		Ref:  GoTypeRef{ImportPath: wrapperspbTestImportPath, Name: "StringValue"},
 	}}
 	protoInt64WrapperType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
 		Kind: TypeKindExternal,
-		Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "Int64Value"},
+		Ref:  GoTypeRef{ImportPath: wrapperspbTestImportPath, Name: "Int64Value"},
 	}}
 	protoTimestampType := TypePlan{Kind: TypeKindPointer, Elem: &TypePlan{
 		Kind: TypeKindExternal,

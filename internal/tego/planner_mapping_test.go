@@ -141,7 +141,7 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 	t.Run("plans wrapper messages as direct external pointers", func(t *testing.T) {
 		wrapper := pointerType(TypePlan{
 			Kind: TypeKindExternal,
-			Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "StringValue"},
+			Ref:  GoTypeRef{ImportPath: wrapperspbTestImportPath, Name: "StringValue"},
 		})
 		field := messageField("wrapped_string", wrapperMessage("google.protobuf.StringValue", "StringValue"))
 

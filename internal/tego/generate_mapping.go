@@ -16,7 +16,6 @@ const (
 	emptypbImportPath     = "google.golang.org/protobuf/types/known/emptypb"
 	structpbImportPath    = "google.golang.org/protobuf/types/known/structpb"
 	timestamppbImportPath = "google.golang.org/protobuf/types/known/timestamppb"
-	wrapperspbImportPath  = "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func generateMapping(g *protogen.GeneratedFile, mapping MappingPlan) error {
