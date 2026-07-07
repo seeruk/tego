@@ -861,11 +861,15 @@ func (c *ticketServiceGRPCClient) WatchTicketEvents(ctx context.Context, request
 	if err != nil {
 		return nil, err
 	}
-	stream, err := c.client.WatchTicketEvents(ctx, requestProto)
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(TicketEvent, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.WatchTicketEvents(ctx, requestProto)
+		if err != nil {
+			var zero TicketEvent
+			yield(zero, c.mapError(err))
+			return
+		}
 		for {
 			responseProto, err := stream.Recv()
 			if err == io.EOF {
@@ -920,11 +924,15 @@ func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, reques
 }
 
 func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error) {
-	stream, err := c.client.SyncTicketEvents(ctx)
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(TicketEvent, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.SyncTicketEvents(ctx)
+		if err != nil {
+			var zero TicketEvent
+			yield(zero, c.mapError(err))
+			return
+		}
 		sendErr := make(chan error, 1)
 		go func() {
 			for request, err := range requests {
@@ -1539,11 +1547,15 @@ func (c *ticketServiceConnectClient) WatchTicketEvents(ctx context.Context, requ
 	if err != nil {
 		return nil, err
 	}
-	stream, err := c.client.WatchTicketEvents(ctx, connect.NewRequest(requestProto))
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(TicketEvent, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.WatchTicketEvents(ctx, connect.NewRequest(requestProto))
+		if err != nil {
+			var zero TicketEvent
+			yield(zero, c.mapError(err))
+			return
+		}
 		defer stream.Close()
 		for stream.Receive() {
 			response, err := TicketEventFromProto(stream.Msg())
@@ -1591,8 +1603,10 @@ func (c *ticketServiceConnectClient) ImportTicketEvents(ctx context.Context, req
 }
 
 func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[TicketEvent, error]) (iter.Seq2[TicketEvent, error], error) {
-	stream := c.client.SyncTicketEvents(ctx)
 	responses := func(yield func(TicketEvent, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream := c.client.SyncTicketEvents(ctx)
 		sendErr := make(chan error, 1)
 		go func() {
 			for request, err := range requests {

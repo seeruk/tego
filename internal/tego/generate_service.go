@@ -143,6 +143,10 @@ func generateContextType(g *protogen.GeneratedFile) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: contextImportPath, Name: "Context"})
 }
 
+func generateContextWithCancel(g *protogen.GeneratedFile) string {
+	return generateSymbol(g, GoSymbolRef{ImportPath: contextImportPath, Name: "WithCancel"})
+}
+
 func generateSeq2Type(g *protogen.GeneratedFile, value string) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: iterImportPath, Name: "Seq2"}) + "[" + value + ", error]"
 }
@@ -1153,11 +1157,15 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("ctx, cancel := " + generateContextWithCancel(g) + "(ctx)")
+	ctx.line("defer cancel()")
 	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx, requestProto)")
 	ctx.line("if err != nil {")
-	ctx.line("return nil, c.mapError(err)")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, c.mapError(err))")
+	ctx.line("return")
 	ctx.line("}")
-	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
 	ctx.line("for {")
 	ctx.line("responseProto, err := stream.Recv()")
 	ctx.line("if err == " + generateIOSymbol(g, "EOF") + " {")
@@ -1226,11 +1234,15 @@ func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, servic
 		return err
 	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("ctx, cancel := " + generateContextWithCancel(g) + "(ctx)")
+	ctx.line("defer cancel()")
 	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("if err != nil {")
-	ctx.line("return nil, c.mapError(err)")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, c.mapError(err))")
+	ctx.line("return")
 	ctx.line("}")
-	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
 	ctx.line("sendErr := make(chan error, 1)")
 	ctx.line("go func() {")
 	ctx.line("for request, err := range requests {")
@@ -1835,11 +1847,15 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
+	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("ctx, cancel := " + generateContextWithCancel(g) + "(ctx)")
+	ctx.line("defer cancel()")
 	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx, " + generateConnectSymbol(g, "NewRequest") + "(requestProto))")
 	ctx.line("if err != nil {")
-	ctx.line("return nil, c.mapError(err)")
+	ctx.line("var zero " + responseType)
+	ctx.line("yield(zero, c.mapError(err))")
+	ctx.line("return")
 	ctx.line("}")
-	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
 	ctx.line("defer stream.Close()")
 	ctx.line("for stream.Receive() {")
 	seqCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
@@ -1901,8 +1917,10 @@ func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, ser
 		return err
 	}
 	ctx := newMappingRenderContext(g, true, "nil, err")
-	ctx.line("stream := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
+	ctx.line("ctx, cancel := " + generateContextWithCancel(g) + "(ctx)")
+	ctx.line("defer cancel()")
+	ctx.line("stream := c.client." + serviceNativeMethodName(method) + "(ctx)")
 	ctx.line("sendErr := make(chan error, 1)")
 	ctx.line("go func() {")
 	ctx.line("for request, err := range requests {")

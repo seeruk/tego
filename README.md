@@ -192,10 +192,15 @@ type UpdateProfileRequest struct {
 
 See [examples/presence-patch](examples/presence-patch).
 
-### Facade Services
+### Service Facades
 
-Services generate a facade interface. Request and response messages are inlined by default when it
-is safe. This inlining can be disabled on a per-method-basis.
+Services generate a facade interface. Similar to models that Tego generates, the facade interface is
+a plain Go interface with plain Go types. Tego generates an [adapter layer](#transport-adapters) for
+gRPC and Connect.
+
+Request and response messages are inlined by default when it is safe. This inlining can be disabled
+on a per-method-basis. This keeps the facade interface looking like a regular Go service, not an RPC
+interface. For example, a simple `SayHello` method:
 
 ```protobuf
 service GreeterService {
@@ -203,14 +208,24 @@ service GreeterService {
 }
 ```
 
+Is inlined to something like this:
+
 ```go
 type GreeterService interface {
 	SayHello(context.Context, string) (string, error)
 }
 ```
 
-This is the interface I expect most Go code to implement and call. It keeps handlers from filling up
-with request/response wrapper plumbing.
+The facade is the interface I expect most Go code to implement and call. It keeps handlers from 
+filling up with request/response wrapper plumbing.
+
+One important note on streaming using facade clients; for server-streaming and bidi-streaming, 
+methods return lazy `iter.Seq2` response streams. The native RPC is not opened until callers range 
+the returned sequence. The sequence yields transport setup, receive, and mapping errors, so callers 
+should always check the error side while ranging. It works this way to ensure resources don't leak 
+and so that the interface doesn't require any wrapper types, like a `Stream[T]` with an explicit 
+`Close` method. If you don't range the iterator, the underlying transport is never opened, and if 
+you do range it, the transport is closed when iteration is complete.
 
 ### Transport Adapters
 

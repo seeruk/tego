@@ -64,6 +64,11 @@ func TestGenerate(t *testing.T) {
 		content := generateParsedContent(t, plan)
 
 		assertCommentLinesFit(t, content)
+		assert.Contains(t, content, "ctx, cancel := context.WithCancel(ctx)")
+		assert.Contains(t, content, "defer cancel()")
+		assert.Contains(t, content, "responses := func(yield func(TicketEvent, error) bool) {\n\t\tctx, cancel := context.WithCancel(ctx)")
+		assert.Contains(t, content, "stream, err := c.client.WatchTicketEvents(ctx, requestProto)")
+		assert.Contains(t, content, "yield(zero, c.mapError(err))")
 		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
 			Assert(t, "generate_service_rpc_tego_go", []byte(content))
 	})

@@ -6,6 +6,9 @@ iterator signatures.
 Tego generates facade methods that use `iter.Seq2[T, error]` for stream inputs and outputs, plus the
 gRPC adapter and facade client.
 
+Facade client response streams are lazy: the RPC starts when you range the returned sequence. Always
+check the yielded error, because transport setup and receive errors are reported there.
+
 Good files to start with:
 
 - `proto/streaming/v1/events.proto`

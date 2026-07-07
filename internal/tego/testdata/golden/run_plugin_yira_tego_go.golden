@@ -1864,11 +1864,15 @@ func (c *ticketServiceGRPCClient) CloseTicket(ctx context.Context, ticketID stri
 func (c *ticketServiceGRPCClient) WatchTicketEvents(ctx context.Context, projectID string, ticketID string) (iter.Seq2[WatchTicketEventsResponse, error], error) {
 	ctx, request := WatchTicketEventsRequestFromInline(ctx, projectID, ticketID)
 	requestProto := WatchTicketEventsRequestToProto(request)
-	stream, err := c.client.WatchTicketEvents(ctx, requestProto)
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(WatchTicketEventsResponse, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.WatchTicketEvents(ctx, requestProto)
+		if err != nil {
+			var zero WatchTicketEventsResponse
+			yield(zero, c.mapError(err))
+			return
+		}
 		for {
 			responseProto, err := stream.Recv()
 			if err == io.EOF {
@@ -1915,11 +1919,15 @@ func (c *ticketServiceGRPCClient) ImportTicketEvents(ctx context.Context, reques
 }
 
 func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[SyncTicketEventsRequest, error]) (iter.Seq2[SyncTicketEventsResponse, error], error) {
-	stream, err := c.client.SyncTicketEvents(ctx)
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(SyncTicketEventsResponse, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.SyncTicketEvents(ctx)
+		if err != nil {
+			var zero SyncTicketEventsResponse
+			yield(zero, c.mapError(err))
+			return
+		}
 		sendErr := make(chan error, 1)
 		go func() {
 			for request, err := range requests {
@@ -2956,11 +2964,15 @@ func (c *ticketServiceConnectClient) CloseTicket(ctx context.Context, ticketID s
 func (c *ticketServiceConnectClient) WatchTicketEvents(ctx context.Context, projectID string, ticketID string) (iter.Seq2[WatchTicketEventsResponse, error], error) {
 	ctx, request := WatchTicketEventsRequestFromInline(ctx, projectID, ticketID)
 	requestProto := WatchTicketEventsRequestToProto(request)
-	stream, err := c.client.WatchTicketEvents(ctx, connect.NewRequest(requestProto))
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(WatchTicketEventsResponse, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.WatchTicketEvents(ctx, connect.NewRequest(requestProto))
+		if err != nil {
+			var zero WatchTicketEventsResponse
+			yield(zero, c.mapError(err))
+			return
+		}
 		defer stream.Close()
 		for stream.Receive() {
 			response := WatchTicketEventsResponseFromProto(stream.Msg())
@@ -3000,8 +3012,10 @@ func (c *ticketServiceConnectClient) ImportTicketEvents(ctx context.Context, req
 }
 
 func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, requests iter.Seq2[SyncTicketEventsRequest, error]) (iter.Seq2[SyncTicketEventsResponse, error], error) {
-	stream := c.client.SyncTicketEvents(ctx)
 	responses := func(yield func(SyncTicketEventsResponse, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream := c.client.SyncTicketEvents(ctx)
 		sendErr := make(chan error, 1)
 		go func() {
 			for request, err := range requests {

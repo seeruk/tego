@@ -707,11 +707,15 @@ func (c *eventServiceGRPCClient) mapError(err error) error {
 func (c *eventServiceGRPCClient) Watch(ctx context.Context, topic string) (iter.Seq2[WatchResponse, error], error) {
 	ctx, request := WatchRequestFromInline(ctx, topic)
 	requestProto := WatchRequestToProto(request)
-	stream, err := c.client.Watch(ctx, requestProto)
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(WatchResponse, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.Watch(ctx, requestProto)
+		if err != nil {
+			var zero WatchResponse
+			yield(zero, c.mapError(err))
+			return
+		}
 		for {
 			responseProto, err := stream.Recv()
 			if err == io.EOF {
@@ -755,11 +759,15 @@ func (c *eventServiceGRPCClient) Import(ctx context.Context, requests iter.Seq2[
 }
 
 func (c *eventServiceGRPCClient) Chat(ctx context.Context, requests iter.Seq2[ChatRequest, error]) (iter.Seq2[ChatResponse, error], error) {
-	stream, err := c.client.Chat(ctx)
-	if err != nil {
-		return nil, c.mapError(err)
-	}
 	responses := func(yield func(ChatResponse, error) bool) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := c.client.Chat(ctx)
+		if err != nil {
+			var zero ChatResponse
+			yield(zero, c.mapError(err))
+			return
+		}
 		sendErr := make(chan error, 1)
 		go func() {
 			for request, err := range requests {
