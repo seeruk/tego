@@ -283,7 +283,3 @@ storage, validation, or domain model boundaries.
 ## License
 
 MIT
-
-## TODO
-
-* Extended handling of `Any` WKT
