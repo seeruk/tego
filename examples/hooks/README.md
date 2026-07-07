@@ -24,11 +24,11 @@ The typed hooks show all four mapping slots:
 - `PreGetBookResponseMapping` fills the Tego response display title before finalization.
 - `PostGetBookResponseMapping` fills a protobuf-only legacy compatibility field after mapping.
 
-The interface hooks use `tego.InterfaceHooks` with `tego.PostRequestMappingInterfaceHook` to
-validate Tego requests that implement `Validate() error`, and
-`tego.PreResponseMappingInterfaceHook` to finalize Tego responses that implement
-`Finalize() error`. In this example, finalization requires a dynamic catalog reference derived from
-the book ID, author, and title. Hook errors are mapped by the adapter's usual error mapper.
+The interface hooks use `tego.InterfaceHooks` with `tego.AddPostRequestMappingHook` to validate
+Tego requests that implement `Validate() error`, and `tego.AddPreResponseMappingHook` to finalize
+Tego responses that implement `Finalize() error`. In this example, finalization requires a dynamic
+catalog reference derived from the book ID, author, and title. Hook errors are mapped by the
+adapter's usual error mapper.
 
 The protobuf `Book` also has a `legacy_book_id` field that is intentionally omitted from the Tego
 facade type. The after-response mapping hook fills that field on the final protobuf response so old

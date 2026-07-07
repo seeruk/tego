@@ -74,42 +74,83 @@ func TestMergeInterfaceHooks(t *testing.T) {
 }
 
 func TestInterfaceHookHelpers(t *testing.T) {
-	beforeRequest := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+	var beforeRequestCalled bool
+	beforeRequest := func(ctx context.Context, _ RPCInfo, value hookValidator) (context.Context, error) {
+		beforeRequestCalled = true
+		return context.WithValue(ctx, contextKey("pre-request"), true), value.Validate()
+	}
+	anotherPreRequest := func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
 		return ctx, nil
-	})
-	anotherPreRequest := PreRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
-		return ctx, nil
-	})
-	afterRequest := PostRequestMappingInterfaceHook(func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
-		return ctx, nil
-	})
-	beforeResponse := PreResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
-		return nil
-	})
-	afterResponse := PostResponseMappingInterfaceHook(func(_ context.Context, _ RPCInfo, _ hookValidator) error {
-		return nil
-	})
+	}
+	var afterRequestCalled bool
+	afterRequest := func(ctx context.Context, _ RPCInfo, value hookValidator) (context.Context, error) {
+		afterRequestCalled = true
+		return context.WithValue(ctx, contextKey("post-request"), true), value.Validate()
+	}
+	var beforeResponseCalled bool
+	beforeResponse := func(_ context.Context, _ RPCInfo, value hookValidator) error {
+		beforeResponseCalled = true
+		return value.Validate()
+	}
+	var afterResponseCalled bool
+	afterResponse := func(_ context.Context, _ RPCInfo, value hookValidator) error {
+		afterResponseCalled = true
+		return value.Validate()
+	}
 
 	var hooks InterfaceHooks
-	returned := hooks.
-		AddPreRequestMappingHook(beforeRequest, anotherPreRequest).
-		AddPostRequestMappingHook(afterRequest).
-		AddPreResponseMappingHook(beforeResponse).
-		AddPostResponseMappingHook(afterResponse)
+	AddPreRequestMappingHook(&hooks, beforeRequest, anotherPreRequest)
+	AddPostRequestMappingHook(&hooks, afterRequest)
+	AddPreResponseMappingHook(&hooks, beforeResponse)
+	AddPostResponseMappingHook(&hooks, afterResponse)
 
-	require.Same(t, &hooks, returned)
 	assert.Len(t, hooks.PreRequestMapping, 2)
 	assert.Len(t, hooks.PostRequestMapping, 1)
 	assert.Len(t, hooks.PreResponseMapping, 1)
 	assert.Len(t, hooks.PostResponseMapping, 1)
 
-	hooks.SetPreRequestMappingHooks(beforeRequest)
-	assert.Len(t, hooks.PreRequestMapping, 1)
+	ctx, err := RunPreRequestMappingInterfaceHooks(context.Background(), RPCInfo{}, hookValueValidated{}, hooks.PreRequestMapping)
+	require.NoError(t, err)
+	assert.True(t, beforeRequestCalled)
+	assert.Equal(t, true, ctx.Value(contextKey("pre-request")))
 
-	hooks.SetPreRequestMappingHooks()
-	hooks.SetPostRequestMappingHooks()
-	hooks.SetPreResponseMappingHooks()
-	hooks.SetPostResponseMappingHooks()
+	ctx, err = RunPostRequestMappingInterfaceHooks(ctx, RPCInfo{}, hookValueValidated{}, hooks.PostRequestMapping)
+	require.NoError(t, err)
+	assert.True(t, afterRequestCalled)
+	assert.Equal(t, true, ctx.Value(contextKey("post-request")))
+
+	require.NoError(t, RunPreResponseMappingInterfaceHooks(ctx, RPCInfo{}, hookValueValidated{}, hooks.PreResponseMapping))
+	assert.True(t, beforeResponseCalled)
+
+	require.NoError(t, RunPostResponseMappingInterfaceHooks(ctx, RPCInfo{}, hookValueValidated{}, hooks.PostResponseMapping))
+	assert.True(t, afterResponseCalled)
+
+	replacementPreRequest := func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+		return ctx, nil
+	}
+	replacementPostRequest := func(ctx context.Context, _ RPCInfo, _ hookValidator) (context.Context, error) {
+		return ctx, nil
+	}
+	replacementPreResponse := func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+		return nil
+	}
+	replacementPostResponse := func(_ context.Context, _ RPCInfo, _ hookValidator) error {
+		return nil
+	}
+
+	SetPreRequestMappingHooks(&hooks, replacementPreRequest)
+	SetPostRequestMappingHooks(&hooks, replacementPostRequest)
+	SetPreResponseMappingHooks(&hooks, replacementPreResponse)
+	SetPostResponseMappingHooks(&hooks, replacementPostResponse)
+	assert.Len(t, hooks.PreRequestMapping, 1)
+	assert.Len(t, hooks.PostRequestMapping, 1)
+	assert.Len(t, hooks.PreResponseMapping, 1)
+	assert.Len(t, hooks.PostResponseMapping, 1)
+
+	SetPreRequestMappingHooks[hookValidator](&hooks)
+	SetPostRequestMappingHooks[hookValidator](&hooks)
+	SetPreResponseMappingHooks[hookValidator](&hooks)
+	SetPostResponseMappingHooks[hookValidator](&hooks)
 	assert.Empty(t, hooks.PreRequestMapping)
 	assert.Empty(t, hooks.PostRequestMapping)
 	assert.Empty(t, hooks.PreResponseMapping)

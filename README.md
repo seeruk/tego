@@ -234,8 +234,9 @@ adapter. See [examples/quickstart-grpc](examples/quickstart-grpc),
 
 Adapters can run hooks around request and response mapping, giving you a place for validation,
 normalization, context setup, and response enrichment outside the service implementation. Generated
-service hooks are method-specific and typed, while `tego.InterfaceHooks` let you reuse hooks for
-values that implement an interface such as `Validate() error`. See [examples/hooks](examples/hooks).
+service hooks are method-specific and typed, while `tego.InterfaceHooks` with top-level helpers such
+as `tego.AddPostRequestMappingHook` let you reuse hooks for values that implement an interface such
+as `Validate() error`. See [examples/hooks](examples/hooks).
 
 NOTE: The API for interface hooks _will_ change when Go 1.27 releases to take advantage of methods
 being allowed to also have their own generic type parameters. I'll be reviewing the whole API of 

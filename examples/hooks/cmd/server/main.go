@@ -18,10 +18,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	adapter := catalog.NewCatalogServiceGRPCAdapter(
-		catalog.Catalog{},
-		tego.WithErrorMapper(grpcError),
-	).AddServiceHooks(catalog.ServiceHooks()).
+	adapter := catalog.NewCatalogServiceGRPCAdapter(catalog.Catalog{}, tego.WithErrorMapper(grpcError)).
+		AddServiceHooks(catalog.ServiceHooks()).
 		AddInterfaceHooks(catalog.InterfaceHooks())
 
 	server := grpc.NewServer()

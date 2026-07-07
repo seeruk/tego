@@ -55,13 +55,13 @@ func ServiceHooks() CatalogServiceHooks {
 
 func InterfaceHooks() tego.InterfaceHooks {
 	var hooks tego.InterfaceHooks
-	hooks.AddPostRequestMappingHook(tego.PostRequestMappingInterfaceHook(validate))
-	hooks.AddPreResponseMappingHook(tego.PreResponseMappingInterfaceHook(finalize))
-	hooks.AddPostRequestMappingHook(tego.PostRequestMappingAnyHook(func(ctx context.Context, info tego.RPCInfo, i any) (context.Context, error) {
+	tego.AddPostRequestMappingHook(&hooks, validate)
+	tego.AddPreResponseMappingHook(&hooks, finalize)
+	tego.AddPostRequestMappingHook(&hooks, func(ctx context.Context, info tego.RPCInfo, i any) (context.Context, error) {
 		// Any hooks can inspect all requests or responses in the service, based on which hook you add.
 		fmt.Printf("%T\n", i)
 		return ctx, nil
-	}))
+	})
 	return hooks
 }
 
