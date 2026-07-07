@@ -117,10 +117,9 @@ func TicketFromProto(*ticketpbv1.Ticket) Ticket
 func TicketToProto(Ticket) (*ticketpbv1.Ticket, error)
 ```
 
-The goal is boring Go; structs, enums, slices, maps, pointers, with conversion code you can read.
-The protobuf code still exists, and Tego provides escape-hatches where necessary, but as much as
-possible the protobuf boundary stays explicit, leaving your with regular Go types that hopefully
-match your usual expectations.
+The goal is boring Go; structs, enums, slices, maps, pointers. The protobuf code still exists, and 
+Tego provides escape-hatches where necessary, but as much as possible the protobuf boundary stays 
+explicit, leaving you with regular Go types that hopefully match your usual expectations.
 
 By default, protobuf 64-bit integers generate as native-width Go `int` or `uint` fields. If a
 message or field needs exact-width integers, set `preserve_integer_width`:
@@ -144,30 +143,46 @@ scalar pointers. They are treated as ordinary protobuf message pointer types. Yo
 
 ### Shapes
 
-Some protobuf messages are only there to express a shape protobuf does not have directly. Tego can
-collapse those when they are used as fields:
+Protobuf doesn't support representing certain "shapes" of data that Go can. Tego adds support for 
+some of these shapes, for example, slices of slices without an intermediary wrapper, maps with 
+struct or enum keys (as long as they're comparable), or representing nullability as a pointer (in 
+addition to omittability).
 
 ```protobuf
+message ProjectSlug {
+  // Flatten is often useful in combination with a `go_type` on the field in this type. 
+  option (tego.message).flatten = true;
+
+  string value = 1;
+}
+
 message TicketList {
   repeated Ticket tickets = 1;
 }
 
-message TicketSlug {
-  option (tego.message).flatten = true;
+message TicketsByPerson {
+  message Map {
+    Person key = 1;
+    repeated Ticket value = 2;
+  }
+}
 
-  string value = 1;
+message Project {
+  ProjectSlug slug = 1;
+  repeated TicketList bucketed_tickets = 2;
+  repeated TicketsByPerson tickets_by_author = 3;
 }
 ```
 
 ```go
 type Project struct {
-	Tickets []Ticket
-	Slug    string
+	Slug string
+	BucketedTickets [][]Ticket
+	TicketsByAuthor map[Person][]Ticket
 }
 ```
 
-This keeps the protobuf schema honest while keeping the Go model small. See
-[examples/shapes](examples/shapes) for slices, maps, nullable values, and flattening.
+See [examples/shapes](examples/shapes) for a full example.
 
 ### Custom Types
 
@@ -175,7 +190,7 @@ When a generated field should really be one of your own types, give Tego the typ
 functions:
 
 ```protobuf
-int64 credit_cents = 1 [(tego.field).go_type = {
+int64 cost = 1 [(tego.field).go_type = {
   ref: "github.com/acme/project/money.Money"
   from_proto: "github.com/acme/project/money.MoneyFromProto"
   to_proto: "github.com/acme/project/money.MoneyToProto"
@@ -183,14 +198,36 @@ int64 credit_cents = 1 [(tego.field).go_type = {
 }];
 ```
 
-This is for keeping domain meaning in the Go code. An email can be an `Email`, money can be `Money`,
-and IDs can be real types instead of strings with good intentions. See
-[examples/custom-types](examples/custom-types).
+This works well in conjunction with the `(tego.message).flatten` option, but can be useful inline
+for one-offs.
+
+If your type is more complex, you can also specify the `go_type` option at the message level:
+
+```protobuf
+message Date {
+  option (tego.message).go_type = {
+    ref: "github.com/acme/project/date.Date"
+    from_proto: "github.com/acme/project/date.DateFromProto"
+    to_proto: "github.com/acme/project/date.DateToProto"
+    comparable: true
+  };
+  
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+}
+```
+
+The `go_type` options also support a limited generics-style syntax to allow for more complex 
+conversion, for example, into custom container types.
+
+See [examples/custom-types](examples/custom-types) for a full example.
 
 ### Presence and Patches
 
-For patch-style messages, Tego can generate `omittable.Value[T]` so callers can differentiate between
-not set, set to null/nil, and set to a value, as needed.
+For patch-style messages, Tego can generate `omittable.Value[T]` (from 
+[seeruk/go-containers](https://github.com/seeruk/go-containers)) so callers can differentiate 
+between not set, set to null/nil, and set to a value, as needed.
 
 ```protobuf
 message UpdateProfileRequest {
@@ -249,7 +286,10 @@ you do range it, the transport is closed when iteration is complete.
 
 ### Transport Adapters
 
-If you still want gRPC or Connect, Tego can generate the adapter layer too:
+Whether you want gRPC, or Connect, Tego supports generating adapters and helpers to ease setting up
+servers for both that use Tego's mapping. Tego features a few escape-hatches to give you more 
+control over interacting with the native server either with overriding server methods, or via hooks
+passed to the Tego adapters.
 
 ```go
 hello.RegisterGreeterServiceGRPCServer(server, greeter{})
@@ -259,9 +299,9 @@ client := hello.NewGreeterServiceGRPCClient(
 )
 ```
 
-Your app implements the facade. The generated gRPC or Connect server/client translates at the edge.
-If you need transport details, you can override a native method and delegate back to the generated
-adapter. See [examples/quickstart-grpc](examples/quickstart-grpc),
+Your app should implement the facade. The generated gRPC or Connect server/client translates at the 
+edge. If you need transport details, you can override a native method and delegate back to the 
+generated adapter. See [examples/quickstart-grpc](examples/quickstart-grpc),
 [examples/quickstart-connect](examples/quickstart-connect), and
 [examples/transport-override](examples/transport-override).
 
