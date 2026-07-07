@@ -346,7 +346,7 @@ const (
 	MappingValueKindEmptyStruct
 	// MappingValueKindDynamic maps Struct, Value, or ListValue well-known dynamic data.
 	MappingValueKindDynamic
-	// MappingValueKindWellKnown maps wrapper, timestamp, or duration well-known types.
+	// MappingValueKindWellKnown maps timestamp or duration well-known types.
 	MappingValueKindWellKnown
 	// MappingValueKindFlatten maps an explicit one-field flatten shape.
 	MappingValueKindFlatten
