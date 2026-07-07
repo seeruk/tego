@@ -138,23 +138,18 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.True(t, toProto.CanError)
 	})
 
-	t.Run("plans wrapper conversions through nullable fields", func(t *testing.T) {
-		protoWrapper := pointerType(TypePlan{
+	t.Run("plans wrapper messages as direct external pointers", func(t *testing.T) {
+		wrapper := pointerType(TypePlan{
 			Kind: TypeKindExternal,
 			Ref:  GoTypeRef{ImportPath: wrapperspbImportPath, Name: "StringValue"},
 		})
-		nativeWrapper := pointerType(stringType)
-		field := messageField("wrapped_string", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		field := messageField("wrapped_string", wrapperMessage("google.protobuf.StringValue", "StringValue"))
 
-		fromProto := planner.planFieldMappingValue(field, protoWrapper, nativeWrapper, &ShapeIndex{}, mappingDirectionFromProto)
-		toProto := planner.planFieldMappingValue(field, nativeWrapper, protoWrapper, &ShapeIndex{}, mappingDirectionToProto)
+		fromProto := planner.planFieldMappingValue(field, wrapper, wrapper, &ShapeIndex{}, mappingDirectionFromProto)
+		toProto := planner.planFieldMappingValue(field, wrapper, wrapper, &ShapeIndex{}, mappingDirectionToProto)
 
-		require.NotNil(t, fromProto.Elem)
-		require.NotNil(t, toProto.Elem)
-		assert.Equal(t, MappingValueKindNullable, fromProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, toProto.Kind)
-		assertWellKnownMapping(t, *fromProto.Elem, MappingWellKnownKindWrapper)
-		assertWellKnownMapping(t, *toProto.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindDirect, fromProto.Kind)
+		assert.Equal(t, MappingValueKindDirect, toProto.Kind)
 	})
 
 	t.Run("plans timestamp conversions", func(t *testing.T) {
@@ -384,7 +379,7 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 	})
 
 	t.Run("plans repeated wrapper mappings", func(t *testing.T) {
-		field := repeatedMessageField("names", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		field := repeatedMessageField("names", wrapperMessage("google.protobuf.StringValue", "StringValue"))
 		target, diagnostics := planner.planFieldType(field, &ShapeIndex{})
 		require.Empty(t, diagnostics)
 		source := planner.planProtoFieldType(field)
@@ -397,16 +392,14 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		require.NotNil(t, fromProto.Elem)
 		require.NotNil(t, toProto.Elem)
 		assert.Equal(t, MappingValueKindSlice, fromProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, fromProto.Elem.Kind)
-		assertWellKnownMapping(t, *fromProto.Elem.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindDirect, fromProto.Elem.Kind)
 		assert.Equal(t, MappingValueKindSlice, toProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, toProto.Elem.Kind)
-		assertWellKnownMapping(t, *toProto.Elem.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindDirect, toProto.Elem.Kind)
 	})
 
 	t.Run("plans map wrapper value mappings", func(t *testing.T) {
 		field := protoMapField("names_by_id")
-		field.MapValue = messageField("value", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		field.MapValue = messageField("value", wrapperMessage("google.protobuf.StringValue", "StringValue"))
 		target, diagnostics := planner.planFieldType(field, &ShapeIndex{})
 		require.Empty(t, diagnostics)
 		source := planner.planProtoFieldType(field)
@@ -419,11 +412,9 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		require.NotNil(t, fromProto.Value)
 		require.NotNil(t, toProto.Value)
 		assert.Equal(t, MappingValueKindMap, fromProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, fromProto.Value.Kind)
-		assertWellKnownMapping(t, *fromProto.Value.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindDirect, fromProto.Value.Kind)
 		assert.Equal(t, MappingValueKindMap, toProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, toProto.Value.Kind)
-		assertWellKnownMapping(t, *toProto.Value.Elem, MappingWellKnownKindWrapper)
+		assert.Equal(t, MappingValueKindDirect, toProto.Value.Kind)
 	})
 
 	t.Run("plans repeated flatten shape mappings", func(t *testing.T) {
@@ -520,7 +511,7 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 
 	t.Run("plans slice shape wrapper elements", func(t *testing.T) {
 		shape := plannerMessage("example.v1.Names", "Names")
-		shape.Fields = []*ProtoField{repeatedMessageField("values", &ProtoMessage{FullName: "google.protobuf.StringValue"})}
+		shape.Fields = []*ProtoField{repeatedMessageField("values", wrapperMessage("google.protobuf.StringValue", "StringValue"))}
 		shapeIndex := &ShapeIndex{Slices: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
 		field := messageField("names", shape)
 		target, diagnostics := planner.planFieldType(field, shapeIndex)
@@ -535,14 +526,14 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		require.NotNil(t, fromProto.Elem)
 		require.NotNil(t, toProto.Elem)
 		assert.Equal(t, MappingValueKindSlice, fromProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, fromProto.Elem.Kind)
+		assert.Equal(t, MappingValueKindDirect, fromProto.Elem.Kind)
 		assert.Equal(t, MappingValueKindSlice, toProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, toProto.Elem.Kind)
+		assert.Equal(t, MappingValueKindDirect, toProto.Elem.Kind)
 	})
 
 	t.Run("plans map shape wrapper values", func(t *testing.T) {
 		shape, entry := plannerMapShape()
-		entry.Fields[1] = messageField("value", &ProtoMessage{FullName: "google.protobuf.StringValue"})
+		entry.Fields[1] = messageField("value", wrapperMessage("google.protobuf.StringValue", "StringValue"))
 		shapeIndex := &ShapeIndex{Maps: map[protoreflect.FullName]*ProtoMessage{shape.FullName: shape}}
 		field := messageField("names_by_id", shape)
 		target, diagnostics := planner.planFieldType(field, shapeIndex)
@@ -557,9 +548,9 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		require.NotNil(t, fromProto.Value)
 		require.NotNil(t, toProto.Value)
 		assert.Equal(t, MappingValueKindMap, fromProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, fromProto.Value.Kind)
+		assert.Equal(t, MappingValueKindDirect, fromProto.Value.Kind)
 		assert.Equal(t, MappingValueKindMap, toProto.Kind)
-		assert.Equal(t, MappingValueKindNullable, toProto.Value.Kind)
+		assert.Equal(t, MappingValueKindDirect, toProto.Value.Kind)
 	})
 
 	t.Run("plans omittable wrapping", func(t *testing.T) {

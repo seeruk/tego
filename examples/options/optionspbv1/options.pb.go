@@ -11,6 +11,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	_ "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -614,6 +615,216 @@ func (b0 AccountPatch_builder) Build() *AccountPatch {
 	return m0
 }
 
+type AccountMetrics struct {
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_EventCount       int64                  `protobuf:"varint,1,opt,name=event_count,json=eventCount"`
+	xxx_hidden_ByteCount        uint64                 `protobuf:"varint,2,opt,name=byte_count,json=byteCount"`
+	xxx_hidden_ApproximateCount int64                  `protobuf:"varint,3,opt,name=approximate_count,json=approximateCount"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *AccountMetrics) Reset() {
+	*x = AccountMetrics{}
+	mi := &file_options_v1_options_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountMetrics) ProtoMessage() {}
+
+func (x *AccountMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_options_v1_options_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AccountMetrics) GetEventCount() int64 {
+	if x != nil {
+		return x.xxx_hidden_EventCount
+	}
+	return 0
+}
+
+func (x *AccountMetrics) GetByteCount() uint64 {
+	if x != nil {
+		return x.xxx_hidden_ByteCount
+	}
+	return 0
+}
+
+func (x *AccountMetrics) GetApproximateCount() int64 {
+	if x != nil {
+		return x.xxx_hidden_ApproximateCount
+	}
+	return 0
+}
+
+func (x *AccountMetrics) SetEventCount(v int64) {
+	x.xxx_hidden_EventCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *AccountMetrics) SetByteCount(v uint64) {
+	x.xxx_hidden_ByteCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *AccountMetrics) SetApproximateCount(v int64) {
+	x.xxx_hidden_ApproximateCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *AccountMetrics) HasEventCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AccountMetrics) HasByteCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AccountMetrics) HasApproximateCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AccountMetrics) ClearEventCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_EventCount = 0
+}
+
+func (x *AccountMetrics) ClearByteCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ByteCount = 0
+}
+
+func (x *AccountMetrics) ClearApproximateCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ApproximateCount = 0
+}
+
+type AccountMetrics_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	EventCount       *int64
+	ByteCount        *uint64
+	ApproximateCount *int64
+}
+
+func (b0 AccountMetrics_builder) Build() *AccountMetrics {
+	m0 := &AccountMetrics{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.EventCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_EventCount = *b.EventCount
+	}
+	if b.ByteCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_ByteCount = *b.ByteCount
+	}
+	if b.ApproximateCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ApproximateCount = *b.ApproximateCount
+	}
+	return m0
+}
+
+type LegacyCounter struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Count       int64                  `protobuf:"varint,1,opt,name=count"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *LegacyCounter) Reset() {
+	*x = LegacyCounter{}
+	mi := &file_options_v1_options_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LegacyCounter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LegacyCounter) ProtoMessage() {}
+
+func (x *LegacyCounter) ProtoReflect() protoreflect.Message {
+	mi := &file_options_v1_options_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *LegacyCounter) GetCount() int64 {
+	if x != nil {
+		return x.xxx_hidden_Count
+	}
+	return 0
+}
+
+func (x *LegacyCounter) SetCount(v int64) {
+	x.xxx_hidden_Count = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *LegacyCounter) HasCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LegacyCounter) ClearCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Count = 0
+}
+
+type LegacyCounter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Count *int64
+}
+
+func (b0 LegacyCounter_builder) Build() *LegacyCounter {
+	m0 := &LegacyCounter{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Count != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Count = *b.Count
+	}
+	return m0
+}
+
 type NullableString struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Value isNullableString_Value `protobuf_oneof:"value"`
@@ -623,7 +834,7 @@ type NullableString struct {
 
 func (x *NullableString) Reset() {
 	*x = NullableString{}
-	mi := &file_options_v1_options_proto_msgTypes[4]
+	mi := &file_options_v1_options_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +846,7 @@ func (x *NullableString) String() string {
 func (*NullableString) ProtoMessage() {}
 
 func (x *NullableString) ProtoReflect() protoreflect.Message {
-	mi := &file_options_v1_options_proto_msgTypes[4]
+	mi := &file_options_v1_options_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -754,7 +965,7 @@ func (b0 NullableString_builder) Build() *NullableString {
 type case_NullableString_Value protoreflect.FieldNumber
 
 func (x case_NullableString_Value) String() string {
-	md := file_options_v1_options_proto_msgTypes[4].Descriptor()
+	md := file_options_v1_options_proto_msgTypes[6].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -782,7 +993,7 @@ var File_options_v1_options_proto protoreflect.FileDescriptor
 const file_options_v1_options_proto_rawDesc = "" +
 	"\n" +
 	"\x18options/v1/options.proto\x12\n" +
-	"options.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x12tego/options.proto\"5\n" +
+	"options.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x12tego/options.proto\"5\n" +
 	"\x14LookupAccountRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\"F\n" +
@@ -811,7 +1022,18 @@ const file_options_v1_options_proto_rawDesc = "" +
 	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
 	"\bactor_id\x18\x05 \x01(\tB\x06҅\n" +
 	"\x028\x00R\aactorId:\b҅\n" +
-	"\x04*\x02\b\x01\"a\n" +
+	"\x04*\x02\b\x01\"\x8f\x01\n" +
+	"\x0eAccountMetrics\x12\x1f\n" +
+	"\vevent_count\x18\x01 \x01(\x03R\n" +
+	"eventCount\x12\x1d\n" +
+	"\n" +
+	"byte_count\x18\x02 \x01(\x04R\tbyteCount\x123\n" +
+	"\x11approximate_count\x18\x03 \x01(\x03B\x06҅\n" +
+	"\x02H\x00R\x10approximateCount:\b҅\n" +
+	"\x04*\x02\x10\x01\"-\n" +
+	"\rLegacyCounter\x12\x1c\n" +
+	"\x05count\x18\x01 \x01(\x03B\x06҅\n" +
+	"\x02H\x01R\x05count\"a\n" +
 	"\x0eNullableString\x12\x14\n" +
 	"\x04text\x18\x01 \x01(\tH\x00R\x04text\x120\n" +
 	"\x04null\x18\x02 \x01(\x0e2\x1a.google.protobuf.NullValueH\x00R\x04nullB\a\n" +
@@ -839,24 +1061,26 @@ const file_options_v1_options_proto_rawDesc = "" +
 	"7github.com/seeruk/tego/examples/options/options;optionsZ?github.com/seeruk/tego/examples/options/optionspbv1;optionspbv1b\beditionsp\xe9\a"
 
 var file_options_v1_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_options_v1_options_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_options_v1_options_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_options_v1_options_proto_goTypes = []any{
 	(Role)(0),                     // 0: options.v1.Role
 	(*LookupAccountRequest)(nil),  // 1: options.v1.LookupAccountRequest
 	(*LookupAccountResponse)(nil), // 2: options.v1.LookupAccountResponse
 	(*Account)(nil),               // 3: options.v1.Account
 	(*AccountPatch)(nil),          // 4: options.v1.AccountPatch
-	(*NullableString)(nil),        // 5: options.v1.NullableString
-	(*structpb.Struct)(nil),       // 6: google.protobuf.Struct
-	(structpb.NullValue)(0),       // 7: google.protobuf.NullValue
+	(*AccountMetrics)(nil),        // 5: options.v1.AccountMetrics
+	(*LegacyCounter)(nil),         // 6: options.v1.LegacyCounter
+	(*NullableString)(nil),        // 7: options.v1.NullableString
+	(*structpb.Struct)(nil),       // 8: google.protobuf.Struct
+	(structpb.NullValue)(0),       // 9: google.protobuf.NullValue
 }
 var file_options_v1_options_proto_depIdxs = []int32{
 	3, // 0: options.v1.LookupAccountResponse.account:type_name -> options.v1.Account
 	0, // 1: options.v1.Account.role:type_name -> options.v1.Role
-	5, // 2: options.v1.AccountPatch.email:type_name -> options.v1.NullableString
+	7, // 2: options.v1.AccountPatch.email:type_name -> options.v1.NullableString
 	0, // 3: options.v1.AccountPatch.role:type_name -> options.v1.Role
-	6, // 4: options.v1.AccountPatch.metadata:type_name -> google.protobuf.Struct
-	7, // 5: options.v1.NullableString.null:type_name -> google.protobuf.NullValue
+	8, // 4: options.v1.AccountPatch.metadata:type_name -> google.protobuf.Struct
+	9, // 5: options.v1.NullableString.null:type_name -> google.protobuf.NullValue
 	1, // 6: options.v1.AccountService.LookupAccount:input_type -> options.v1.LookupAccountRequest
 	2, // 7: options.v1.AccountService.LookupAccount:output_type -> options.v1.LookupAccountResponse
 	7, // [7:8] is the sub-list for method output_type
@@ -871,7 +1095,7 @@ func file_options_v1_options_proto_init() {
 	if File_options_v1_options_proto != nil {
 		return
 	}
-	file_options_v1_options_proto_msgTypes[4].OneofWrappers = []any{
+	file_options_v1_options_proto_msgTypes[6].OneofWrappers = []any{
 		(*nullableString_Text)(nil),
 		(*nullableString_Null)(nil),
 	}
@@ -881,7 +1105,7 @@ func file_options_v1_options_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_options_v1_options_proto_rawDesc), len(file_options_v1_options_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -67,8 +67,8 @@ type Person struct {
 	Value          PersonValue
 	Raw            []byte
 	Status         UintStatus
-	WrappedName    *string
-	WrappedCount   *int
+	WrappedName    *wrapperspb.StringValue
+	WrappedCount   *wrapperspb.Int64Value
 	CreatedAt      time.Time
 	TTL            time.Duration
 	Description    *plannertest.Description
@@ -107,16 +107,8 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 	}
 	target.Version = int(source.GetVersion())
 	target.Status = UintStatus(source.GetStatus())
-	var wrappedName *string
-	if source.GetWrappedName() != nil {
-		wrappedName = new(source.GetWrappedName().GetValue())
-	}
-	target.WrappedName = wrappedName
-	var wrappedCount *int
-	if source.GetWrappedCount() != nil {
-		wrappedCount = new(int(source.GetWrappedCount().GetValue()))
-	}
-	target.WrappedCount = wrappedCount
+	target.WrappedName = source.GetWrappedName()
+	target.WrappedCount = source.GetWrappedCount()
 	var createdAt time.Time
 	if source.GetCreatedAt() != nil {
 		createdAt = source.GetCreatedAt().AsTime()
@@ -193,14 +185,6 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 	default:
 		return nil, errors.New("unsupported oneof implementation")
 	}
-	var wrappedName *wrapperspb.StringValue
-	if source.WrappedName != nil {
-		wrappedName = wrapperspb.String(*source.WrappedName)
-	}
-	var wrappedCount *wrapperspb.Int64Value
-	if source.WrappedCount != nil {
-		wrappedCount = wrapperspb.Int64(int64(*source.WrappedCount))
-	}
 	description3, err := (source.Description)
 	if err != nil {
 		return nil, err
@@ -224,8 +208,8 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 		DescriptionValue: value3,
 		Version:          new(int64(source.Version)),
 		Status:           new(generatedpb.UintStatus(source.Status)),
-		WrappedName:      wrappedName,
-		WrappedCount:     wrappedCount,
+		WrappedName:      source.WrappedName,
+		WrappedCount:     source.WrappedCount,
 		CreatedAt:        timestamppb.New(source.CreatedAt),
 		Ttl:              durationpb.New(source.TTL),
 		Description:      &description3,

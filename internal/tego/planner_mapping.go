@@ -910,8 +910,6 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 
 func wellKnownTypeMapping(source TypePlan, target TypePlan, direction mappingDirection) (MappingValuePlan, bool) {
 	switch {
-	case isWrapperMapping(source, target, direction):
-		return wellKnownMapping(source, target, MappingWellKnownKindWrapper), true
 	case isTimestampMapping(source, target, direction):
 		return wellKnownMapping(source, target, MappingWellKnownKindTimestamp), true
 	case isDurationMapping(source, target, direction):
@@ -927,19 +925,6 @@ func wellKnownMapping(source TypePlan, target TypePlan, kind MappingWellKnownKin
 		Source:    source,
 		Target:    target,
 		WellKnown: &MappingWellKnownPlan{Kind: kind},
-	}
-}
-
-func isWrapperMapping(source TypePlan, target TypePlan, direction mappingDirection) bool {
-	switch direction {
-	case mappingDirectionFromProto:
-		scalar, ok := wrapperScalarKind(source)
-		return ok && target.Kind == TypeKindScalar && target.Scalar == scalar
-	case mappingDirectionToProto:
-		scalar, ok := wrapperScalarKind(target)
-		return ok && source.Kind == TypeKindScalar && source.Scalar == scalar
-	default:
-		return false
 	}
 }
 
@@ -1257,17 +1242,6 @@ func isStructpbListValuePointer(plan TypePlan) bool {
 	return plan.Elem.Ref.ImportPath == structpbImportPath && plan.Elem.Ref.Name == "ListValue"
 }
 
-func wrapperScalarKind(plan TypePlan) (ScalarKind, bool) {
-	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
-		return 0, false
-	}
-	if plan.Elem.Ref.ImportPath != wrapperspbImportPath {
-		return 0, false
-	}
-	scalar, ok := wrapperScalarTypesByGoName[plan.Elem.Ref.Name]
-	return scalar, ok
-}
-
 func isTimestamppbTimestampPointer(plan TypePlan) bool {
 	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
 		return false
@@ -1343,8 +1317,7 @@ func isImplicitNullableMappingField(field *ProtoField, si *ShapeIndex) bool {
 	if isNullableShapeMessage(field.Message, si) {
 		return true
 	}
-	_, ok := wrapperScalarTypes[field.Message.FullName]
-	return ok
+	return false
 }
 
 func isNullableShapeMessage(message *ProtoMessage, si *ShapeIndex) bool {
@@ -1428,10 +1401,6 @@ func protoMessagePlanRef(message *ProtoMessage) GoTypeRef {
 }
 
 func wellKnownProtoMessagePlanRef(name protoreflect.FullName) (GoTypeRef, bool) {
-	if goName, ok := wrapperGoNamesByFullName[name]; ok {
-		return GoTypeRef{ImportPath: wrapperspbImportPath, Name: goName}, true
-	}
-
 	switch name {
 	case timestampFullName:
 		return GoTypeRef{ImportPath: timestamppbImportPath, Name: "Timestamp"}, true

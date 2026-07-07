@@ -66,15 +66,17 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		require.Empty(t, diagnostics)
 		assert.Equal(t, TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: "time", Name: "Duration"}}, duration)
 
-		boolValue, diagnostics := planner.planSingularFieldType(messageField("flag", &ProtoMessage{FullName: "google.protobuf.BoolValue"}), shapeIndex)
+		boolValueMessage := wrapperMessage("google.protobuf.BoolValue", "BoolValue")
+		boolValue, diagnostics := planner.planSingularFieldType(messageField("flag", boolValueMessage), shapeIndex)
 		require.Empty(t, diagnostics)
-		elem := requirePointerElem(t, boolValue, TypeKindScalar)
-		assert.Equal(t, ScalarKindBool, elem.Scalar)
+		elem := requirePointerElem(t, boolValue, TypeKindExternal)
+		assert.Equal(t, GoTypeRef{Name: "BoolValue"}, elem.Ref)
 
-		stringValue, diagnostics := planner.planSingularFieldType(messageField("name", &ProtoMessage{FullName: "google.protobuf.StringValue"}), shapeIndex)
+		stringValueMessage := wrapperMessage("google.protobuf.StringValue", "StringValue")
+		stringValue, diagnostics := planner.planSingularFieldType(messageField("name", stringValueMessage), shapeIndex)
 		require.Empty(t, diagnostics)
-		elem = requirePointerElem(t, stringValue, TypeKindScalar)
-		assert.Equal(t, ScalarKindString, elem.Scalar)
+		elem = requirePointerElem(t, stringValue, TypeKindExternal)
+		assert.Equal(t, GoTypeRef{Name: "StringValue"}, elem.Ref)
 
 		empty, diagnostics := planner.planSingularFieldType(messageField("marker", &ProtoMessage{FullName: emptyFullName}), shapeIndex)
 		require.Empty(t, diagnostics)
@@ -105,6 +107,89 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 			ImportPath: "google.golang.org/protobuf/types/known/structpb",
 			Name:       "NullValue",
 		}, nullPlan.Ref)
+	})
+
+	t.Run("preserves integer width when requested", func(t *testing.T) {
+		planner := NewPlanner()
+		shapeIndex := &ShapeIndex{}
+
+		defaultInt, diagnostics := planner.planFieldType(field("count", protoreflect.Int64Kind), shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, ScalarKindInt64, defaultInt.Scalar)
+
+		defaultUint, diagnostics := planner.planFieldType(field("count", protoreflect.Uint64Kind), shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, ScalarKindUint64, defaultUint.Scalar)
+
+		parent := plannerMessage("example.v1.Metrics", "Metrics")
+		setMessageFieldOptionsPreserveIntegerWidth(parent.Options, true)
+		messageLevel := field("count", protoreflect.Sint64Kind)
+		messageLevel.Parent = parent
+
+		plan, diagnostics := planner.planFieldType(messageLevel, shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, ScalarKindFixedInt64, plan.Scalar)
+
+		fieldLevel := field("bytes", protoreflect.Fixed64Kind)
+		setFieldOptionsPreserveIntegerWidth(fieldLevel, true)
+
+		plan, diagnostics = planner.planFieldType(fieldLevel, shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, ScalarKindFixedUint64, plan.Scalar)
+
+		fieldOverride := field("approximate", protoreflect.Int64Kind)
+		fieldOverride.Parent = parent
+		setFieldOptionsPreserveIntegerWidth(fieldOverride, false)
+
+		plan, diagnostics = planner.planFieldType(fieldOverride, shapeIndex)
+		require.Empty(t, diagnostics)
+		assert.Equal(t, ScalarKindInt64, plan.Scalar)
+	})
+
+	t.Run("preserves integer width for compound fields", func(t *testing.T) {
+		planner := NewPlanner()
+		shapeIndex := &ShapeIndex{}
+
+		repeated := repeatedField("counts", protoreflect.Int64Kind)
+		setFieldOptionsPreserveIntegerWidth(repeated, true)
+
+		plan, diagnostics := planner.planFieldType(repeated, shapeIndex)
+		require.Empty(t, diagnostics)
+		require.Equal(t, TypeKindSlice, plan.Kind)
+		require.NotNil(t, plan.Elem)
+		assert.Equal(t, ScalarKindFixedInt64, plan.Elem.Scalar)
+
+		mapped := protoMapField("weights")
+		mapParent := plannerMessage("example.v1.Weights", "Weights")
+		mapEntry := plannerMessage("example.v1.Weights.Map", "Map")
+		mapEntry.Parent = mapParent
+		mapEntry.Fields = []*ProtoField{mapped.MapKey, mapped.MapValue}
+		mapped.Parent = mapParent
+		mapped.Message = mapEntry
+		mapped.MapKey.Parent = mapEntry
+		mapped.MapValue.Parent = mapEntry
+		mapParent.Fields = []*ProtoField{mapped}
+		mapped.MapKey.Kind = protoreflect.Int64Kind
+		mapped.MapValue.Kind = protoreflect.Uint64Kind
+		setFieldOptionsPreserveIntegerWidth(mapped, true)
+
+		plan, diagnostics = planner.planFieldType(mapped, shapeIndex)
+		require.Empty(t, diagnostics)
+		require.Equal(t, TypeKindMap, plan.Kind)
+		require.NotNil(t, plan.Key)
+		require.NotNil(t, plan.Value)
+		assert.Equal(t, ScalarKindFixedInt64, plan.Key.Scalar)
+		assert.Equal(t, ScalarKindFixedUint64, plan.Value.Scalar)
+
+		nullableOmittable := nullableOmittableField("count", protoreflect.Int64Kind)
+		setFieldOptionsPreserveIntegerWidth(nullableOmittable, true)
+
+		plan, diagnostics = planner.planFieldType(nullableOmittable, shapeIndex)
+		require.Len(t, diagnostics, 1)
+		require.Equal(t, TypeKindOmittable, plan.Kind)
+		require.NotNil(t, plan.Elem)
+		ptr := requirePointerElem(t, *plan.Elem, TypeKindScalar)
+		assert.Equal(t, ScalarKindFixedInt64, ptr.Scalar)
 	})
 
 	t.Run("plans imported types by tego coverage", func(t *testing.T) {

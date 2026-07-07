@@ -679,9 +679,9 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 func scalarCastTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
 	if plan.Cast != nil && plan.Cast.ProtoTarget {
 		switch plan.Target.Scalar {
-		case ScalarKindInt64:
+		case ScalarKindInt64, ScalarKindFixedInt64:
 			return "int64", nil
-		case ScalarKindUint64:
+		case ScalarKindUint64, ScalarKindFixedUint64:
 			return "uint64", nil
 		}
 	}
@@ -1147,8 +1147,6 @@ func (ctx *mappingRenderContext) renderWellKnown(plan MappingValuePlan, source s
 	}
 
 	switch plan.WellKnown.Kind {
-	case MappingWellKnownKindWrapper:
-		return ctx.renderWrapper(plan, source)
 	case MappingWellKnownKindTimestamp:
 		return ctx.renderTimestamp(plan, source)
 	case MappingWellKnownKindDuration:
@@ -1156,23 +1154,6 @@ func (ctx *mappingRenderContext) renderWellKnown(plan MappingValuePlan, source s
 	default:
 		return "", fmt.Errorf("unsupported well-known mapping")
 	}
-}
-
-func (ctx *mappingRenderContext) renderWrapper(plan MappingValuePlan, source string) (string, error) {
-	if _, ok := wrapperScalarKind(plan.Source); ok && plan.Target.Kind == TypeKindScalar {
-		value := source + ".GetValue()"
-		return castWrapperValueToGenerated(ctx.g, plan.Target, value)
-	}
-
-	if plan.Source.Kind == TypeKindScalar {
-		constructor, ok := wrapperConstructor(ctx.g, plan.Target)
-		if !ok {
-			return "", fmt.Errorf("wrapper mapping is missing target wrapper")
-		}
-		return constructor + "(" + castGeneratedValueToWrapper(plan.Source, source) + ")", nil
-	}
-
-	return "", fmt.Errorf("unsupported wrapper mapping")
 }
 
 func (ctx *mappingRenderContext) renderTimestamp(plan MappingValuePlan, source string) (string, error) {
@@ -1423,60 +1404,6 @@ func errorsNew(g *protogen.GeneratedFile) string {
 		GoImportPath: "errors",
 		GoName:       "New",
 	})
-}
-
-var wrapperConstructorNames = map[string]string{
-	"BoolValue":   "Bool",
-	"Int32Value":  "Int32",
-	"Int64Value":  "Int64",
-	"UInt32Value": "UInt32",
-	"UInt64Value": "UInt64",
-	"FloatValue":  "Float",
-	"DoubleValue": "Double",
-	"StringValue": "String",
-	"BytesValue":  "Bytes",
-}
-
-func wrapperConstructor(g *protogen.GeneratedFile, plan TypePlan) (string, bool) {
-	if plan.Kind != TypeKindPointer || plan.Elem == nil || plan.Elem.Kind != TypeKindExternal {
-		return "", false
-	}
-	name, ok := wrapperConstructorNames[plan.Elem.Ref.Name]
-	if !ok {
-		return "", false
-	}
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: wrapperspbImportPath,
-		GoName:       name,
-	}), true
-}
-
-func castWrapperValueToGenerated(g *protogen.GeneratedFile, target TypePlan, value string) (string, error) {
-	if target.Kind != TypeKindScalar {
-		return value, nil
-	}
-	if target.Scalar != ScalarKindInt64 && target.Scalar != ScalarKindUint64 {
-		return value, nil
-	}
-	targetType, err := generateType(g, target)
-	if err != nil {
-		return "", err
-	}
-	return targetType + "(" + value + ")", nil
-}
-
-func castGeneratedValueToWrapper(source TypePlan, value string) string {
-	if source.Kind != TypeKindScalar {
-		return value
-	}
-	switch source.Scalar {
-	case ScalarKindInt64:
-		return "int64(" + value + ")"
-	case ScalarKindUint64:
-		return "uint64(" + value + ")"
-	default:
-		return value
-	}
 }
 
 func newValueExpr(g *protogen.GeneratedFile, plan TypePlan) (string, error) {

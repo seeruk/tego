@@ -22,42 +22,6 @@ const (
 	valueFullName     = protoreflect.FullName("google.protobuf.Value")
 )
 
-var wrapperScalarTypes = map[protoreflect.FullName]ScalarKind{
-	"google.protobuf.BoolValue":   ScalarKindBool,
-	"google.protobuf.Int32Value":  ScalarKindInt32,
-	"google.protobuf.Int64Value":  ScalarKindInt64,
-	"google.protobuf.UInt32Value": ScalarKindUint32,
-	"google.protobuf.UInt64Value": ScalarKindUint64,
-	"google.protobuf.FloatValue":  ScalarKindFloat32,
-	"google.protobuf.DoubleValue": ScalarKindFloat64,
-	"google.protobuf.StringValue": ScalarKindString,
-	"google.protobuf.BytesValue":  ScalarKindBytes,
-}
-
-var wrapperGoNamesByFullName = map[protoreflect.FullName]string{
-	"google.protobuf.BoolValue":   "BoolValue",
-	"google.protobuf.Int32Value":  "Int32Value",
-	"google.protobuf.Int64Value":  "Int64Value",
-	"google.protobuf.UInt32Value": "UInt32Value",
-	"google.protobuf.UInt64Value": "UInt64Value",
-	"google.protobuf.FloatValue":  "FloatValue",
-	"google.protobuf.DoubleValue": "DoubleValue",
-	"google.protobuf.StringValue": "StringValue",
-	"google.protobuf.BytesValue":  "BytesValue",
-}
-
-var wrapperScalarTypesByGoName = map[string]ScalarKind{
-	"BoolValue":   ScalarKindBool,
-	"Int32Value":  ScalarKindInt32,
-	"Int64Value":  ScalarKindInt64,
-	"UInt32Value": ScalarKindUint32,
-	"UInt64Value": ScalarKindUint64,
-	"FloatValue":  ScalarKindFloat32,
-	"DoubleValue": ScalarKindFloat64,
-	"StringValue": ScalarKindString,
-	"BytesValue":  ScalarKindBytes,
-}
-
 func (p *Planner) planStruct(message *ProtoMessage, si *ShapeIndex) (StructPlan, []Diagnostic, bool) {
 	if message.Options.GetOmit() || message.Options.HasGoType() || isIndexedShape(message, si) ||
 		isIndexedMapEntryMessage(message, si) || isNativeMapEntryMessage(message) {
@@ -205,11 +169,11 @@ func (p *Planner) planSingularFieldType(field *ProtoField, si *ShapeIndex) (Type
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
 		return scalarType(ScalarKindInt32), nil
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return scalarType(ScalarKindInt64), nil
+		return integerWidthScalarType(ScalarKindInt64, preserveIntegerWidth(field)), nil
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
 		return scalarType(ScalarKindUint32), nil
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return scalarType(ScalarKindUint64), nil
+		return integerWidthScalarType(ScalarKindUint64, preserveIntegerWidth(field)), nil
 	case protoreflect.FloatKind:
 		return scalarType(ScalarKindFloat32), nil
 	case protoreflect.DoubleKind:
@@ -225,6 +189,43 @@ func (p *Planner) planSingularFieldType(field *ProtoField, si *ShapeIndex) (Type
 	default:
 		return TypePlan{}, []Diagnostic{fatalDiagnostic(string(field.FullName), "unsupported field kind %s", field.Kind)}
 	}
+}
+
+func integerWidthScalarType(kind ScalarKind, preserveWidth bool) TypePlan {
+	if preserveWidth {
+		switch kind {
+		case ScalarKindInt64:
+			return scalarType(ScalarKindFixedInt64)
+		case ScalarKindUint64:
+			return scalarType(ScalarKindFixedUint64)
+		}
+	}
+	return scalarType(kind)
+}
+
+func preserveIntegerWidth(field *ProtoField) bool {
+	if field.Options.HasPreserveIntegerWidth() {
+		return field.Options.GetPreserveIntegerWidth()
+	}
+	if field.Parent != nil && field.Parent.Options.HasFields() {
+		return field.Parent.Options.GetFields().GetPreserveIntegerWidth()
+	}
+	if mapField := enclosingMapField(field); mapField != nil {
+		return preserveIntegerWidth(mapField)
+	}
+	return false
+}
+
+func enclosingMapField(field *ProtoField) *ProtoField {
+	if field.Parent == nil || field.Parent.Parent == nil || !isMapEntryMessage(field.Parent) {
+		return nil
+	}
+	for _, candidate := range field.Parent.Parent.Fields {
+		if candidate.Message == field.Parent && candidate.IsMap() {
+			return candidate
+		}
+	}
+	return nil
 }
 
 func (p *Planner) planEnumType(field *ProtoField) TypePlan {
@@ -265,11 +266,6 @@ func (p *Planner) planMessageValueType(message *ProtoMessage, si *ShapeIndex, di
 
 	if covered && message.Options.HasGoType() {
 		return p.planCustomGoType(message.Options.GetGoType(), sourcePatternForMessage(message), diagnosticPath)
-	}
-
-	if scalar, ok := wrapperScalarTypes[message.FullName]; ok {
-		plan := scalarType(scalar)
-		return pointerType(plan), nil
 	}
 
 	switch message.FullName {

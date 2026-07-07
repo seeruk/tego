@@ -937,12 +937,13 @@ func (b0 MessageOptions_builder) Build() *MessageOptions {
 }
 
 type MessageFieldsOptions struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Omittable   bool                   `protobuf:"varint,1,opt,name=omittable"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Omittable            bool                   `protobuf:"varint,1,opt,name=omittable"`
+	xxx_hidden_PreserveIntegerWidth bool                   `protobuf:"varint,2,opt,name=preserve_integer_width,json=preserveIntegerWidth"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *MessageFieldsOptions) Reset() {
@@ -977,9 +978,21 @@ func (x *MessageFieldsOptions) GetOmittable() bool {
 	return false
 }
 
+func (x *MessageFieldsOptions) GetPreserveIntegerWidth() bool {
+	if x != nil {
+		return x.xxx_hidden_PreserveIntegerWidth
+	}
+	return false
+}
+
 func (x *MessageFieldsOptions) SetOmittable(v bool) {
 	x.xxx_hidden_Omittable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *MessageFieldsOptions) SetPreserveIntegerWidth(v bool) {
+	x.xxx_hidden_PreserveIntegerWidth = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *MessageFieldsOptions) HasOmittable() bool {
@@ -989,9 +1002,21 @@ func (x *MessageFieldsOptions) HasOmittable() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
+func (x *MessageFieldsOptions) HasPreserveIntegerWidth() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *MessageFieldsOptions) ClearOmittable() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Omittable = false
+}
+
+func (x *MessageFieldsOptions) ClearPreserveIntegerWidth() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PreserveIntegerWidth = false
 }
 
 type MessageFieldsOptions_builder struct {
@@ -1002,6 +1027,9 @@ type MessageFieldsOptions_builder struct {
 	// presence of a field; for example, an input type for updating a resource where you only want to
 	// update the fields that are present in the input.
 	Omittable *bool
+	// preserve_integer_width indicates that 64-bit integer fields on this message should generate as
+	// Go int64 or uint64 fields instead of the default int or uint fields.
+	PreserveIntegerWidth *bool
 }
 
 func (b0 MessageFieldsOptions_builder) Build() *MessageFieldsOptions {
@@ -1009,26 +1037,31 @@ func (b0 MessageFieldsOptions_builder) Build() *MessageFieldsOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Omittable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_Omittable = *b.Omittable
+	}
+	if b.PreserveIntegerWidth != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_PreserveIntegerWidth = *b.PreserveIntegerWidth
 	}
 	return m0
 }
 
 type FieldOptions struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
-	xxx_hidden_Comment     *string                `protobuf:"bytes,2,opt,name=comment"`
-	xxx_hidden_GoType      *GoType                `protobuf:"bytes,3,opt,name=go_type,json=goType"`
-	xxx_hidden_Omit        bool                   `protobuf:"varint,4,opt,name=omit"`
-	xxx_hidden_Tags        *[]*GoStructTag        `protobuf:"bytes,5,rep,name=tags"`
-	xxx_hidden_JsonTag     *GoJsonStructTag       `protobuf:"bytes,6,opt,name=json_tag,json=jsonTag"`
-	xxx_hidden_Omittable   bool                   `protobuf:"varint,7,opt,name=omittable"`
-	xxx_hidden_Nullable    bool                   `protobuf:"varint,8,opt,name=nullable"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name                 *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Comment              *string                `protobuf:"bytes,2,opt,name=comment"`
+	xxx_hidden_GoType               *GoType                `protobuf:"bytes,3,opt,name=go_type,json=goType"`
+	xxx_hidden_Omit                 bool                   `protobuf:"varint,4,opt,name=omit"`
+	xxx_hidden_Tags                 *[]*GoStructTag        `protobuf:"bytes,5,rep,name=tags"`
+	xxx_hidden_JsonTag              *GoJsonStructTag       `protobuf:"bytes,6,opt,name=json_tag,json=jsonTag"`
+	xxx_hidden_Omittable            bool                   `protobuf:"varint,7,opt,name=omittable"`
+	xxx_hidden_Nullable             bool                   `protobuf:"varint,8,opt,name=nullable"`
+	xxx_hidden_PreserveIntegerWidth bool                   `protobuf:"varint,9,opt,name=preserve_integer_width,json=preserveIntegerWidth"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *FieldOptions) Reset() {
@@ -1120,14 +1153,21 @@ func (x *FieldOptions) GetNullable() bool {
 	return false
 }
 
+func (x *FieldOptions) GetPreserveIntegerWidth() bool {
+	if x != nil {
+		return x.xxx_hidden_PreserveIntegerWidth
+	}
+	return false
+}
+
 func (x *FieldOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
 }
 
 func (x *FieldOptions) SetComment(v string) {
 	x.xxx_hidden_Comment = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
 func (x *FieldOptions) SetGoType(v *GoType) {
@@ -1136,7 +1176,7 @@ func (x *FieldOptions) SetGoType(v *GoType) {
 
 func (x *FieldOptions) SetOmit(v bool) {
 	x.xxx_hidden_Omit = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *FieldOptions) SetTags(v []*GoStructTag) {
@@ -1149,12 +1189,17 @@ func (x *FieldOptions) SetJsonTag(v *GoJsonStructTag) {
 
 func (x *FieldOptions) SetOmittable(v bool) {
 	x.xxx_hidden_Omittable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
 }
 
 func (x *FieldOptions) SetNullable(v bool) {
 	x.xxx_hidden_Nullable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *FieldOptions) SetPreserveIntegerWidth(v bool) {
+	x.xxx_hidden_PreserveIntegerWidth = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
 }
 
 func (x *FieldOptions) HasName() bool {
@@ -1206,6 +1251,13 @@ func (x *FieldOptions) HasNullable() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
+func (x *FieldOptions) HasPreserveIntegerWidth() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
 func (x *FieldOptions) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -1239,6 +1291,11 @@ func (x *FieldOptions) ClearNullable() {
 	x.xxx_hidden_Nullable = false
 }
 
+func (x *FieldOptions) ClearPreserveIntegerWidth() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_PreserveIntegerWidth = false
+}
+
 type FieldOptions_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1265,6 +1322,9 @@ type FieldOptions_builder struct {
 	// uses protobuf presence. For message fields, nil represents absence unless the field uses a
 	// nullable shape that can encode explicit null.
 	Nullable *bool
+	// preserve_integer_width indicates that this field should generate as int64 or uint64 when it uses
+	// a protobuf 64-bit integer type. This can override the parent message fields option.
+	PreserveIntegerWidth *bool
 }
 
 func (b0 FieldOptions_builder) Build() *FieldOptions {
@@ -1272,27 +1332,31 @@ func (b0 FieldOptions_builder) Build() *FieldOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Comment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_Comment = b.Comment
 	}
 	x.xxx_hidden_GoType = b.GoType
 	if b.Omit != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_Omit = *b.Omit
 	}
 	x.xxx_hidden_Tags = &b.Tags
 	x.xxx_hidden_JsonTag = b.JsonTag
 	if b.Omittable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
 		x.xxx_hidden_Omittable = *b.Omittable
 	}
 	if b.Nullable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
 		x.xxx_hidden_Nullable = *b.Nullable
+	}
+	if b.PreserveIntegerWidth != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_PreserveIntegerWidth = *b.PreserveIntegerWidth
 	}
 	return m0
 }
@@ -2356,9 +2420,10 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x06fields\x18\x05 \x01(\v2\x1a.tego.MessageFieldsOptionsR\x06fields\x12%\n" +
 	"\vinfer_shape\x18\x06 \x01(\b:\x04trueR\n" +
 	"inferShape\x12\x18\n" +
-	"\aflatten\x18\a \x01(\bR\aflatten\"4\n" +
+	"\aflatten\x18\a \x01(\bR\aflatten\"j\n" +
 	"\x14MessageFieldsOptions\x12\x1c\n" +
-	"\tomittable\x18\x01 \x01(\bR\tomittable\"\x8a\x02\n" +
+	"\tomittable\x18\x01 \x01(\bR\tomittable\x124\n" +
+	"\x16preserve_integer_width\x18\x02 \x01(\bR\x14preserveIntegerWidth\"\xc0\x02\n" +
 	"\fFieldOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12%\n" +
@@ -2367,7 +2432,8 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x04tags\x18\x05 \x03(\v2\x11.tego.GoStructTagR\x04tags\x120\n" +
 	"\bjson_tag\x18\x06 \x01(\v2\x15.tego.GoJsonStructTagR\ajsonTag\x12\x1c\n" +
 	"\tomittable\x18\a \x01(\bR\tomittable\x12\x1a\n" +
-	"\bnullable\x18\b \x01(\bR\bnullable\"p\n" +
+	"\bnullable\x18\b \x01(\bR\bnullable\x124\n" +
+	"\x16preserve_integer_width\x18\t \x01(\bR\x14preserveIntegerWidth\"p\n" +
 	"\x0eServiceOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x120\n" +

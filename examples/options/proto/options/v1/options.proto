@@ -75,6 +75,18 @@ message AccountPatch {
   string actor_id = 5 [(tego.field).omittable = false];
 }
 
+message AccountMetrics {
+  option (tego.message).fields.preserve_integer_width = true;
+
+  int64 event_count = 1;
+  uint64 byte_count = 2;
+  int64 approximate_count = 3 [(tego.field).preserve_integer_width = false];
+}
+
+message LegacyCounter {
+  int64 count = 1 [(tego.field).preserve_integer_width = true];
+}
+
 message NullableString {
   oneof value {
     string text = 1;

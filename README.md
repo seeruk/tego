@@ -122,6 +122,26 @@ The protobuf code still exists, and Tego provides escape-hatches where necessary
 possible the protobuf boundary stays explicit, leaving your with regular Go types that hopefully
 match your usual expectations.
 
+By default, protobuf 64-bit integers generate as native-width Go `int` or `uint` fields. If a
+message or field needs exact-width integers, set `preserve_integer_width`:
+
+```protobuf
+message Metrics {
+  option (tego.message).fields.preserve_integer_width = true;
+
+  int64 event_count = 1;
+  uint64 byte_count = 2;
+  int64 approximate_count = 3 [(tego.field).preserve_integer_width = false];
+}
+```
+
+With the option enabled, `int64`, `sint64`, and `sfixed64` generate as `int64`, while `uint64` and
+`fixed64` generate as `uint64`. Field-level values override the message-level default.
+
+Tego does not unwrap protobuf value wrapper messages such as `google.protobuf.StringValue` into
+scalar pointers. They are treated as ordinary protobuf message pointer types. You should use Tego's 
+`nullable`, `omittable`, or nullable-shape modelling for presence and null semantics.
+
 ### Shapes
 
 Some protobuf messages are only there to express a shape protobuf does not have directly. Tego can

@@ -278,6 +278,10 @@ func scalarTypeName(kind ScalarKind) string {
 		return "uint32"
 	case ScalarKindUint64:
 		return "uint"
+	case ScalarKindFixedInt64:
+		return "int64"
+	case ScalarKindFixedUint64:
+		return "uint64"
 	case ScalarKindFloat32:
 		return "float32"
 	case ScalarKindFloat64:

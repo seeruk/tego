@@ -162,16 +162,18 @@ const (
 type ScalarKind uint
 
 const (
-	ScalarKindBool    ScalarKind = iota
-	ScalarKindInt32              // from int32, sint32, sfixed32
-	ScalarKindInt64              // from int64, sint64, sfixed64
-	ScalarKindUint32             // from uint32, fixed32
-	ScalarKindUint64             // from uint64, fixed64
-	ScalarKindFloat32            // from float
-	ScalarKindFloat64            // from double
-	ScalarKindString             // from string
-	ScalarKindBytes              // from bytes
-	ScalarKindAny                // from well-known dynamic values
+	ScalarKindBool        ScalarKind = iota
+	ScalarKindInt32                  // from int32, sint32, sfixed32
+	ScalarKindInt64                  // from int64, sint64, sfixed64
+	ScalarKindUint32                 // from uint32, fixed32
+	ScalarKindUint64                 // from uint64, fixed64
+	ScalarKindFixedInt64             // from int64, sint64, sfixed64 with preserved integer width
+	ScalarKindFixedUint64            // from uint64, fixed64 with preserved integer width
+	ScalarKindFloat32                // from float
+	ScalarKindFloat64                // from double
+	ScalarKindString                 // from string
+	ScalarKindBytes                  // from bytes
+	ScalarKindAny                    // from well-known dynamic values
 )
 
 // GoTypeRef identifies a Go type, including simple generic, pointer, and slice forms.
@@ -371,10 +373,8 @@ type MappingDynamicPlan struct {
 type MappingWellKnownKind uint
 
 const (
-	// MappingWellKnownKindWrapper maps google.protobuf.*Value wrapper messages.
-	MappingWellKnownKindWrapper MappingWellKnownKind = iota
 	// MappingWellKnownKindTimestamp maps google.protobuf.Timestamp.
-	MappingWellKnownKindTimestamp
+	MappingWellKnownKindTimestamp MappingWellKnownKind = iota
 	// MappingWellKnownKindDuration maps google.protobuf.Duration.
 	MappingWellKnownKindDuration
 )

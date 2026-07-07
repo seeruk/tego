@@ -57,8 +57,8 @@ type KitchenSink struct {
 	Status             Status
 	Tags               []string
 	Counts             map[string]int32
-	WrappedBool        *bool
-	WrappedString      *string
+	WrappedBool        *wrapperspb.BoolValue
+	WrappedString      *wrapperspb.StringValue
 	CreatedAt          time.Time
 	TTL                time.Duration
 	StructValue        tego.Struct
@@ -67,10 +67,10 @@ type KitchenSink struct {
 	AnyValue           *anypb.Any
 	EmptyValue         struct{}
 	Choice             Choice
-	WrappedStrings     []*string
-	WrappedStringsByID map[string]*string
-	WrappedBools       []*bool
-	WrappedBoolsByID   map[string]*bool
+	WrappedStrings     []*wrapperspb.StringValue
+	WrappedStringsByID map[string]*wrapperspb.StringValue
+	WrappedBools       []*wrapperspb.BoolValue
+	WrappedBoolsByID   map[string]*wrapperspb.BoolValue
 	CreatedAtHistory   []time.Time
 	CreatedAtByID      map[string]time.Time
 	TTLs               []time.Duration
@@ -122,16 +122,8 @@ func KitchenSinkFromProto(source *kitchensinkpbv1.KitchenSink) KitchenSink {
 		counts[countsKey] = countsValue
 	}
 	target.Counts = counts
-	var wrappedBool *bool
-	if source.GetWrappedBool() != nil {
-		wrappedBool = new(source.GetWrappedBool().GetValue())
-	}
-	target.WrappedBool = wrappedBool
-	var wrappedString *string
-	if source.GetWrappedString() != nil {
-		wrappedString = new(source.GetWrappedString().GetValue())
-	}
-	target.WrappedString = wrappedString
+	target.WrappedBool = source.GetWrappedBool()
+	target.WrappedString = source.GetWrappedString()
 	var createdAt time.Time
 	if source.GetCreatedAt() != nil {
 		createdAt = source.GetCreatedAt().AsTime()
@@ -160,40 +152,24 @@ func KitchenSinkFromProto(source *kitchensinkpbv1.KitchenSink) KitchenSink {
 	target.AnyValue = source.GetAnyValue()
 	target.EmptyValue = struct{}{}
 	target.Choice = ChoiceFromProto(source.GetChoice())
-	wrappedStrings := make([]*string, len(source.GetWrappedStrings()))
+	wrappedStrings := make([]*wrapperspb.StringValue, len(source.GetWrappedStrings()))
 	for wrappedStringsIndex, wrappedStringsItem := range source.GetWrappedStrings() {
-		var wrappedStringsItemTego *string
-		if wrappedStringsItem != nil {
-			wrappedStringsItemTego = new(wrappedStringsItem.GetValue())
-		}
-		wrappedStrings[wrappedStringsIndex] = wrappedStringsItemTego
+		wrappedStrings[wrappedStringsIndex] = wrappedStringsItem
 	}
 	target.WrappedStrings = wrappedStrings
-	wrappedStringsByID := make(map[string]*string, len(source.GetWrappedStringsById()))
+	wrappedStringsByID := make(map[string]*wrapperspb.StringValue, len(source.GetWrappedStringsById()))
 	for wrappedStringsByIDKey, wrappedStringsByIDValue := range source.GetWrappedStringsById() {
-		var wrappedStringsByIDValueTego *string
-		if wrappedStringsByIDValue != nil {
-			wrappedStringsByIDValueTego = new(wrappedStringsByIDValue.GetValue())
-		}
-		wrappedStringsByID[wrappedStringsByIDKey] = wrappedStringsByIDValueTego
+		wrappedStringsByID[wrappedStringsByIDKey] = wrappedStringsByIDValue
 	}
 	target.WrappedStringsByID = wrappedStringsByID
-	wrappedBools := make([]*bool, len(source.GetWrappedBools()))
+	wrappedBools := make([]*wrapperspb.BoolValue, len(source.GetWrappedBools()))
 	for wrappedBoolsIndex, wrappedBoolsItem := range source.GetWrappedBools() {
-		var wrappedBoolsItemTego *bool
-		if wrappedBoolsItem != nil {
-			wrappedBoolsItemTego = new(wrappedBoolsItem.GetValue())
-		}
-		wrappedBools[wrappedBoolsIndex] = wrappedBoolsItemTego
+		wrappedBools[wrappedBoolsIndex] = wrappedBoolsItem
 	}
 	target.WrappedBools = wrappedBools
-	wrappedBoolsByID := make(map[string]*bool, len(source.GetWrappedBoolsById()))
+	wrappedBoolsByID := make(map[string]*wrapperspb.BoolValue, len(source.GetWrappedBoolsById()))
 	for wrappedBoolsByIDKey, wrappedBoolsByIDValue := range source.GetWrappedBoolsById() {
-		var wrappedBoolsByIDValueTego *bool
-		if wrappedBoolsByIDValue != nil {
-			wrappedBoolsByIDValueTego = new(wrappedBoolsByIDValue.GetValue())
-		}
-		wrappedBoolsByID[wrappedBoolsByIDKey] = wrappedBoolsByIDValueTego
+		wrappedBoolsByID[wrappedBoolsByIDKey] = wrappedBoolsByIDValue
 	}
 	target.WrappedBoolsByID = wrappedBoolsByID
 	createdAtHistory := make([]time.Time, len(source.GetCreatedAtHistory()))
@@ -318,14 +294,6 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 	for countsKey, countsValue := range source.Counts {
 		counts[countsKey] = countsValue
 	}
-	var wrappedBool *wrapperspb.BoolValue
-	if source.WrappedBool != nil {
-		wrappedBool = wrapperspb.Bool(*source.WrappedBool)
-	}
-	var wrappedString *wrapperspb.StringValue
-	if source.WrappedString != nil {
-		wrappedString = wrapperspb.String(*source.WrappedString)
-	}
 	var structValue *structpb.Struct
 	if source.StructValue != nil {
 		structValue2, err := structpb.NewStruct(source.StructValue)
@@ -352,35 +320,19 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 	}
 	wrappedStrings := make([]*wrapperspb.StringValue, len(source.WrappedStrings))
 	for wrappedStringsIndex, wrappedStringsItem := range source.WrappedStrings {
-		var wrappedStringsItemProto *wrapperspb.StringValue
-		if wrappedStringsItem != nil {
-			wrappedStringsItemProto = wrapperspb.String(*wrappedStringsItem)
-		}
-		wrappedStrings[wrappedStringsIndex] = wrappedStringsItemProto
+		wrappedStrings[wrappedStringsIndex] = wrappedStringsItem
 	}
 	wrappedStringsByID := make(map[string]*wrapperspb.StringValue, len(source.WrappedStringsByID))
 	for wrappedStringsByIDKey, wrappedStringsByIDValue := range source.WrappedStringsByID {
-		var wrappedStringsByIDValueProto *wrapperspb.StringValue
-		if wrappedStringsByIDValue != nil {
-			wrappedStringsByIDValueProto = wrapperspb.String(*wrappedStringsByIDValue)
-		}
-		wrappedStringsByID[wrappedStringsByIDKey] = wrappedStringsByIDValueProto
+		wrappedStringsByID[wrappedStringsByIDKey] = wrappedStringsByIDValue
 	}
 	wrappedBools := make([]*wrapperspb.BoolValue, len(source.WrappedBools))
 	for wrappedBoolsIndex, wrappedBoolsItem := range source.WrappedBools {
-		var wrappedBoolsItemProto *wrapperspb.BoolValue
-		if wrappedBoolsItem != nil {
-			wrappedBoolsItemProto = wrapperspb.Bool(*wrappedBoolsItem)
-		}
-		wrappedBools[wrappedBoolsIndex] = wrappedBoolsItemProto
+		wrappedBools[wrappedBoolsIndex] = wrappedBoolsItem
 	}
 	wrappedBoolsByID := make(map[string]*wrapperspb.BoolValue, len(source.WrappedBoolsByID))
 	for wrappedBoolsByIDKey, wrappedBoolsByIDValue := range source.WrappedBoolsByID {
-		var wrappedBoolsByIDValueProto *wrapperspb.BoolValue
-		if wrappedBoolsByIDValue != nil {
-			wrappedBoolsByIDValueProto = wrapperspb.Bool(*wrappedBoolsByIDValue)
-		}
-		wrappedBoolsByID[wrappedBoolsByIDKey] = wrappedBoolsByIDValueProto
+		wrappedBoolsByID[wrappedBoolsByIDKey] = wrappedBoolsByIDValue
 	}
 	createdAtHistory := make([]*timestamppb.Timestamp, len(source.CreatedAtHistory))
 	for createdAtHistoryIndex, createdAtHistoryItem := range source.CreatedAtHistory {
@@ -497,8 +449,8 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 		Status:             new(kitchensinkpbv1.Status(source.Status)),
 		Tags:               tags,
 		Counts:             counts,
-		WrappedBool:        wrappedBool,
-		WrappedString:      wrappedString,
+		WrappedBool:        source.WrappedBool,
+		WrappedString:      source.WrappedString,
 		CreatedAt:          timestamppb.New(source.CreatedAt),
 		Ttl:                durationpb.New(source.TTL),
 		StructValue:        structValue,

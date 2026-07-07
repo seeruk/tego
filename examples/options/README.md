@@ -1,8 +1,8 @@
 # Options
 
 This example highlights many of Tego's available options: generated names and comments, enum
-underlying values, struct tags, omitted fields, nullable fields, omittable fields, and
-service/method option syntax.
+underlying values, struct tags, omitted fields, nullable fields, omittable fields, preserved integer
+widths, and service/method option syntax.
 
 This example uses `rpc=none`, so the service and method options are present as schema examples only.
 

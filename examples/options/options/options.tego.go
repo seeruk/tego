@@ -42,6 +42,16 @@ type AccountPatch struct {
 	ActorID     string
 }
 
+type AccountMetrics struct {
+	EventCount       int64
+	ByteCount        uint64
+	ApproximateCount int
+}
+
+type LegacyCounter struct {
+	Count int64
+}
+
 func LookupAccountRequestFromProto(source *optionspbv1.LookupAccountRequest) LookupAccountRequest {
 	var target LookupAccountRequest
 	if source == nil {
@@ -200,4 +210,48 @@ func AccountPatchToProto(source AccountPatch) (*optionspbv1.AccountPatch, error)
 
 func (ap AccountPatch) ToProto() (*optionspbv1.AccountPatch, error) {
 	return AccountPatchToProto(ap)
+}
+
+func AccountMetricsFromProto(source *optionspbv1.AccountMetrics) AccountMetrics {
+	var target AccountMetrics
+	if source == nil {
+		return target
+	}
+	target.EventCount = int64(source.GetEventCount())
+	target.ByteCount = uint64(source.GetByteCount())
+	target.ApproximateCount = int(source.GetApproximateCount())
+	return target
+}
+
+func AccountMetricsToProto(source AccountMetrics) *optionspbv1.AccountMetrics {
+	target := optionspbv1.AccountMetrics_builder{
+		EventCount:       new(int64(source.EventCount)),
+		ByteCount:        new(uint64(source.ByteCount)),
+		ApproximateCount: new(int64(source.ApproximateCount)),
+	}.Build()
+	return target
+}
+
+func (am AccountMetrics) ToProto() *optionspbv1.AccountMetrics {
+	return AccountMetricsToProto(am)
+}
+
+func LegacyCounterFromProto(source *optionspbv1.LegacyCounter) LegacyCounter {
+	var target LegacyCounter
+	if source == nil {
+		return target
+	}
+	target.Count = int64(source.GetCount())
+	return target
+}
+
+func LegacyCounterToProto(source LegacyCounter) *optionspbv1.LegacyCounter {
+	target := optionspbv1.LegacyCounter_builder{
+		Count: new(int64(source.Count)),
+	}.Build()
+	return target
+}
+
+func (lc LegacyCounter) ToProto() *optionspbv1.LegacyCounter {
+	return LegacyCounterToProto(lc)
 }

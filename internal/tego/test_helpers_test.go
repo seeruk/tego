@@ -399,6 +399,19 @@ func setMessageFieldOptionsOmittable(options *tegopb.MessageOptions, omittable b
 	options.SetFields(fields)
 }
 
+func setMessageFieldOptionsPreserveIntegerWidth(options *tegopb.MessageOptions, preserve bool) {
+	fields := &tegopb.MessageFieldsOptions{}
+	fields.SetPreserveIntegerWidth(preserve)
+	options.SetFields(fields)
+}
+
+func setFieldOptionsPreserveIntegerWidth(field *ProtoField, preserve bool) {
+	if field.Options == nil {
+		field.Options = &tegopb.FieldOptions{}
+	}
+	field.Options.SetPreserveIntegerWidth(preserve)
+}
+
 func messageForCommentTest(protoName protoreflect.Name, goName, comment string) *ProtoMessage {
 	return &ProtoMessage{
 		FullName: protoreflect.FullName("example.v1." + protoName),
@@ -545,6 +558,13 @@ func messageWithGoTypeAsPointer(ref string) *ProtoMessage {
 	options := &tegopb.MessageOptions{}
 	options.SetGoType(goTypeAsPointer(ref))
 	return &ProtoMessage{Options: options}
+}
+
+func wrapperMessage(fullName protoreflect.FullName, goName string) *ProtoMessage {
+	message := plannerMessage(fullName, protoreflect.Name(goName))
+	message.GoName = goName
+	message.File = testProtoFile("google/protobuf/wrappers.proto", false, "")
+	return message
 }
 
 func plannerMapShape() (*ProtoMessage, *ProtoMessage) {
