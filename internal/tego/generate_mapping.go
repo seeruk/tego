@@ -50,8 +50,7 @@ func generateFromProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) er
 		g.P("\t}")
 	}
 
-	ctx := newMappingRenderContext(g, mapping.FromProto.CanError, "target, err")
-	ctx.direction = mappingDirectionFromProto
+	ctx := newMappingRenderContextWithDirection(g, mapping.FromProto.CanError, "target, err", mappingDirectionFromProto)
 	for _, field := range mapping.Fields {
 		if err := generateFromProtoField(ctx, field); err != nil {
 			return fmt.Errorf("from proto field %s: %w", field.ProtoName, err)
@@ -84,8 +83,7 @@ func generateToProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) erro
 		return fmt.Errorf("to proto builder target: %w", err)
 	}
 
-	ctx := newMappingRenderContext(g, mapping.ToProto.CanError, "nil, err")
-	ctx.direction = mappingDirectionToProto
+	ctx := newMappingRenderContextWithDirection(g, mapping.ToProto.CanError, "nil, err", mappingDirectionToProto)
 	var fields []builderField
 	for _, field := range mapping.Fields {
 		fieldFields, err := generateToProtoBuilderField(ctx, field)
@@ -472,12 +470,22 @@ func newMappingRenderContext(
 	errorReturn string,
 	reserved ...string,
 ) *mappingRenderContext {
+	return newMappingRenderContextWithDirection(g, canError, errorReturn, mappingDirectionFromProto, reserved...)
+}
+
+func newMappingRenderContextWithDirection(
+	g *protogen.GeneratedFile,
+	canError bool,
+	errorReturn string,
+	direction mappingDirection,
+	reserved ...string,
+) *mappingRenderContext {
 	reservedNames := append([]string{"source", "target", "err"}, reserved...)
 	return &mappingRenderContext{
 		g:           g,
 		canError:    canError,
 		errorReturn: errorReturn,
-		direction:   mappingDirectionFromProto,
+		direction:   direction,
 		tempNames:   newTempNameAllocator(reservedNames...),
 	}
 }
@@ -612,7 +620,7 @@ func (ctx *mappingRenderContext) collectionItemName(source string) string {
 }
 
 func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, source string) (renderedValue, error) {
-	if value, ok, err := ctx.renderDirectCollectionBuilderValue(plan, source); err != nil {
+	if value, ok, err := ctx.renderToProtoDirectCollectionBuilderValue(plan, source); err != nil {
 		return renderedValue{}, err
 	} else if ok {
 		return value, nil
@@ -658,7 +666,7 @@ func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, sourc
 	}
 }
 
-func (ctx *mappingRenderContext) renderDirectCollectionBuilderValue(
+func (ctx *mappingRenderContext) renderToProtoDirectCollectionBuilderValue(
 	plan MappingValuePlan,
 	source string,
 ) (renderedValue, bool, error) {

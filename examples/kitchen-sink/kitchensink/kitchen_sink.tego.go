@@ -190,24 +190,24 @@ func KitchenSinkFromProto(source *kitchensinkpbv1.KitchenSink) KitchenSink {
 		createdAtByID[createdAtByIDKey] = createdAtByIDValueTego
 	}
 	target.CreatedAtByID = createdAtByID
-	ttLs := make([]time.Duration, len(source.GetTtls()))
-	for ttLsIndex, ttLsItem := range source.GetTtls() {
-		var ttLsItemTego time.Duration
-		if ttLsItem != nil {
-			ttLsItemTego = ttLsItem.AsDuration()
+	ttls := make([]time.Duration, len(source.GetTtls()))
+	for ttlsIndex, ttlsItem := range source.GetTtls() {
+		var ttlsItemTego time.Duration
+		if ttlsItem != nil {
+			ttlsItemTego = ttlsItem.AsDuration()
 		}
-		ttLs[ttLsIndex] = ttLsItemTego
+		ttls[ttlsIndex] = ttlsItemTego
 	}
-	target.TTLs = ttLs
-	ttLsByID := make(map[string]time.Duration, len(source.GetTtlsById()))
-	for ttLsByIDKey, ttLsByIDValue := range source.GetTtlsById() {
-		var ttLsByIDValueTego time.Duration
-		if ttLsByIDValue != nil {
-			ttLsByIDValueTego = ttLsByIDValue.AsDuration()
+	target.TTLs = ttls
+	ttlsByID := make(map[string]time.Duration, len(source.GetTtlsById()))
+	for ttlsByIDKey, ttlsByIDValue := range source.GetTtlsById() {
+		var ttlsByIDValueTego time.Duration
+		if ttlsByIDValue != nil {
+			ttlsByIDValueTego = ttlsByIDValue.AsDuration()
 		}
-		ttLsByID[ttLsByIDKey] = ttLsByIDValueTego
+		ttlsByID[ttlsByIDKey] = ttlsByIDValueTego
 	}
-	target.TTLsByID = ttLsByID
+	target.TTLsByID = ttlsByID
 	structValues := make([]tego.Struct, len(source.GetStructValues()))
 	for structValuesIndex, structValuesItem := range source.GetStructValues() {
 		var structValuesItemTego tego.Struct
@@ -286,14 +286,6 @@ func KitchenSinkFromProto(source *kitchensinkpbv1.KitchenSink) KitchenSink {
 }
 
 func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error) {
-	tags := source.Tags
-	if tags == nil {
-		tags = make([]string, 0)
-	}
-	counts := source.Counts
-	if counts == nil {
-		counts = make(map[string]int32)
-	}
 	var structValue *structpb.Struct
 	if source.StructValue != nil {
 		structValue2, err := structpb.NewStruct(source.StructValue)
@@ -318,22 +310,6 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 	if err != nil {
 		return nil, err
 	}
-	wrappedStrings := source.WrappedStrings
-	if wrappedStrings == nil {
-		wrappedStrings = make([]*wrapperspb.StringValue, 0)
-	}
-	wrappedStringsByID := source.WrappedStringsByID
-	if wrappedStringsByID == nil {
-		wrappedStringsByID = make(map[string]*wrapperspb.StringValue)
-	}
-	wrappedBools := source.WrappedBools
-	if wrappedBools == nil {
-		wrappedBools = make([]*wrapperspb.BoolValue, 0)
-	}
-	wrappedBoolsByID := source.WrappedBoolsByID
-	if wrappedBoolsByID == nil {
-		wrappedBoolsByID = make(map[string]*wrapperspb.BoolValue)
-	}
 	createdAtHistory := make([]*timestamppb.Timestamp, len(source.CreatedAtHistory))
 	for createdAtHistoryIndex, createdAtHistoryItem := range source.CreatedAtHistory {
 		createdAtHistory[createdAtHistoryIndex] = timestamppb.New(createdAtHistoryItem)
@@ -342,13 +318,13 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 	for createdAtByIDKey, createdAtByIDValue := range source.CreatedAtByID {
 		createdAtByID[createdAtByIDKey] = timestamppb.New(createdAtByIDValue)
 	}
-	ttLs := make([]*durationpb.Duration, len(source.TTLs))
-	for ttLsIndex, ttLsItem := range source.TTLs {
-		ttLs[ttLsIndex] = durationpb.New(ttLsItem)
+	ttls := make([]*durationpb.Duration, len(source.TTLs))
+	for ttlsIndex, ttlsItem := range source.TTLs {
+		ttls[ttlsIndex] = durationpb.New(ttlsItem)
 	}
-	ttLsByID := make(map[string]*durationpb.Duration, len(source.TTLsByID))
-	for ttLsByIDKey, ttLsByIDValue := range source.TTLsByID {
-		ttLsByID[ttLsByIDKey] = durationpb.New(ttLsByIDValue)
+	ttlsByID := make(map[string]*durationpb.Duration, len(source.TTLsByID))
+	for ttlsByIDKey, ttlsByIDValue := range source.TTLsByID {
+		ttlsByID[ttlsByIDKey] = durationpb.New(ttlsByIDValue)
 	}
 	structValues := make([]*structpb.Struct, len(source.StructValues))
 	for structValuesIndex, structValuesItem := range source.StructValues {
@@ -414,14 +390,6 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 		}
 		listValuesByID[listValuesByIDKey] = listValuesByIDValueProto
 	}
-	anyValues := source.AnyValues
-	if anyValues == nil {
-		anyValues = make([]*anypb.Any, 0)
-	}
-	anyValuesByID := source.AnyValuesByID
-	if anyValuesByID == nil {
-		anyValuesByID = make(map[string]*anypb.Any)
-	}
 	emptyValues := make([]*emptypb.Empty, len(source.EmptyValues))
 	for emptyValuesIndex := range source.EmptyValues {
 		emptyValues[emptyValuesIndex] = new(emptypb.Empty)
@@ -447,8 +415,8 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 		StringValue:        &source.StringValue,
 		BytesValue:         source.BytesValue,
 		Status:             new(kitchensinkpbv1.Status(source.Status)),
-		Tags:               tags,
-		Counts:             counts,
+		Tags:               source.Tags,
+		Counts:             source.Counts,
 		WrappedBool:        source.WrappedBool,
 		WrappedString:      source.WrappedString,
 		CreatedAt:          timestamppb.New(source.CreatedAt),
@@ -459,22 +427,22 @@ func KitchenSinkToProto(source KitchenSink) (*kitchensinkpbv1.KitchenSink, error
 		AnyValue:           source.AnyValue,
 		EmptyValue:         new(emptypb.Empty),
 		Choice:             choice,
-		WrappedStrings:     wrappedStrings,
-		WrappedStringsById: wrappedStringsByID,
-		WrappedBools:       wrappedBools,
-		WrappedBoolsById:   wrappedBoolsByID,
+		WrappedStrings:     source.WrappedStrings,
+		WrappedStringsById: source.WrappedStringsByID,
+		WrappedBools:       source.WrappedBools,
+		WrappedBoolsById:   source.WrappedBoolsByID,
 		CreatedAtHistory:   createdAtHistory,
 		CreatedAtById:      createdAtByID,
-		Ttls:               ttLs,
-		TtlsById:           ttLsByID,
+		Ttls:               ttls,
+		TtlsById:           ttlsByID,
 		StructValues:       structValues,
 		StructValuesById:   structValuesByID,
 		DynamicValues:      dynamicValues,
 		DynamicValuesById:  dynamicValuesByID,
 		ListValues:         listValues,
 		ListValuesById:     listValuesByID,
-		AnyValues:          anyValues,
-		AnyValuesById:      anyValuesByID,
+		AnyValues:          source.AnyValues,
+		AnyValuesById:      source.AnyValuesByID,
 		EmptyValues:        emptyValues,
 		EmptyValuesById:    emptyValuesByID,
 	}.Build()

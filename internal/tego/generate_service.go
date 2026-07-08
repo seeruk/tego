@@ -1250,7 +1250,7 @@ func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, servic
 	ctx.line("sendErr <- err")
 	ctx.line("return")
 	ctx.line("}")
-	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines(), "requestProto")
+	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines())
 	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
@@ -1928,7 +1928,7 @@ func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, ser
 	ctx.line("sendErr <- err")
 	ctx.line("return")
 	ctx.line("}")
-	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines(), "requestProto")
+	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines())
 	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}

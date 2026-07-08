@@ -1935,12 +1935,11 @@ func (c *ticketServiceGRPCClient) SyncTicketEvents(ctx context.Context, requests
 					sendErr <- err
 					return
 				}
-				requestProto2, err := SyncTicketEventsRequestToProto(request)
+				requestProto, err := SyncTicketEventsRequestToProto(request)
 				if err != nil {
 					sendErr <- err
 					return
 				}
-				requestProto := requestProto2
 				if err := stream.Send(requestProto); err != nil {
 					sendErr <- c.mapError(err)
 					return
@@ -3023,12 +3022,11 @@ func (c *ticketServiceConnectClient) SyncTicketEvents(ctx context.Context, reque
 					sendErr <- err
 					return
 				}
-				requestProto2, err := SyncTicketEventsRequestToProto(request)
+				requestProto, err := SyncTicketEventsRequestToProto(request)
 				if err != nil {
 					sendErr <- err
 					return
 				}
-				requestProto := requestProto2
 				if err := stream.Send(requestProto); err != nil {
 					sendErr <- c.mapError(err)
 					return

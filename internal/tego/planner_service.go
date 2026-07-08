@@ -336,6 +336,8 @@ func (p *Planner) planServiceMessage(
 	}
 
 	protoType := protoMessageType(message)
+	// RPC boundary messages keep their generated struct shape at service method
+	// boundaries, but explicit flatten shapes still apply to inline helpers.
 	boundaryShapeIndex := shapeIndexWithoutInferredShape(si, message.FullName)
 	nativeType, diagnostics := p.planMessageValueType(message, boundaryShapeIndex, diagnosticPath)
 	fromProto := p.planMessageMappingValue(message, protoType, nativeType, boundaryShapeIndex, mappingDirectionFromProto)
@@ -350,6 +352,8 @@ func (p *Planner) planServiceMessage(
 	}, diagnostics
 }
 
+// shapeIndexWithoutInferredShape removes automatic nullable/slice/map shape
+// inference for a single message while preserving explicit flatten entries.
 func shapeIndexWithoutInferredShape(si *ShapeIndex, name protoreflect.FullName) *ShapeIndex {
 	if si == nil || name == "" {
 		return si
