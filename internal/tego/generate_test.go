@@ -31,6 +31,12 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, content, "metadata := source.GetMetadata()")
 		assert.Contains(t, content, "metadata = make(map[string]string)")
 		assert.NotContains(t, content, "for metadataKey")
+		assert.NotContains(t, content, "watcherIDs := source.WatcherIDs")
+		assert.NotContains(t, content, "metadata := source.Metadata")
+		assert.NotContains(t, content, "watcherIDs := source.WatcherIDs\n\tif watcherIDs == nil")
+		assert.NotContains(t, content, "metadata := source.Metadata\n\tif metadata == nil")
+		assert.Contains(t, content, "WatcherIds:       source.WatcherIDs")
+		assert.Contains(t, content, "Metadata:         source.Metadata")
 		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
 			Assert(t, "generate_rendered_tego_go", []byte(content))
 	})

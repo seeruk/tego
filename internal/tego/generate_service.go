@@ -805,7 +805,7 @@ func generateGRPCAdapterUnaryMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -822,7 +822,7 @@ func generateGRPCAdapterUnaryMethodBody(
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
-		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
 		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -845,7 +845,7 @@ func generateGRPCAdapterUnaryMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -868,7 +868,7 @@ func generateGRPCAdapterServerStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -891,7 +891,7 @@ func generateGRPCAdapterServerStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -939,7 +939,7 @@ func generateGRPCAdapterClientStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -968,7 +968,7 @@ func generateGRPCAdapterClientStreamingMethodBody(
 		ctx.line("if err != nil {")
 		ctx.line("return a.mapError(err)")
 		ctx.line("}")
-		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
 		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -995,7 +995,7 @@ func generateGRPCAdapterClientStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1039,7 +1039,7 @@ func generateGRPCAdapterBidiStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -1069,7 +1069,7 @@ func generateGRPCAdapterBidiStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1118,7 +1118,7 @@ func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service Servic
 	if method.InlineRequest != nil {
 		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
 	}
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	responseProto := "responseProto"
@@ -1133,7 +1133,7 @@ func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service Servic
 		ctx.line("return nil")
 		return nil
 	}
-	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	if method.InlineResponse != nil {
@@ -1154,7 +1154,7 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 	if method.InlineRequest != nil {
 		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
 	}
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
@@ -1177,7 +1177,7 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 	ctx.line("return")
 	ctx.line("}")
 	seqCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
-	if err := generateServiceMappedAssignment(seqCtx, "response", method.Response.FromProto, "responseProto"); err != nil {
+	if err := generateServiceMappedAssignment(seqCtx, "response", method.Response.FromProto, "responseProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("if !yield(response, nil) {")
@@ -1201,7 +1201,7 @@ func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, serv
 	ctx.line("if err != nil {")
 	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("if err := stream.Send(requestProto); err != nil {")
@@ -1216,7 +1216,7 @@ func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, serv
 		ctx.line("return nil")
 		return nil
 	}
-	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	if method.InlineResponse != nil {
@@ -1251,7 +1251,7 @@ func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, servic
 	ctx.line("return")
 	ctx.line("}")
 	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines(), "requestProto")
-	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("if err := stream.Send(requestProto); err != nil {")
@@ -1276,7 +1276,7 @@ func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, servic
 	ctx.line("return")
 	ctx.line("}")
 	recvCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
-	if err := generateServiceMappedAssignment(recvCtx, "response", method.Response.FromProto, "responseProto"); err != nil {
+	if err := generateServiceMappedAssignment(recvCtx, "response", method.Response.FromProto, "responseProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("if !yield(response, nil) {")
@@ -1501,7 +1501,7 @@ func generateConnectAdapterUnaryMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProtoMsg"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProtoMsg", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -1518,7 +1518,7 @@ func generateConnectAdapterUnaryMethodBody(
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
-		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
 		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1541,7 +1541,7 @@ func generateConnectAdapterUnaryMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1564,7 +1564,7 @@ func generateConnectAdapterServerStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProtoMsg"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProtoMsg", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -1587,7 +1587,7 @@ func generateConnectAdapterServerStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1625,7 +1625,7 @@ func generateConnectAdapterClientStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -1659,7 +1659,7 @@ func generateConnectAdapterClientStreamingMethodBody(
 		ctx.line("if err != nil {")
 		ctx.line("return nil, a.mapError(err)")
 		ctx.line("}")
-		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+		if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 			return fmt.Errorf("response: %w", err)
 		}
 		ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1686,7 +1686,7 @@ func generateConnectAdapterClientStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return nil, a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1729,7 +1729,7 @@ func generateConnectAdapterBidiStreamingMethodBody(
 	ctx.line("yield(zero, err)")
 	ctx.line("return")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "request", method.Request.FromProto, "requestProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("ctx, request, err = a." + hookRunnerName("Post", method, "Request") + "(ctx, info, request)")
@@ -1759,7 +1759,7 @@ func generateConnectAdapterBidiStreamingMethodBody(
 	ctx.line("if err != nil {")
 	ctx.line("return a.mapError(err)")
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "responseProto", method.Response.ToProto, "response", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("responseProto, err = a." + hookRunnerName("Post", method, "Response") + "(ctx, info, responseProto)")
@@ -1808,7 +1808,7 @@ func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service Ser
 	if method.InlineRequest != nil {
 		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
 	}
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	responseProto := "responseProto"
@@ -1823,7 +1823,7 @@ func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service Ser
 		ctx.line("return nil")
 		return nil
 	}
-	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	if method.InlineResponse != nil {
@@ -1844,7 +1844,7 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 	if method.InlineRequest != nil {
 		ctx.line("ctx, request := " + method.InlineRequest.FromInlineName + "(ctx, " + serviceInlineFieldNames(method.InlineRequest.Fields) + ")")
 	}
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("responses := func(yield func(" + responseType + ", error) bool) {")
@@ -1859,7 +1859,7 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 	ctx.line("defer stream.Close()")
 	ctx.line("for stream.Receive() {")
 	seqCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
-	if err := generateServiceMappedAssignment(seqCtx, "response", method.Response.FromProto, "stream.Msg()"); err != nil {
+	if err := generateServiceMappedAssignment(seqCtx, "response", method.Response.FromProto, "stream.Msg()", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("if !yield(response, nil) {")
@@ -1884,7 +1884,7 @@ func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, s
 	ctx.line("if err != nil {")
 	ctx.line("return " + serviceClientErrorReturn(g, method))
 	ctx.line("}")
-	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("if err := stream.Send(requestProto); err != nil {")
@@ -1899,7 +1899,7 @@ func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, s
 		ctx.line("return nil")
 		return nil
 	}
-	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg"); err != nil {
+	if err := generateServiceMappedAssignment(ctx, "response", method.Response.FromProto, "responseProto.Msg", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	if method.InlineResponse != nil {
@@ -1929,7 +1929,7 @@ func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, ser
 	ctx.line("return")
 	ctx.line("}")
 	sendCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2SendErrorLines(), "requestProto")
-	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request"); err != nil {
+	if err := generateServiceMappedAssignment(sendCtx, "requestProto", method.Request.ToProto, "request", mappingDirectionToProto); err != nil {
 		return fmt.Errorf("request: %w", err)
 	}
 	ctx.line("if err := stream.Send(requestProto); err != nil {")
@@ -1950,7 +1950,7 @@ func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, ser
 	ctx.line("return")
 	ctx.line("}")
 	recvCtx := newMappingRenderContextWithErrorLines(g, true, serviceSeq2YieldErrorLines(responseType))
-	if err := generateServiceMappedAssignment(recvCtx, "response", method.Response.FromProto, "responseProto"); err != nil {
+	if err := generateServiceMappedAssignment(recvCtx, "response", method.Response.FromProto, "responseProto", mappingDirectionFromProto); err != nil {
 		return fmt.Errorf("response: %w", err)
 	}
 	ctx.line("if !yield(response, nil) {")
@@ -2067,9 +2067,14 @@ func generateServiceMappedAssignment(
 	name string,
 	plan MappingValuePlan,
 	source string,
+	direction mappingDirection,
 ) error {
-	expr, err := ctx.renderValueWithTempNameHint(name, plan, source)
-	if err != nil {
+	var expr string
+	if err := ctx.withDirection(direction, func() error {
+		var err error
+		expr, err = ctx.renderValueWithTempNameHint(name, plan, source)
+		return err
+	}); err != nil {
 		return err
 	}
 	if expr == name {

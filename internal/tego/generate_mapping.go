@@ -51,6 +51,7 @@ func generateFromProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) er
 	}
 
 	ctx := newMappingRenderContext(g, mapping.FromProto.CanError, "target, err")
+	ctx.direction = mappingDirectionFromProto
 	for _, field := range mapping.Fields {
 		if err := generateFromProtoField(ctx, field); err != nil {
 			return fmt.Errorf("from proto field %s: %w", field.ProtoName, err)
@@ -84,6 +85,7 @@ func generateToProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) erro
 	}
 
 	ctx := newMappingRenderContext(g, mapping.ToProto.CanError, "nil, err")
+	ctx.direction = mappingDirectionToProto
 	var fields []builderField
 	for _, field := range mapping.Fields {
 		fieldFields, err := generateToProtoBuilderField(ctx, field)
@@ -459,6 +461,7 @@ type mappingRenderContext struct {
 	canError    bool
 	errorReturn string
 	errorLines  []string
+	direction   mappingDirection
 	tempNames   *tempNameAllocator
 	tempHint    string
 }
@@ -474,6 +477,7 @@ func newMappingRenderContext(
 		g:           g,
 		canError:    canError,
 		errorReturn: errorReturn,
+		direction:   mappingDirectionFromProto,
 		tempNames:   newTempNameAllocator(reservedNames...),
 	}
 }
@@ -560,6 +564,19 @@ func (ctx *mappingRenderContext) renderValueWithTempNameHintSuffix(
 	return ctx.renderValueWithTempNameHint(hint, plan, source)
 }
 
+func (ctx *mappingRenderContext) withDirection(direction mappingDirection, fn func() error) error {
+	previous := ctx.direction
+	ctx.direction = direction
+	defer func() {
+		ctx.direction = previous
+	}()
+	return fn()
+}
+
+func (ctx *mappingRenderContext) normalizeNilCollections() bool {
+	return ctx.direction != mappingDirectionToProto
+}
+
 func (ctx *mappingRenderContext) renderBuilderValueWithTempNameHint(
 	name string,
 	plan MappingValuePlan,
@@ -595,6 +612,12 @@ func (ctx *mappingRenderContext) collectionItemName(source string) string {
 }
 
 func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, source string) (renderedValue, error) {
+	if value, ok, err := ctx.renderDirectCollectionBuilderValue(plan, source); err != nil {
+		return renderedValue{}, err
+	} else if ok {
+		return value, nil
+	}
+
 	switch plan.Kind {
 	case MappingValueKindDirect:
 		return renderedAddressableValue(source), nil
@@ -632,6 +655,41 @@ func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, sourc
 			return renderedValue{}, err
 		}
 		return renderedAddressableValue(expr), nil
+	}
+}
+
+func (ctx *mappingRenderContext) renderDirectCollectionBuilderValue(
+	plan MappingValuePlan,
+	source string,
+) (renderedValue, bool, error) {
+	if ctx.direction != mappingDirectionToProto {
+		return renderedValue{}, false, nil
+	}
+	if plan.Source.Kind == TypeKindPointer || plan.Target.Kind == TypeKindPointer {
+		return renderedValue{}, false, nil
+	}
+
+	switch plan.Kind {
+	case MappingValueKindSlice:
+		if plan.Elem == nil {
+			return renderedValue{}, false, nil
+		}
+		_, ok, err := nativeSliceDirectAssignmentType(ctx.g, plan.Source, plan.Target, *plan.Elem)
+		if err != nil || !ok {
+			return renderedValue{}, false, err
+		}
+		return renderedAddressableValue(source), true, nil
+	case MappingValueKindMap:
+		if plan.Key == nil || plan.Value == nil {
+			return renderedValue{}, false, nil
+		}
+		_, ok, err := nativeMapDirectAssignmentType(ctx.g, plan.Source, plan.Target, *plan.Key, *plan.Value)
+		if err != nil || !ok {
+			return renderedValue{}, false, err
+		}
+		return renderedAddressableValue(source), true, nil
+	default:
+		return renderedValue{}, false, nil
 	}
 }
 
@@ -1082,9 +1140,11 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 	} else if ok {
 		tmp := ctx.tempName("items")
 		ctx.line(tmp + " := " + source)
-		ctx.line("if " + tmp + " == nil {")
-		ctx.line(tmp + " = make(" + targetType + ", 0)")
-		ctx.line("}")
+		if ctx.normalizeNilCollections() {
+			ctx.line("if " + tmp + " == nil {")
+			ctx.line(tmp + " = make(" + targetType + ", 0)")
+			ctx.line("}")
+		}
 		return tmp, nil
 	}
 
@@ -1431,9 +1491,11 @@ func (ctx *mappingRenderContext) renderNativeMap(
 	} else if ok {
 		tmp := ctx.tempName("items")
 		ctx.line(tmp + " := " + source)
-		ctx.line("if " + tmp + " == nil {")
-		ctx.line(tmp + " = make(" + targetType + ")")
-		ctx.line("}")
+		if ctx.normalizeNilCollections() {
+			ctx.line("if " + tmp + " == nil {")
+			ctx.line(tmp + " = make(" + targetType + ")")
+			ctx.line("}")
+		}
 		return tmp, nil
 	}
 

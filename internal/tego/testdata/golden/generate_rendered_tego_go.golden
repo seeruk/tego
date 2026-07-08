@@ -189,14 +189,6 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 	if err != nil {
 		return nil, err
 	}
-	watcherIDs := source.WatcherIDs
-	if watcherIDs == nil {
-		watcherIDs = make([]string, 0)
-	}
-	metadata := source.Metadata
-	if metadata == nil {
-		metadata = make(map[string]string)
-	}
 	var optionalName *string
 	if source.OptionalName.IsPresent() {
 		optionalName = new(source.OptionalName.Get())
@@ -213,8 +205,8 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 		CreatedAt:        timestamppb.New(source.CreatedAt),
 		Ttl:              durationpb.New(source.TTL),
 		Description:      &description3,
-		WatcherIds:       watcherIDs,
-		Metadata:         metadata,
+		WatcherIds:       source.WatcherIDs,
+		Metadata:         source.Metadata,
 		OptionalName:     optionalName,
 	}.Build()
 	return target, nil
