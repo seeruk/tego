@@ -1322,8 +1322,8 @@ type FieldOptions_builder struct {
 	// uses protobuf presence. For message fields, nil represents absence unless the field uses a
 	// nullable shape that can encode explicit null.
 	Nullable *bool
-	// preserve_integer_width indicates that this field should generate as int64 or uint64 when it uses
-	// a protobuf 64-bit integer type. This can override the parent message fields option.
+	// preserve_integer_width indicates that this field should generate as int64 or uint64 when it
+	// uses a protobuf 64-bit integer type. This can override the parent message fields option.
 	PreserveIntegerWidth *bool
 }
 

@@ -153,6 +153,73 @@ func TestPlannerPlanServices(t *testing.T) {
 		requireInlineResponseFields(t, method, "ticket")
 	})
 
+	t.Run("plans inferred shape rpc boundaries as inline structs", func(t *testing.T) {
+		fixture, holder, holderRequest := newDestinationsByIDsInlineFixture()
+		shapeIndex := inferredShapeIndex(fixture.Request)
+
+		plan := planInlineServiceFixture(t, fixture, shapeIndex)
+
+		require.Empty(t, plan.Diagnostics)
+		require.NotEmpty(t, plan.Mappings)
+
+		requestStruct := structByProtoName(t, plan, fixture.Request.FullName)
+		require.Len(t, requestStruct.Fields, 1)
+		assert.Equal(t, "IDs", requestStruct.Fields[0].Name)
+		assert.Equal(t, TypeKindSlice, requestStruct.Fields[0].Type.Kind)
+
+		responseStruct := structByProtoName(t, plan, fixture.Response.FullName)
+		require.Len(t, responseStruct.Fields, 1)
+		assert.Equal(t, "Destinations", responseStruct.Fields[0].Name)
+		assert.Equal(t, TypeKindMap, responseStruct.Fields[0].Type.Kind)
+
+		holderStruct := structByProtoName(t, plan, holder.FullName)
+		holderField := fieldPlanByProtoName(t, holderStruct, holderRequest.FullName)
+		assert.Equal(t, TypeKindSlice, holderField.Type.Kind)
+
+		method := inlineFixtureMethodPlan(t, plan, fixture)
+		assert.Equal(t, TypeKindStruct, method.Request.Type.Kind)
+		assert.Equal(t, MappingValueKindStruct, method.Request.ToProto.Kind)
+		assert.Equal(t, MappingValueKindStruct, method.Request.FromProto.Kind)
+		requireInlineRequestFields(t, method, "ids")
+		requireInlineResponseFields(t, method, "destinations")
+	})
+
+	t.Run("forces inferred shape rpc boundary structs in defining files", func(t *testing.T) {
+		messageFile := protoFileWithOutput("messages.proto", "github.com/example/messages;messages", "")
+		request := plannerMessage("example.v1.GetDestinationsByIdsRequest", "GetDestinationsByIdsRequest")
+		request.GoName = "GetDestinationsByIdsRequest"
+		attachPlannerFields(request, namedRepeatedField("ids", "Ids", protoreflect.Uint64Kind))
+		attachMessagesToFile(messageFile, request)
+
+		serviceFile := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+		method := plannerMethod(
+			"example.v1.Service.GetDestinationsByIds",
+			"GetDestinationsByIds",
+			request,
+			request,
+		)
+		service := plannerService("example.v1.Service", "Service", method)
+		attachServicesToFile(serviceFile, service)
+
+		plan, err := NewPlanner().Plan(
+			&DescriptorIndex{Files: []*ProtoFile{messageFile, serviceFile}},
+			inferredShapeIndex(request),
+		)
+
+		require.NoError(t, err)
+		require.Len(t, plan.Files, 2)
+		messages := filePlanByPath(t, plan, "messages.proto")
+		structByProtoName(t, messages, request.FullName)
+		services := filePlanByPath(t, plan, "service.proto")
+		methodPlan := serviceMethodByProtoName(
+			t,
+			serviceByProtoName(t, services, service.FullName),
+			method.FullName,
+		)
+		assert.Equal(t, TypeKindStruct, methodPlan.Request.Type.Kind)
+		assert.Equal(t, MappingValueKindStruct, methodPlan.Request.ToProto.Kind)
+	})
+
 	t.Run("honors service inline defaults", func(t *testing.T) {
 		fixture := newTicketIDInlineFixture("GetTicket")
 		setServiceInlineByDefault(fixture.Service, false)
@@ -458,6 +525,46 @@ func newImportEventsInlineFixture() serviceInlineFixture {
 	)
 }
 
+func newDestinationsByIDsInlineFixture() (serviceInlineFixture, *ProtoMessage, *ProtoField) {
+	destination := plannerMessage("example.v1.Destination", "Destination")
+	destination.GoName = "Destination"
+	attachPlannerFields(destination, namedField("name", "Name", protoreflect.StringKind))
+
+	request := plannerMessage("example.v1.GetDestinationsByIdsRequest", "GetDestinationsByIdsRequest")
+	request.GoName = "GetDestinationsByIdsRequest"
+	attachPlannerFields(request, namedRepeatedField("ids", "Ids", protoreflect.Uint64Kind))
+
+	response := plannerMessage("example.v1.GetDestinationsByIdsResponse", "GetDestinationsByIdsResponse")
+	response.GoName = "GetDestinationsByIdsResponse"
+	attachPlannerFields(response, namedMapField("destinations", "Destinations", protoreflect.Uint64Kind, destination))
+
+	holder := plannerMessage("example.v1.RequestHolder", "RequestHolder")
+	holder.GoName = "RequestHolder"
+	holderRequest := namedMessageField("request", "Request", request)
+	attachPlannerFields(holder, holderRequest)
+
+	method := plannerMethod(
+		"example.v1.Service.GetDestinationsByIds",
+		"GetDestinationsByIds",
+		request,
+		response,
+	)
+	method.Options = &tegopb.MethodOptions{}
+	method.Options.SetName("DestinationsByIDs")
+	service := plannerService("example.v1.Service", "Service", method)
+	file := protoFileWithOutput("service.proto", "github.com/example/service;service", "")
+	attachMessagesToFile(file, destination, request, response, holder)
+	attachServicesToFile(file, service)
+
+	return serviceInlineFixture{
+		File:     file,
+		Request:  request,
+		Response: response,
+		Method:   method,
+		Service:  service,
+	}, holder, holderRequest
+}
+
 func newServiceInlineFixture(
 	methodName string,
 	requestName string,
@@ -490,6 +597,59 @@ func newServiceInlineFixture(
 	}
 }
 
+func inferredShapeIndex(sliceMessages ...*ProtoMessage) *ShapeIndex {
+	index := &ShapeIndex{
+		Nullables: map[protoreflect.FullName]*ProtoMessage{},
+		Maps:      map[protoreflect.FullName]*ProtoMessage{},
+		Slices:    map[protoreflect.FullName]*ProtoMessage{},
+		Flattens:  map[protoreflect.FullName]*ProtoMessage{},
+	}
+	for _, message := range sliceMessages {
+		index.Slices[message.FullName] = message
+	}
+	return index
+}
+
+func namedField(name protoreflect.Name, goName string, kind protoreflect.Kind) *ProtoField {
+	field := field(name, kind)
+	field.GoName = goName
+	return field
+}
+
+func namedRepeatedField(name protoreflect.Name, goName string, kind protoreflect.Kind) *ProtoField {
+	field := repeatedField(name, kind)
+	field.GoName = goName
+	return field
+}
+
+func namedMessageField(name protoreflect.Name, goName string, message *ProtoMessage) *ProtoField {
+	field := messageField(name, message)
+	field.GoName = goName
+	return field
+}
+
+func namedMapField(
+	name protoreflect.Name,
+	goName string,
+	keyKind protoreflect.Kind,
+	valueMessage *ProtoMessage,
+) *ProtoField {
+	field := namedField(name, goName, protoreflect.MessageKind)
+	field.MapKey = namedField("key", "Key", keyKind)
+	field.MapValue = namedMessageField("value", "Value", valueMessage)
+	return field
+}
+
+func attachPlannerFields(message *ProtoMessage, fields ...*ProtoField) {
+	message.Fields = fields
+	for _, field := range fields {
+		field.Parent = message
+		if field.FullName == "" {
+			field.FullName = protoreflect.FullName(string(message.FullName) + "." + string(field.Name))
+		}
+	}
+}
+
 func planInlineServiceFixture(t *testing.T, fixture serviceInlineFixture, si *ShapeIndex) FilePlan {
 	t.Helper()
 
@@ -504,6 +664,19 @@ func inlineFixtureMethodPlan(t *testing.T, plan FilePlan, fixture serviceInlineF
 
 	require.Len(t, plan.Services, 1)
 	return serviceMethodByProtoName(t, plan.Services[0], fixture.Method.FullName)
+}
+
+func filePlanByPath(t *testing.T, plan Plan, path string) FilePlan {
+	t.Helper()
+
+	for _, file := range plan.Files {
+		if file.ProtoPath == path {
+			return file
+		}
+	}
+
+	t.Fatalf("file %q not found", path)
+	return FilePlan{}
 }
 
 func requireInlineRequestFields(t *testing.T, method ServiceMethodPlan, fields ...string) {

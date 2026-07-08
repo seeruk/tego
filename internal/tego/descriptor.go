@@ -53,6 +53,9 @@ type ProtoMessage struct {
 	File   *ProtoFile
 	Parent *ProtoMessage
 
+	RPCInput  bool
+	RPCOutput bool
+
 	Fields   []*ProtoField
 	Oneofs   []*ProtoOneof
 	Messages []*ProtoMessage
@@ -65,6 +68,11 @@ type ProtoMessage struct {
 // HasOptions reports whether this message has Tego-specific options.
 func (m *ProtoMessage) HasOptions() bool {
 	return m.Options != nil
+}
+
+// IsRPCBoundary reports whether this message is used directly as an RPC input or output.
+func (m *ProtoMessage) IsRPCBoundary() bool {
+	return m != nil && (m.RPCInput || m.RPCOutput)
 }
 
 // ProtoField describes a message field with links to its resolved type.
@@ -528,12 +536,14 @@ func (b *descriptorIndexBuilder) finalizeMethod(method *ProtoMethod) error {
 	if !ok {
 		return fmt.Errorf("method %q: no descriptor for input message %q", method.FullName, method.Desc.Input.Desc.FullName())
 	}
+	input.RPCInput = true
 	method.Input = input
 
 	output, ok := b.index.MessagesByName[method.Desc.Output.Desc.FullName()]
 	if !ok {
 		return fmt.Errorf("method %q: no descriptor for output message %q", method.FullName, method.Desc.Output.Desc.FullName())
 	}
+	output.RPCOutput = true
 	method.Output = output
 
 	return nil

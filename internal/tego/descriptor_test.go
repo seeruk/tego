@@ -50,8 +50,17 @@ func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 		listTickets := methodByName(t, service, "ListTickets")
 		assert.Same(t, requireMessage(t, index, "yirapb.v1.ListTicketsRequest"), listTickets.Input)
 		assert.Same(t, requireMessage(t, index, "yirapb.v1.ListTicketsResponse"), listTickets.Output)
+		assert.True(t, listTickets.Input.RPCInput)
+		assert.False(t, listTickets.Input.RPCOutput)
+		assert.True(t, listTickets.Input.IsRPCBoundary())
+		assert.False(t, listTickets.Output.RPCInput)
+		assert.True(t, listTickets.Output.RPCOutput)
+		assert.True(t, listTickets.Output.IsRPCBoundary())
 		assert.False(t, listTickets.ClientStreaming)
 		assert.False(t, listTickets.ServerStreaming)
+
+		ticket := requireMessage(t, index, "yirapb.v1.Ticket")
+		assert.False(t, ticket.IsRPCBoundary())
 
 		watchEvents := methodByName(t, service, "WatchTicketEvents")
 		assert.Same(t, requireMessage(t, index, "yirapb.v1.WatchTicketEventsRequest"), watchEvents.Input)

@@ -23,7 +23,12 @@ const (
 )
 
 func (p *Planner) planStruct(message *ProtoMessage, si *ShapeIndex) (StructPlan, []Diagnostic, bool) {
-	if message.Options.GetOmit() || message.Options.HasGoType() || isIndexedShape(message, si) ||
+	indexedShape := isIndexedShape(message, si)
+	if p.rpc.Enabled() && message.IsRPCBoundary() && isIndexedInferredShape(message, si) {
+		indexedShape = false
+	}
+
+	if message.Options.GetOmit() || message.Options.HasGoType() || indexedShape ||
 		isIndexedMapEntryMessage(message, si) || isNativeMapEntryMessage(message) {
 		return StructPlan{}, nil, false
 	}
@@ -618,6 +623,19 @@ func isIndexedShape(message *ProtoMessage, si *ShapeIndex) bool {
 	if message == nil || si == nil {
 		return false
 	}
+	if isIndexedInferredShape(message, si) {
+		return true
+	}
+	if _, ok := si.Flattens[message.FullName]; ok {
+		return true
+	}
+	return false
+}
+
+func isIndexedInferredShape(message *ProtoMessage, si *ShapeIndex) bool {
+	if message == nil || si == nil {
+		return false
+	}
 	if _, ok := si.Nullables[message.FullName]; ok {
 		return true
 	}
@@ -625,9 +643,6 @@ func isIndexedShape(message *ProtoMessage, si *ShapeIndex) bool {
 		return true
 	}
 	if _, ok := si.Maps[message.FullName]; ok {
-		return true
-	}
-	if _, ok := si.Flattens[message.FullName]; ok {
 		return true
 	}
 	return false

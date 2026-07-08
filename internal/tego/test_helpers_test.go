@@ -159,6 +159,12 @@ func attachServicesToFile(file *ProtoFile, services ...*ProtoService) {
 		service.File = file
 		for _, method := range service.Methods {
 			method.File = file
+			if method.Input != nil {
+				method.Input.RPCInput = true
+			}
+			if method.Output != nil {
+				method.Output.RPCOutput = true
+			}
 		}
 	}
 }

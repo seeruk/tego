@@ -336,9 +336,10 @@ func (p *Planner) planServiceMessage(
 	}
 
 	protoType := protoMessageType(message)
-	nativeType, diagnostics := p.planMessageValueType(message, si, diagnosticPath)
-	fromProto := p.planMessageMappingValue(message, protoType, nativeType, si, mappingDirectionFromProto)
-	toProto := p.planMessageMappingValue(message, nativeType, protoType, si, mappingDirectionToProto)
+	boundaryShapeIndex := shapeIndexWithoutInferredShape(si, message.FullName)
+	nativeType, diagnostics := p.planMessageValueType(message, boundaryShapeIndex, diagnosticPath)
+	fromProto := p.planMessageMappingValue(message, protoType, nativeType, boundaryShapeIndex, mappingDirectionFromProto)
+	toProto := p.planMessageMappingValue(message, nativeType, protoType, boundaryShapeIndex, mappingDirectionToProto)
 
 	return ServiceMessagePlan{
 		ProtoName: message.FullName,
@@ -347,6 +348,35 @@ func (p *Planner) planServiceMessage(
 		FromProto: fromProto,
 		ToProto:   toProto,
 	}, diagnostics
+}
+
+func shapeIndexWithoutInferredShape(si *ShapeIndex, name protoreflect.FullName) *ShapeIndex {
+	if si == nil || name == "" {
+		return si
+	}
+
+	out := *si
+	out.Nullables = shapeMapWithout(si.Nullables, name)
+	out.Maps = shapeMapWithout(si.Maps, name)
+	out.Slices = shapeMapWithout(si.Slices, name)
+	return &out
+}
+
+func shapeMapWithout(
+	shapes map[protoreflect.FullName]*ProtoMessage,
+	name protoreflect.FullName,
+) map[protoreflect.FullName]*ProtoMessage {
+	if _, ok := shapes[name]; !ok {
+		return shapes
+	}
+
+	out := make(map[protoreflect.FullName]*ProtoMessage, len(shapes)-1)
+	for shapeName, message := range shapes {
+		if shapeName != name {
+			out[shapeName] = message
+		}
+	}
+	return out
 }
 
 func protoServicePlanRef(service *ProtoService) GoTypeRef {

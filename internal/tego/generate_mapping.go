@@ -1677,7 +1677,7 @@ func (allocator *tempNameAllocator) name(base string) string {
 }
 
 func tempIdentifierBase(name string) string {
-	parts := casing.Split(name)
+	parts := mergeSplitPluralInitialisms(casing.Split(name))
 	if len(parts) == 0 {
 		return "tmp"
 	}
@@ -1697,6 +1697,26 @@ func tempIdentifierBase(name string) string {
 		return result + "Value"
 	}
 	return result
+}
+
+func mergeSplitPluralInitialisms(parts []string) []string {
+	if len(parts) < 2 {
+		return parts
+	}
+
+	merged := make([]string, 0, len(parts))
+	for i := 0; i < len(parts); i++ {
+		if i+1 < len(parts) {
+			combined := parts[i] + parts[i+1]
+			if goInitialism(strings.ToLower(combined)) == combined {
+				merged = append(merged, combined)
+				i++
+				continue
+			}
+		}
+		merged = append(merged, parts[i])
+	}
+	return merged
 }
 
 func tempIdentifierBaseFromIdentifier(name string) (string, bool) {

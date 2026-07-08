@@ -14,8 +14,11 @@ func TestTempIdentifierBase(t *testing.T) {
 		want string
 	}{
 		{name: "ID", want: "id"},
+		{name: "IDs", want: "ids"},
 		{name: "URL", want: "url"},
+		{name: "URLs", want: "urls"},
 		{name: "APIResponse", want: "apiResponse"},
+		{name: "FooIDs", want: "fooIDs"},
 		{name: "WatcherIDs", want: "watcherIDs"},
 		{name: "StructData", want: "structData"},
 		{name: "map", want: "mapValue"},

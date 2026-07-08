@@ -92,6 +92,22 @@ func TestGenerate(t *testing.T) {
 			Assert(t, "generate_service_rpc_tego_go", []byte(content))
 	})
 
+	t.Run("renders inline rpc boundaries for inferred shape envelopes", func(t *testing.T) {
+		fixture, _, _ := newDestinationsByIDsInlineFixture()
+		filePlan := NewPlanner().planFile(fixture.File, inferredShapeIndex(fixture.Request))
+		require.Empty(t, filePlan.Diagnostics)
+
+		content := generateParsedContent(t, Plan{Files: []FilePlan{filePlan}})
+
+		assert.Contains(t, content, "func (c *serviceGRPCClient) DestinationsByIDs(ctx context.Context, ids []uint) (map[uint]Destination, error) {")
+		assert.Contains(t, content, "func (c *serviceConnectClient) DestinationsByIDs(ctx context.Context, ids []uint) (map[uint]Destination, error) {")
+		assert.Contains(t, content, "ctx, request := GetDestinationsByIDsRequestFromInline(ctx, ids)")
+		assert.Contains(t, content, "requestProto := GetDestinationsByIDsRequestToProto(request)")
+		assert.NotContains(t, content, "requestProto := requestProto2")
+		assert.NotContains(t, content, "iDs []uint")
+		assert.NotContains(t, content, "request []uint")
+	})
+
 	t.Run("skips rpc code when rpc generation is disabled", func(t *testing.T) {
 		plan := Plan{Files: []FilePlan{serviceInterfaceTestFilePlan()}}
 
