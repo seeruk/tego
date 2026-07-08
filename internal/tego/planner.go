@@ -65,7 +65,10 @@ func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 			continue
 		}
 
-		plan.Files = append(plan.Files, p.planFile(file, si))
+		if file.Options.HasGoPackage() {
+			// We only plan Tego files.
+			plan.Files = append(plan.Files, p.planFile(file, si))
+		}
 	}
 
 	propagateMappingErrors(&plan)
@@ -76,11 +79,6 @@ func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
 	plan := FilePlan{
 		ProtoPath: file.Path,
-	}
-
-	if !file.Options.HasGoPackage() {
-		plan.Diagnostics = append(plan.Diagnostics, fatalDiagnostic(file.Path, "missing required tego.file go_package option"))
-		return plan
 	}
 
 	plan.Package = packageRef(file.Options.GetGoPackage())
