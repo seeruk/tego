@@ -124,14 +124,14 @@ func PersonFromProto(source *generatedpb.Person) (Person, error) {
 		return target, err
 	}
 	target.Description = description2
-	watcherIDs := make([]string, len(source.GetWatcherIds()))
-	for watcherIDsIndex, watcherIDsItem := range source.GetWatcherIds() {
-		watcherIDs[watcherIDsIndex] = watcherIDsItem
+	watcherIDs := source.GetWatcherIds()
+	if watcherIDs == nil {
+		watcherIDs = make([]string, 0)
 	}
 	target.WatcherIDs = watcherIDs
-	metadata := make(map[string]string, len(source.GetMetadata()))
-	for metadataKey, metadataValue := range source.GetMetadata() {
-		metadata[metadataKey] = metadataValue
+	metadata := source.GetMetadata()
+	if metadata == nil {
+		metadata = make(map[string]string)
 	}
 	target.Metadata = metadata
 	if source.HasOptionalName() {
@@ -189,13 +189,13 @@ func PersonToProto(source Person) (*generatedpb.Person, error) {
 	if err != nil {
 		return nil, err
 	}
-	watcherIDs := make([]string, len(source.WatcherIDs))
-	for watcherIDsIndex, watcherIDsItem := range source.WatcherIDs {
-		watcherIDs[watcherIDsIndex] = watcherIDsItem
+	watcherIDs := source.WatcherIDs
+	if watcherIDs == nil {
+		watcherIDs = make([]string, 0)
 	}
-	metadata := make(map[string]string, len(source.Metadata))
-	for metadataKey, metadataValue := range source.Metadata {
-		metadata[metadataKey] = metadataValue
+	metadata := source.Metadata
+	if metadata == nil {
+		metadata = make(map[string]string)
 	}
 	var optionalName *string
 	if source.OptionalName.IsPresent() {

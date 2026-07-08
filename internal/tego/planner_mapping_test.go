@@ -34,6 +34,32 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.True(t, uintPlan.Cast.ProtoTarget)
 	})
 
+	t.Run("plans preserved integer width as direct scalar mappings", func(t *testing.T) {
+		intField := field("count", protoreflect.Int64Kind)
+		setFieldOptionsPreserveIntegerWidth(intField, true)
+		uintField := field("bytes", protoreflect.Uint64Kind)
+		setFieldOptionsPreserveIntegerWidth(uintField, true)
+
+		fixedInt64Type := scalarType(ScalarKindFixedInt64)
+		fixedUint64Type := scalarType(ScalarKindFixedUint64)
+
+		intSource := planner.planProtoFieldType(intField)
+		uintSource := planner.planProtoFieldType(uintField)
+
+		assert.Equal(t, fixedInt64Type, intSource)
+		assert.Equal(t, fixedUint64Type, uintSource)
+
+		intFromProto := planner.planMappingValue(intSource, fixedInt64Type, mappingDirectionFromProto)
+		intToProto := planner.planMappingValue(fixedInt64Type, intSource, mappingDirectionToProto)
+		uintFromProto := planner.planMappingValue(uintSource, fixedUint64Type, mappingDirectionFromProto)
+		uintToProto := planner.planMappingValue(fixedUint64Type, uintSource, mappingDirectionToProto)
+
+		assert.Equal(t, MappingValueKindDirect, intFromProto.Kind)
+		assert.Equal(t, MappingValueKindDirect, intToProto.Kind)
+		assert.Equal(t, MappingValueKindDirect, uintFromProto.Kind)
+		assert.Equal(t, MappingValueKindDirect, uintToProto.Kind)
+	})
+
 	t.Run("plans enum conversion", func(t *testing.T) {
 		source := TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: "example.com/pb", Name: "Status"}}
 		target := TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{ImportPath: "example.com/tego", Name: "Status"}}

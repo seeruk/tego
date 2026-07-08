@@ -69,6 +69,103 @@ func TestBuilderPointerValue(t *testing.T) {
 	assert.Equal(t, "new(structpb.NullValue_NULL_VALUE)", builderPointerValue(renderedNonAddressableValue("structpb.NullValue_NULL_VALUE")))
 }
 
+func TestNativeCollectionTargetTypes(t *testing.T) {
+	t.Parallel()
+
+	uintType := scalarType(ScalarKindUint64)
+	fixedUintType := scalarType(ScalarKindFixedUint64)
+	uintSlice := TypePlan{Kind: TypeKindSlice, Elem: &uintType}
+	uintMap := TypePlan{Kind: TypeKindMap, Key: &uintType, Value: &uintType}
+
+	toProtoCast := MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: uintType,
+		Target: uintType,
+		Cast:   &MappingCastPlan{Source: uintType, Target: uintType, ProtoTarget: true},
+	}
+	fromProtoCast := MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: uintType,
+		Target: uintType,
+		Cast:   &MappingCastPlan{Source: uintType, Target: uintType},
+	}
+	preservedDirect := MappingValuePlan{
+		Kind:   MappingValueKindDirect,
+		Source: fixedUintType,
+		Target: fixedUintType,
+	}
+
+	toProtoSlice, err := nativeSliceTargetType(nil, uintSlice, toProtoCast)
+	assert.NoError(t, err)
+	assert.Equal(t, "[]uint64", toProtoSlice)
+
+	fromProtoSlice, err := nativeSliceTargetType(nil, uintSlice, fromProtoCast)
+	assert.NoError(t, err)
+	assert.Equal(t, "[]uint", fromProtoSlice)
+
+	preservedSlice, err := nativeSliceTargetType(nil, TypePlan{Kind: TypeKindSlice, Elem: &fixedUintType}, preservedDirect)
+	assert.NoError(t, err)
+	assert.Equal(t, "[]uint64", preservedSlice)
+
+	toProtoMap, err := nativeMapTargetType(nil, uintMap, toProtoCast, toProtoCast)
+	assert.NoError(t, err)
+	assert.Equal(t, "map[uint64]uint64", toProtoMap)
+
+	directSliceType, ok, err := nativeSliceDirectAssignmentType(nil, uintSlice, uintSlice, MappingValuePlan{
+		Kind:   MappingValueKindDirect,
+		Source: uintType,
+		Target: uintType,
+	})
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "[]uint", directSliceType)
+
+	_, ok, err = nativeSliceDirectAssignmentType(nil, uintSlice, uintSlice, toProtoCast)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+
+	directMapType, ok, err := nativeMapDirectAssignmentType(nil, uintMap, uintMap,
+		MappingValuePlan{Kind: MappingValueKindDirect, Source: uintType, Target: uintType},
+		MappingValuePlan{Kind: MappingValueKindDirect, Source: uintType, Target: uintType},
+	)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, "map[uint]uint", directMapType)
+
+	_, ok, err = nativeMapDirectAssignmentType(nil, uintMap, uintMap, toProtoCast, toProtoCast)
+	assert.NoError(t, err)
+	assert.False(t, ok)
+
+	scalarBuilderType, err := builderFieldTypeForMapping(nil, uintType, toProtoCast)
+	assert.NoError(t, err)
+	assert.Equal(t, "*uint64", scalarBuilderType)
+
+	sliceBuilderType, err := builderFieldTypeForMapping(nil, uintSlice, MappingValuePlan{
+		Kind:   MappingValueKindSlice,
+		Source: uintSlice,
+		Target: uintSlice,
+		Elem:   &toProtoCast,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "[]uint64", sliceBuilderType)
+}
+
+func TestMappingValueSourceType(t *testing.T) {
+	t.Parallel()
+
+	uintType := scalarType(ScalarKindUint64)
+	fromProtoCast := MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: uintType,
+		Target: uintType,
+		Cast:   &MappingCastPlan{Source: uintType, Target: uintType},
+	}
+
+	sourceType, err := mappingValueSourceType(nil, fromProtoCast)
+	assert.NoError(t, err)
+	assert.Equal(t, "uint64", sourceType)
+}
+
 func TestTempNameAllocator(t *testing.T) {
 	t.Parallel()
 

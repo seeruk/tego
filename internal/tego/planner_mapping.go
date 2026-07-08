@@ -125,11 +125,11 @@ func (p *Planner) planProtoSingularFieldType(field *ProtoField) TypePlan {
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
 		return scalarType(ScalarKindInt32)
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return scalarType(ScalarKindInt64)
+		return integerWidthScalarType(ScalarKindInt64, preserveIntegerWidth(field))
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
 		return scalarType(ScalarKindUint32)
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return scalarType(ScalarKindUint64)
+		return integerWidthScalarType(ScalarKindUint64, preserveIntegerWidth(field))
 	case protoreflect.FloatKind:
 		return scalarType(ScalarKindFloat32)
 	case protoreflect.DoubleKind:

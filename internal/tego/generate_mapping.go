@@ -169,6 +169,17 @@ func builderFieldType(g *protogen.GeneratedFile, plan TypePlan) (string, error) 
 	return typ, nil
 }
 
+func builderFieldTypeForMapping(g *protogen.GeneratedFile, plan TypePlan, value MappingValuePlan) (string, error) {
+	typ, err := mappingValueTargetType(g, value)
+	if err != nil {
+		return "", err
+	}
+	if builderFieldNeedsPointer(plan) {
+		return "*" + typ, nil
+	}
+	return typ, nil
+}
+
 func builderFieldValue(plan TypePlan, value renderedValue) string {
 	if builderFieldNeedsPointer(plan) {
 		return builderPointerValue(value)
@@ -289,7 +300,7 @@ func generateToProtoNullablePresenceBuilderField(ctx *mappingRenderContext, fiel
 		return nil, fmt.Errorf("nullable mapping is missing an element")
 	}
 
-	fieldType, err := builderFieldType(ctx.g, field.ToProto.Target)
+	fieldType, err := builderFieldTypeForMapping(ctx.g, field.ToProto.Target, *field.ToProto.Elem)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +349,7 @@ func generateToProtoOneofBuilderFields(ctx *mappingRenderContext, field FieldMap
 	fields := make([]builderField, 0, len(oneof.Variants))
 	var fieldVars []builderField
 	for _, variant := range oneof.Variants {
-		fieldType, err := builderFieldType(ctx.g, variant.Value.Target)
+		fieldType, err := builderFieldTypeForMapping(ctx.g, variant.Value.Target, variant.Value)
 		if err != nil {
 			return nil, fmt.Errorf("variant %s: %w", variant.ProtoName, err)
 		}
@@ -426,7 +437,7 @@ func generateToProtoOmittableBuilderField(ctx *mappingRenderContext, field Field
 		return nil, fmt.Errorf("omittable mapping is missing an element")
 	}
 
-	fieldType, err := builderFieldType(ctx.g, field.ToProto.Target)
+	fieldType, err := builderFieldTypeForMapping(ctx.g, field.ToProto.Target, *field.ToProto.Elem)
 	if err != nil {
 		return nil, err
 	}
@@ -687,6 +698,160 @@ func scalarCastTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (str
 	return generateType(g, plan.Target)
 }
 
+func scalarCastSourceType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+	if plan.Cast != nil && !plan.Cast.ProtoTarget {
+		switch plan.Source.Scalar {
+		case ScalarKindInt64, ScalarKindFixedInt64:
+			return "int64", nil
+		case ScalarKindUint64, ScalarKindFixedUint64:
+			return "uint64", nil
+		}
+	}
+	return generateType(g, plan.Source)
+}
+
+func mappingValueSourceType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+	switch plan.Kind {
+	case MappingValueKindScalarCast:
+		return scalarCastSourceType(g, plan)
+	case MappingValueKindSlice:
+		if plan.Elem != nil {
+			return nativeSliceSourceType(g, plan.Source, *plan.Elem)
+		}
+	case MappingValueKindMap:
+		if plan.Key != nil && plan.Value != nil {
+			return nativeMapSourceType(g, plan.Source, *plan.Key, *plan.Value)
+		}
+	}
+	return generateType(g, plan.Source)
+}
+
+func mappingValueTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+	switch plan.Kind {
+	case MappingValueKindScalarCast:
+		return scalarCastTargetType(g, plan)
+	case MappingValueKindSlice:
+		if plan.Elem != nil {
+			return nativeSliceTargetType(g, plan.Target, *plan.Elem)
+		}
+	case MappingValueKindMap:
+		if plan.Key != nil && plan.Value != nil {
+			return nativeMapTargetType(g, plan.Target, *plan.Key, *plan.Value)
+		}
+	}
+	return generateType(g, plan.Target)
+}
+
+func nativeSliceTargetType(g *protogen.GeneratedFile, target TypePlan, elem MappingValuePlan) (string, error) {
+	if target.Kind != TypeKindSlice || target.Elem == nil {
+		return generateType(g, target)
+	}
+
+	elemType, err := mappingValueTargetType(g, elem)
+	if err != nil {
+		return "", err
+	}
+	return "[]" + elemType, nil
+}
+
+func nativeSliceSourceType(g *protogen.GeneratedFile, source TypePlan, elem MappingValuePlan) (string, error) {
+	if source.Kind != TypeKindSlice || source.Elem == nil {
+		return generateType(g, source)
+	}
+
+	elemType, err := mappingValueSourceType(g, elem)
+	if err != nil {
+		return "", err
+	}
+	return "[]" + elemType, nil
+}
+
+func nativeSliceDirectAssignmentType(
+	g *protogen.GeneratedFile,
+	source TypePlan,
+	target TypePlan,
+	elem MappingValuePlan,
+) (string, bool, error) {
+	if elem.Kind != MappingValueKindDirect || elem.CanError {
+		return "", false, nil
+	}
+
+	sourceType, err := nativeSliceSourceType(g, source, elem)
+	if err != nil {
+		return "", false, err
+	}
+	targetType, err := nativeSliceTargetType(g, target, elem)
+	if err != nil {
+		return "", false, err
+	}
+	return targetType, sourceType == targetType, nil
+}
+
+func nativeMapTargetType(
+	g *protogen.GeneratedFile,
+	target TypePlan,
+	keyPlan MappingValuePlan,
+	valuePlan MappingValuePlan,
+) (string, error) {
+	if target.Kind != TypeKindMap || target.Key == nil || target.Value == nil {
+		return generateType(g, target)
+	}
+
+	keyType, err := mappingValueTargetType(g, keyPlan)
+	if err != nil {
+		return "", err
+	}
+	valueType, err := mappingValueTargetType(g, valuePlan)
+	if err != nil {
+		return "", err
+	}
+	return "map[" + keyType + "]" + valueType, nil
+}
+
+func nativeMapSourceType(
+	g *protogen.GeneratedFile,
+	source TypePlan,
+	keyPlan MappingValuePlan,
+	valuePlan MappingValuePlan,
+) (string, error) {
+	if source.Kind != TypeKindMap || source.Key == nil || source.Value == nil {
+		return generateType(g, source)
+	}
+
+	keyType, err := mappingValueSourceType(g, keyPlan)
+	if err != nil {
+		return "", err
+	}
+	valueType, err := mappingValueSourceType(g, valuePlan)
+	if err != nil {
+		return "", err
+	}
+	return "map[" + keyType + "]" + valueType, nil
+}
+
+func nativeMapDirectAssignmentType(
+	g *protogen.GeneratedFile,
+	source TypePlan,
+	target TypePlan,
+	keyPlan MappingValuePlan,
+	valuePlan MappingValuePlan,
+) (string, bool, error) {
+	if keyPlan.Kind != MappingValueKindDirect || keyPlan.CanError ||
+		valuePlan.Kind != MappingValueKindDirect || valuePlan.CanError {
+		return "", false, nil
+	}
+
+	sourceType, err := nativeMapSourceType(g, source, keyPlan, valuePlan)
+	if err != nil {
+		return "", false, err
+	}
+	targetType, err := nativeMapTargetType(g, target, keyPlan, valuePlan)
+	if err != nil {
+		return "", false, err
+	}
+	return targetType, sourceType == targetType, nil
+}
+
 func (ctx *mappingRenderContext) renderCustom(plan MappingValuePlan, source string) (string, error) {
 	ref := plan.Custom.FromProto
 	if top, ok := topCustomType(plan.Source); ok && top.ToProto.Name != "" {
@@ -903,16 +1068,27 @@ func (ctx *mappingRenderContext) renderSlice(plan MappingValuePlan, source strin
 	if plan.Source.Kind == TypeKindPointer || plan.Target.Kind == TypeKindPointer {
 		return ctx.renderShapeSlice(plan, source)
 	}
-	return ctx.renderNativeSlice(plan, source, plan.Target, *plan.Elem)
+	return ctx.renderNativeSlice(source, plan.Source, plan.Target, *plan.Elem)
 }
 
 func (ctx *mappingRenderContext) renderNativeSlice(
-	plan MappingValuePlan,
 	source string,
+	sourceType TypePlan,
 	target TypePlan,
 	elem MappingValuePlan,
 ) (string, error) {
-	targetType, err := generateType(ctx.g, target)
+	if targetType, ok, err := nativeSliceDirectAssignmentType(ctx.g, sourceType, target, elem); err != nil {
+		return "", err
+	} else if ok {
+		tmp := ctx.tempName("items")
+		ctx.line(tmp + " := " + source)
+		ctx.line("if " + tmp + " == nil {")
+		ctx.line(tmp + " = make(" + targetType + ", 0)")
+		ctx.line("}")
+		return tmp, nil
+	}
+
+	targetType, err := nativeSliceTargetType(ctx.g, target, elem)
 	if err != nil {
 		return "", err
 	}
@@ -938,7 +1114,7 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 func (ctx *mappingRenderContext) renderShapeSlice(plan MappingValuePlan, source string) (string, error) {
 	if plan.Target.Kind == TypeKindSlice {
 		inner := ctx.tempPartName("sourceItems")
-		sourceElemType, err := generateType(ctx.g, plan.Elem.Source)
+		sourceElemType, err := mappingValueSourceType(ctx.g, *plan.Elem)
 		if err != nil {
 			return "", fmt.Errorf("shape slice source element: %w", err)
 		}
@@ -946,10 +1122,11 @@ func (ctx *mappingRenderContext) renderShapeSlice(plan MappingValuePlan, source 
 		ctx.line("if " + source + " != nil {")
 		ctx.line(inner + " = " + source + "." + plan.Access.Field.Getter + "()")
 		ctx.line("}")
-		return ctx.renderNativeSlice(plan, inner, plan.Target, *plan.Elem)
+		innerType := TypePlan{Kind: TypeKindSlice, Elem: &plan.Elem.Source}
+		return ctx.renderNativeSlice(inner, innerType, plan.Target, *plan.Elem)
 	}
 
-	inner, err := ctx.renderNativeSlice(plan, source, TypePlan{Kind: TypeKindSlice, Elem: &plan.Elem.Target}, *plan.Elem)
+	inner, err := ctx.renderNativeSlice(source, plan.Source, TypePlan{Kind: TypeKindSlice, Elem: &plan.Elem.Target}, *plan.Elem)
 	if err != nil {
 		return "", err
 	}
@@ -1249,7 +1426,18 @@ func (ctx *mappingRenderContext) renderNativeMap(
 	keyPlan MappingValuePlan,
 	valuePlan MappingValuePlan,
 ) (string, error) {
-	targetType, err := generateType(ctx.g, target)
+	if targetType, ok, err := nativeMapDirectAssignmentType(ctx.g, plan.Source, target, keyPlan, valuePlan); err != nil {
+		return "", err
+	} else if ok {
+		tmp := ctx.tempName("items")
+		ctx.line(tmp + " := " + source)
+		ctx.line("if " + tmp + " == nil {")
+		ctx.line(tmp + " = make(" + targetType + ")")
+		ctx.line("}")
+		return tmp, nil
+	}
+
+	targetType, err := nativeMapTargetType(ctx.g, target, keyPlan, valuePlan)
 	if err != nil {
 		return "", err
 	}

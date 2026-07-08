@@ -25,6 +25,12 @@ func TestGenerate(t *testing.T) {
 		content := generateParsedContent(t, plan)
 
 		assertCommentLinesFit(t, content)
+		assert.Contains(t, content, "watcherIDs := source.GetWatcherIds()")
+		assert.Contains(t, content, "watcherIDs = make([]string, 0)")
+		assert.NotContains(t, content, "for watcherIDsIndex")
+		assert.Contains(t, content, "metadata := source.GetMetadata()")
+		assert.Contains(t, content, "metadata = make(map[string]string)")
+		assert.NotContains(t, content, "for metadataKey")
 		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
 			Assert(t, "generate_rendered_tego_go", []byte(content))
 	})
@@ -47,6 +53,19 @@ func TestGenerate(t *testing.T) {
 		assert.Contains(t, content, "target := generatedpb.Person_builder{")
 		assert.Contains(t, content, "Name:   name,")
 		assert.Contains(t, content, "Status: status,")
+	})
+
+	t.Run("renders omittable integer proto target temporaries with proto widths", func(t *testing.T) {
+		plan := Plan{Files: []FilePlan{omittableIntegerWidthTestFilePlan()}}
+
+		content := generateParsedContent(t, plan)
+
+		assert.Contains(t, content, "var id *uint64")
+		assert.Contains(t, content, "id = new(uint64(source.ID.Get()))")
+		assert.NotContains(t, content, "var id *uint\n")
+		assert.Contains(t, content, "var prices []uint64")
+		assert.Contains(t, content, "prices2 := make([]uint64, len(source.Prices.Get()))")
+		assert.NotContains(t, content, "var prices []uint\n")
 	})
 
 	t.Run("renders external tego struct mapping calls with package qualifiers", func(t *testing.T) {
@@ -397,6 +416,104 @@ func nullablePresenceTestFilePlan() FilePlan {
 						Source: TypePlan{Kind: TypeKindPointer, Elem: &statusType},
 						Target: protoStatusType,
 						Elem:   &MappingValuePlan{Kind: MappingValueKindEnum, Source: statusType, Target: protoStatusType},
+					},
+				},
+			},
+		}},
+	}
+}
+
+func omittableIntegerWidthTestFilePlan() FilePlan {
+	uintType := scalarType(ScalarKindUint64)
+	uintSliceType := TypePlan{Kind: TypeKindSlice, Elem: &uintType}
+	omittableUintType := TypePlan{Kind: TypeKindOmittable, Elem: &uintType}
+	omittableUintSliceType := TypePlan{Kind: TypeKindOmittable, Elem: &uintSliceType}
+	destinationType := TypePlan{Kind: TypeKindStruct, Ref: GoTypeRef{ImportPath: generatedTestPkg, Name: "Destination"}}
+	protoDestinationType := TypePlan{
+		Kind: TypeKindPointer,
+		Elem: &TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{ImportPath: generatedTestPkg + "pb", Name: "Destination"}},
+	}
+	uintFromProto := MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: uintType,
+		Target: uintType,
+		Cast:   &MappingCastPlan{Source: uintType, Target: uintType},
+	}
+	uintToProto := MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: uintType,
+		Target: uintType,
+		Cast:   &MappingCastPlan{Source: uintType, Target: uintType, ProtoTarget: true},
+	}
+	sliceFromProto := MappingValuePlan{
+		Kind:   MappingValueKindSlice,
+		Source: uintSliceType,
+		Target: uintSliceType,
+		Elem:   &uintFromProto,
+	}
+	sliceToProto := MappingValuePlan{
+		Kind:   MappingValueKindSlice,
+		Source: uintSliceType,
+		Target: uintSliceType,
+		Elem:   &uintToProto,
+	}
+
+	return FilePlan{
+		ProtoPath: "generated.proto",
+		Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/generated.tego.go"},
+		Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+		Structs: []StructPlan{{
+			Name: "Destination",
+			Fields: []FieldPlan{
+				{Name: "ID", Type: omittableUintType},
+				{Name: "Prices", Type: omittableUintSliceType},
+			},
+		}},
+		Mappings: []MappingPlan{{
+			ProtoName: "generated.v1.Destination",
+			Name:      "Destination",
+			FromProto: MappingFunctionPlan{
+				Name:   "DestinationFromProto",
+				Source: protoDestinationType,
+				Target: destinationType,
+			},
+			ToProto: MappingFunctionPlan{
+				Name:         "DestinationToProto",
+				ReceiverName: "d",
+				Source:       destinationType,
+				Target:       protoDestinationType,
+			},
+			Fields: []FieldMappingPlan{
+				{
+					Name:  "ID",
+					Proto: MappingFieldAccessPlan{Name: "Id", Getter: "GetId", Setter: "SetId", Has: "HasId"},
+					FromProto: MappingValuePlan{
+						Kind:   MappingValueKindOmittable,
+						Source: uintType,
+						Target: omittableUintType,
+						Elem:   &uintFromProto,
+					},
+					ToProto: MappingValuePlan{
+						Kind:   MappingValueKindOmittable,
+						Source: omittableUintType,
+						Target: uintType,
+						Elem:   &uintToProto,
+					},
+				},
+				{
+					Name:  "Prices",
+					Proto: MappingFieldAccessPlan{Name: "Prices", Getter: "GetPrices", Setter: "SetPrices", Has: "HasPrices"},
+					FromProto: MappingValuePlan{
+						Kind:   MappingValueKindOmittable,
+						Source: uintSliceType,
+						Target: omittableUintSliceType,
+						Elem:   &sliceFromProto,
+					},
+					ToProto: MappingValuePlan{
+						Kind:   MappingValueKindOmittable,
+						Source: omittableUintSliceType,
+						Target: uintSliceType,
+						Elem:   &sliceToProto,
 					},
 				},
 			},
