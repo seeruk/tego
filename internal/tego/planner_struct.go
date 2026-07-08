@@ -715,11 +715,7 @@ func plannedEnumRef(enum *ProtoEnum) GoTypeRef {
 	if enum.Desc != nil {
 		ref = protoEnumRef(enum)
 	}
-	if enum.File != nil && enum.File.Options != nil && enum.File.Options.HasGoPackage() {
-		ref.ImportPath = packageRef(enum.File.Options.GetGoPackage()).ImportPath
-	}
-	ref.Name = plannedEnumName(enum)
-	return ref
+	return plannedDeclarationRef(enum.File, ref, plannedEnumName(enum))
 }
 
 func plannedStructRef(message *ProtoMessage) GoTypeRef {
@@ -727,10 +723,14 @@ func plannedStructRef(message *ProtoMessage) GoTypeRef {
 	if message.Desc != nil {
 		ref = protoMessageRef(message)
 	}
-	if message.File != nil && message.File.Options != nil && message.File.Options.HasGoPackage() {
-		ref.ImportPath = packageRef(message.File.Options.GetGoPackage()).ImportPath
+	return plannedDeclarationRef(message.File, ref, plannedMessageName(message))
+}
+
+func plannedDeclarationRef(file *ProtoFile, ref GoTypeRef, name string) GoTypeRef {
+	if file != nil && file.Options != nil && file.Options.HasGoPackage() {
+		ref.ImportPath = packageRef(file.Options.GetGoPackage()).ImportPath
 	}
-	ref.Name = plannedMessageName(message)
+	ref.Name = name
 	return ref
 }
 

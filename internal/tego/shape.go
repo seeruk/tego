@@ -29,6 +29,37 @@ func BuildShapeIndex(di *DescriptorIndex) (*ShapeIndex, error) {
 	return builder.index, nil
 }
 
+// withoutInferredShape removes automatic nullable/slice/map shape inference for
+// one message while preserving explicit flatten entries.
+func (si *ShapeIndex) withoutInferredShape(name protoreflect.FullName) *ShapeIndex {
+	if si == nil || name == "" {
+		return si
+	}
+
+	out := *si
+	out.Nullables = shapeMapWithout(si.Nullables, name)
+	out.Maps = shapeMapWithout(si.Maps, name)
+	out.Slices = shapeMapWithout(si.Slices, name)
+	return &out
+}
+
+func shapeMapWithout(
+	shapes map[protoreflect.FullName]*ProtoMessage,
+	name protoreflect.FullName,
+) map[protoreflect.FullName]*ProtoMessage {
+	if _, ok := shapes[name]; !ok {
+		return shapes
+	}
+
+	out := make(map[protoreflect.FullName]*ProtoMessage, len(shapes)-1)
+	for shapeName, message := range shapes {
+		if shapeName != name {
+			out[shapeName] = message
+		}
+	}
+	return out
+}
+
 type shapeIndexBuilder struct {
 	index  *ShapeIndex
 	shapes map[*ProtoMessage]shapeKind

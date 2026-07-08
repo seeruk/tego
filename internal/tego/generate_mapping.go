@@ -919,36 +919,29 @@ func nativeMapDirectAssignmentType(
 }
 
 func (ctx *mappingRenderContext) renderCustom(plan MappingValuePlan, source string) (string, error) {
-	ref := plan.Custom.FromProto
-	if top, ok := topCustomType(plan.Source); ok && top.ToProto.Name != "" {
-		ref = plan.Custom.ToProto
-	}
-
-	if ref.Receiver != "" {
-		return ctx.renderCall(source+"."+ref.Name, "", plan.CanError)
-	}
-	name := generateSymbol(ctx.g, ref)
-	return ctx.renderCall(name, source, plan.CanError)
+	name, arg := ctx.customMappingCall(plan, source)
+	return ctx.renderCall(name, arg, plan.CanError)
 }
 
 func (ctx *mappingRenderContext) renderBuilderCustom(plan MappingValuePlan, source string) (renderedValue, error) {
+	name, arg := ctx.customMappingCall(plan, source)
+	return ctx.renderBuilderCall(name, arg, plan.CanError)
+}
+
+func (ctx *mappingRenderContext) customMappingCall(plan MappingValuePlan, source string) (string, string) {
 	ref := plan.Custom.FromProto
 	if top, ok := topCustomType(plan.Source); ok && top.ToProto.Name != "" {
 		ref = plan.Custom.ToProto
 	}
 
 	if ref.Receiver != "" {
-		return ctx.renderBuilderCall(source+"."+ref.Name, "", plan.CanError)
+		return source + "." + ref.Name, ""
 	}
-	name := generateSymbol(ctx.g, ref)
-	return ctx.renderBuilderCall(name, source, plan.CanError)
+	return generateSymbol(ctx.g, ref), source
 }
 
 func (ctx *mappingRenderContext) renderCall(name string, source string, canError bool) (string, error) {
-	call := name + "(" + source + ")"
-	if source == "" {
-		call = name + "()"
-	}
+	call := callExpr(name, source)
 	if !canError {
 		return call, nil
 	}
@@ -962,10 +955,7 @@ func (ctx *mappingRenderContext) renderCall(name string, source string, canError
 }
 
 func (ctx *mappingRenderContext) renderBuilderCall(name string, source string, canError bool) (renderedValue, error) {
-	call := name + "(" + source + ")"
-	if source == "" {
-		call = name + "()"
-	}
+	call := callExpr(name, source)
 	if !canError {
 		return renderedNonAddressableValue(call), nil
 	}
@@ -976,6 +966,13 @@ func (ctx *mappingRenderContext) renderBuilderCall(name string, source string, c
 	ctx.emitErrorReturn()
 	ctx.line("}")
 	return renderedAddressableValue(tmp), nil
+}
+
+func callExpr(name, source string) string {
+	if source == "" {
+		return name + "()"
+	}
+	return name + "(" + source + ")"
 }
 
 func (ctx *mappingRenderContext) renderNullable(plan MappingValuePlan, source string) (string, error) {

@@ -338,7 +338,7 @@ func (p *Planner) planServiceMessage(
 	protoType := protoMessageType(message)
 	// RPC boundary messages keep their generated struct shape at service method
 	// boundaries, but explicit flatten shapes still apply to inline helpers.
-	boundaryShapeIndex := shapeIndexWithoutInferredShape(si, message.FullName)
+	boundaryShapeIndex := si.withoutInferredShape(message.FullName)
 	nativeType, diagnostics := p.planMessageValueType(message, boundaryShapeIndex, diagnosticPath)
 	fromProto := p.planMessageMappingValue(message, protoType, nativeType, boundaryShapeIndex, mappingDirectionFromProto)
 	toProto := p.planMessageMappingValue(message, nativeType, protoType, boundaryShapeIndex, mappingDirectionToProto)
@@ -350,37 +350,6 @@ func (p *Planner) planServiceMessage(
 		FromProto: fromProto,
 		ToProto:   toProto,
 	}, diagnostics
-}
-
-// shapeIndexWithoutInferredShape removes automatic nullable/slice/map shape
-// inference for a single message while preserving explicit flatten entries.
-func shapeIndexWithoutInferredShape(si *ShapeIndex, name protoreflect.FullName) *ShapeIndex {
-	if si == nil || name == "" {
-		return si
-	}
-
-	out := *si
-	out.Nullables = shapeMapWithout(si.Nullables, name)
-	out.Maps = shapeMapWithout(si.Maps, name)
-	out.Slices = shapeMapWithout(si.Slices, name)
-	return &out
-}
-
-func shapeMapWithout(
-	shapes map[protoreflect.FullName]*ProtoMessage,
-	name protoreflect.FullName,
-) map[protoreflect.FullName]*ProtoMessage {
-	if _, ok := shapes[name]; !ok {
-		return shapes
-	}
-
-	out := make(map[protoreflect.FullName]*ProtoMessage, len(shapes)-1)
-	for shapeName, message := range shapes {
-		if shapeName != name {
-			out[shapeName] = message
-		}
-	}
-	return out
 }
 
 func protoServicePlanRef(service *ProtoService) GoTypeRef {
