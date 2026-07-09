@@ -58,7 +58,7 @@ func InterfaceHooks() tego.InterfaceHooks {
 	tego.AddPostRequestMappingHook(&hooks, validate)
 	tego.AddPreResponseMappingHook(&hooks, finalize)
 	tego.AddPostRequestMappingHook(&hooks, func(ctx context.Context, info tego.RPCInfo, i any) (context.Context, error) {
-		// Any hooks can inspect all requests or responses in the service, based on which hook you add.
+		// `any` hooks can inspect all requests or responses in the service, based on which hook you add.
 		fmt.Printf("%T\n", i)
 		return ctx, nil
 	})
