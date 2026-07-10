@@ -222,7 +222,9 @@ The `go_type` options accept predeclared Go value types, pointers, slices, fixed
 fully-qualified named types, and generic instantiations. These forms can be nested, so custom types
 can use expressions such as `[12]uint`, `map[string][]uint64`, or
 `github.com/acme/project/date.MonthlyArray[uint]`. Generic placeholders in `ref` can also be bound
-to any supported expression through `type_args`.
+to any supported expression through `type_args`. Those bindings are resolved recursively, so one
+binding may reference another, but every chain must ultimately end in concrete predeclared or
+fully-qualified named types. Missing bindings, cycles, and unused entries are rejected.
 
 See [examples/custom-types](examples/custom-types) for a full example.
 

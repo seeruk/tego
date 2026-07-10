@@ -57,11 +57,15 @@ message Customer {
   }];
 
   repeated string contact_aliases = 6 [(tego.field).go_type = {
-    ref: "github.com/seeruk/tego/examples/custom-types/types.Box[*[]*T]"
+    ref: "github.com/seeruk/tego/examples/custom-types/types.Box[T]"
     from_proto: "github.com/seeruk/tego/examples/custom-types/types.ContactAliasesFromProto"
     to_proto: "github.com/seeruk/tego/examples/custom-types/types.ContactAliasesToProto"
     type_args: {
       key: "T"
+      value: {type: "*[]*Element"}
+    }
+    type_args: {
+      key: "Element"
       value: {type: "github.com/seeruk/tego/examples/custom-types/types.Email"}
     }
   }];

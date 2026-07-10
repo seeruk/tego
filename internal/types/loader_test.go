@@ -127,6 +127,23 @@ func TestLoaderTypeExpr(t *testing.T) {
 		assert.Equal(t, "uint", expr.Args[0].Elem.Name)
 	})
 
+	t.Run("resolves chained type arguments to a concrete type", func(t *testing.T) {
+		loader := NewLoader()
+
+		expr, err := loader.TypeExpr(loaderTestPkg+".Box[T]", map[string]string{
+			"T":       "*[]*Element",
+			"Element": loaderTestPkg + ".Example",
+		})
+
+		require.NoError(t, err)
+		require.Len(t, expr.Args, 1)
+		arg := expr.Args[0]
+		require.Equal(t, TypeExprKindPointer, arg.Kind)
+		require.Equal(t, TypeExprKindSlice, arg.Elem.Kind)
+		require.Equal(t, TypeExprKindPointer, arg.Elem.Elem.Kind)
+		assert.Equal(t, "Example", arg.Elem.Elem.Elem.Name)
+	})
+
 	t.Run("resolves pointer and slice type arguments", func(t *testing.T) {
 		loader := NewLoader()
 

@@ -2177,7 +2177,9 @@ type GoType_builder struct {
 	// generated Go code. For example, ref github.com/example/project/pkg.MyType will be planned as
 	// *pkg.MyType.
 	AsPointer *bool
-	// type_args specifies concrete type expressions for generic type parameters used in ref.
+	// type_args binds placeholders used in ref or in another type argument. Bindings are resolved
+	// recursively, and every chain must end in a concrete supported Go type. Missing bindings,
+	// recursive bindings, and unused entries are rejected.
 	TypeArgs map[string]*GoTypeArg
 }
 
@@ -2273,8 +2275,9 @@ func (x *GoTypeArg) ClearType() {
 type GoTypeArg_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// type is a concrete Go type expression using the same subset as GoType.ref. For example:
-	// uint, github.com/example/project/pkg.MyType, [12]T, or map[string][]*T.
+	// type is a Go type expression using the same subset as GoType.ref and may reference another
+	// type_args binding. For example, T may bind to map[string][]*Element while Element binds to
+	// github.com/example/project/pkg.MyType, resolving T to a concrete map type.
 	Type *string
 }
 

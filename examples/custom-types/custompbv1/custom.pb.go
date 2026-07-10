@@ -418,7 +418,7 @@ const file_custom_v1_custom_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\xc8\x01҅\n" +
 	"\xc3\x01\x1a\xc0\x01\n" +
 	"8github.com/seeruk/tego/examples/custom-types/types.Email\x12Agithub.com/seeruk/tego/examples/custom-types/types.EmailFromProto\x1a?github.com/seeruk/tego/examples/custom-types/types.EmailToProto \x01R\x05value:\x06҅\n" +
-	"\x028\x01\"\xb7\x0f\n" +
+	"\x028\x01\"\xcd\x0f\n" +
 	"\bCustomer\x12\x1f\n" +
 	"\x02id\x18\x01 \x01(\v2\x0f.custom.v1.UUIDR\x02id\x12-\n" +
 	"\x05email\x18\x02 \x01(\v2\x17.custom.v1.EmailAddressR\x05email\x12\xec\x01\n" +
@@ -432,12 +432,14 @@ const file_custom_v1_custom_proto_rawDesc = "" +
 	"\x89\x02\x1a\x86\x02\n" +
 	"9github.com/seeruk/tego/examples/custom-types/types.Set[T]\x12Dgithub.com/seeruk/tego/examples/custom-types/types.LabelSetFromProto\x1aBgithub.com/seeruk/tego/examples/custom-types/types.LabelSetToProto2?\n" +
 	"\x01T\x12:\n" +
-	"8github.com/seeruk/tego/examples/custom-types/types.LabelR\x06labels\x12\xc8\x02\n" +
-	"\x0fcontact_aliases\x18\x06 \x03(\tB\x9e\x02҅\n" +
-	"\x99\x02\x1a\x96\x02\n" +
-	"=github.com/seeruk/tego/examples/custom-types/types.Box[*[]*T]\x12Jgithub.com/seeruk/tego/examples/custom-types/types.ContactAliasesFromProto\x1aHgithub.com/seeruk/tego/examples/custom-types/types.ContactAliasesToProto2?\n" +
-	"\x01T\x12:\n" +
-	"8github.com/seeruk/tego/examples/custom-types/types.EmailR\x0econtactAliases\x12\xc6\x01\n" +
+	"8github.com/seeruk/tego/examples/custom-types/types.LabelR\x06labels\x12\xde\x02\n" +
+	"\x0fcontact_aliases\x18\x06 \x03(\tB\xb4\x02҅\n" +
+	"\xaf\x02\x1a\xac\x02\n" +
+	"9github.com/seeruk/tego/examples/custom-types/types.Box[T]\x12Jgithub.com/seeruk/tego/examples/custom-types/types.ContactAliasesFromProto\x1aHgithub.com/seeruk/tego/examples/custom-types/types.ContactAliasesToProto2E\n" +
+	"\aElement\x12:\n" +
+	"8github.com/seeruk/tego/examples/custom-types/types.Email2\x12\n" +
+	"\x01T\x12\r\n" +
+	"\v*[]*ElementR\x0econtactAliases\x12\xc6\x01\n" +
 	"\ffixed_months\x18\a \x03(\x04B\xa2\x01҅\n" +
 	"\x9d\x01\x1a\x9a\x01\n" +
 	"\b[12]uint\x12Ggithub.com/seeruk/tego/examples/custom-types/types.FixedMonthsFromProto\x1aEgithub.com/seeruk/tego/examples/custom-types/types.FixedMonthsToProtoR\vfixedMonths\x12\x95\x02\n" +

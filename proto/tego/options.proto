@@ -204,12 +204,15 @@ message GoType {
   // generated Go code. For example, ref github.com/example/project/pkg.MyType will be planned as
   // *pkg.MyType.
   bool as_pointer = 5;
-  // type_args specifies concrete type expressions for generic type parameters used in ref.
+  // type_args binds placeholders used in ref or in another type argument. Bindings are resolved
+  // recursively, and every chain must end in a concrete supported Go type. Missing bindings,
+  // recursive bindings, and unused entries are rejected.
   map<string, GoTypeArg> type_args = 6;
 }
 
 message GoTypeArg {
-  // type is a concrete Go type expression using the same subset as GoType.ref. For example:
-  // uint, github.com/example/project/pkg.MyType, [12]T, or map[string][]*T.
+  // type is a Go type expression using the same subset as GoType.ref and may reference another
+  // type_args binding. For example, T may bind to map[string][]*Element while Element binds to
+  // github.com/example/project/pkg.MyType, resolving T to a concrete map type.
   string type = 1;
 }
