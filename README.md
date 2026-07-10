@@ -218,8 +218,11 @@ message Date {
 }
 ```
 
-The `go_type` options also support a limited generics-style syntax to allow for more complex 
-conversion, for example, into custom container types.
+The `go_type` options accept predeclared Go value types, pointers, slices, fixed arrays, maps,
+fully-qualified named types, and generic instantiations. These forms can be nested, so custom types
+can use expressions such as `[12]uint`, `map[string][]uint64`, or
+`github.com/acme/project/date.MonthlyArray[uint]`. Generic placeholders in `ref` can also be bound
+to any supported expression through `type_args`.
 
 See [examples/custom-types](examples/custom-types) for a full example.
 

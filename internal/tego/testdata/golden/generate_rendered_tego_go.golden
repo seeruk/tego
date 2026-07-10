@@ -73,6 +73,9 @@ type Person struct {
 	TTL            time.Duration
 	Description    *plannertest.Description
 	Labels         plannertest.Set[plannertest.CustomString]
+	Months         [12]uint
+	Monthly        plannertest.MonthlyArray[uint]
+	Counts         map[string][]uint64
 	Box            plannertest.Box[*[]*plannertest.CustomString]
 	LabelSets      []plannertest.Set[plannertest.CustomString]
 	LabelsByName   map[string]plannertest.Set[plannertest.CustomString]

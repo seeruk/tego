@@ -2,14 +2,20 @@ package types
 
 import (
 	"fmt"
+	"go/ast"
+	"go/constant"
+	"go/parser"
+	"go/token"
+	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	gotypes "go/types"
 )
 
-// TypeExpr resolves a Go type expression using Tego's supported subset: named types, type
-// parameters, pointers, slices, and generic instantiations.
+// TypeExpr resolves a Go type expression using Tego's supported subset: named and predeclared
+// types, type parameters, pointers, slices, arrays, maps, and generic instantiations.
 func (l *Loader) TypeExpr(ref string, typeArgs map[string]string) (*TypeExpr, error) {
 	parsed, err := parseTypeExpr(ref)
 	if err != nil {
@@ -17,9 +23,9 @@ func (l *Loader) TypeExpr(ref string, typeArgs map[string]string) (*TypeExpr, er
 	}
 
 	used := make(map[string]bool)
-	expr, err := l.resolveTypeExpr(parsed, typeArgs, used, nil)
+	expr, err := l.resolveTypeExpr(parsed.expr, parsed.refs, typeArgs, used, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("type expression %q: %w", ref, err)
 	}
 	for name := range typeArgs {
 		if !used[name] {
@@ -29,51 +35,38 @@ func (l *Loader) TypeExpr(ref string, typeArgs map[string]string) (*TypeExpr, er
 	return expr, nil
 }
 
-type parsedTypeExprKind uint
-
-const (
-	parsedTypeExprKindNamed parsedTypeExprKind = iota
-	parsedTypeExprKindParam
-	parsedTypeExprKindPointer
-	parsedTypeExprKindSlice
-)
-
 type parsedTypeExpr struct {
-	kind parsedTypeExprKind
-	name string
-	args []parsedTypeExpr
-	elem *parsedTypeExpr
+	expr ast.Expr
+	refs map[string]string
 }
 
 func (l *Loader) resolveTypeExpr(
-	parsed parsedTypeExpr,
+	expr ast.Expr,
+	refs map[string]string,
 	typeArgs map[string]string,
 	used map[string]bool,
 	active map[string]bool,
 ) (*TypeExpr, error) {
-	switch parsed.kind {
-	case parsedTypeExprKindParam:
-		arg, ok := typeArgs[parsed.name]
-		if !ok {
-			return nil, fmt.Errorf("type parameter %q has no type argument", parsed.name)
+	switch expr := expr.(type) {
+	case *ast.ParenExpr:
+		return l.resolveTypeExpr(expr.X, refs, typeArgs, used, active)
+	case *ast.Ident:
+		if ref, ok := refs[expr.Name]; ok {
+			return l.resolveNamedTypeExpr(ref, nil, refs, typeArgs, used, active)
 		}
-		if active[parsed.name] {
-			return nil, fmt.Errorf("type argument %q is recursive", parsed.name)
+		if expr.Name == "comparable" {
+			return nil, fmt.Errorf("constraint-only type %q is not supported as a value type", expr.Name)
 		}
-		if active == nil {
-			active = make(map[string]bool)
+		if typ, ok := predeclaredType(expr.Name); ok {
+			return &TypeExpr{
+				Kind: TypeExprKindPredeclared,
+				Name: expr.Name,
+				Type: typ,
+			}, nil
 		}
-		active[parsed.name] = true
-		defer delete(active, parsed.name)
-
-		used[parsed.name] = true
-		argParsed, err := parseTypeExpr(arg)
-		if err != nil {
-			return nil, fmt.Errorf("type argument %q: %w", parsed.name, err)
-		}
-		return l.resolveTypeExpr(argParsed, typeArgs, used, active)
-	case parsedTypeExprKindPointer:
-		elem, err := l.resolveTypeExpr(*parsed.elem, typeArgs, used, active)
+		return l.resolveTypeParam(expr.Name, typeArgs, used, active)
+	case *ast.StarExpr:
+		elem, err := l.resolveTypeExpr(expr.X, refs, typeArgs, used, active)
 		if err != nil {
 			return nil, err
 		}
@@ -82,39 +75,179 @@ func (l *Loader) resolveTypeExpr(
 			Type: gotypes.NewPointer(elem.Type),
 			Elem: elem,
 		}, nil
-	case parsedTypeExprKindSlice:
-		elem, err := l.resolveTypeExpr(*parsed.elem, typeArgs, used, active)
-		if err != nil {
-			return nil, err
-		}
+	case *ast.ArrayType:
+		return l.resolveArrayTypeExpr(expr, refs, typeArgs, used, active)
+	case *ast.MapType:
+		return l.resolveMapTypeExpr(expr, refs, typeArgs, used, active)
+	case *ast.IndexExpr:
+		return l.resolveGenericTypeExpr(expr.X, []ast.Expr{expr.Index}, refs, typeArgs, used, active)
+	case *ast.IndexListExpr:
+		return l.resolveGenericTypeExpr(expr.X, expr.Indices, refs, typeArgs, used, active)
+	case *ast.ChanType:
+		return nil, fmt.Errorf("channel types are not supported")
+	case *ast.FuncType:
+		return nil, fmt.Errorf("function types are not supported")
+	case *ast.StructType:
+		return nil, fmt.Errorf("anonymous struct types are not supported")
+	case *ast.InterfaceType:
+		return nil, fmt.Errorf("anonymous interface types are not supported")
+	case *ast.UnaryExpr:
+		return nil, fmt.Errorf("type constraints are not supported")
+	default:
+		return nil, fmt.Errorf("unsupported type expression")
+	}
+}
+
+func (l *Loader) resolveTypeParam(
+	name string,
+	typeArgs map[string]string,
+	used map[string]bool,
+	active map[string]bool,
+) (*TypeExpr, error) {
+	arg, ok := typeArgs[name]
+	if !ok {
+		return nil, fmt.Errorf("type parameter %q has no type argument", name)
+	}
+	if active[name] {
+		return nil, fmt.Errorf("type argument %q is recursive", name)
+	}
+	if active == nil {
+		active = make(map[string]bool)
+	}
+	active[name] = true
+	defer delete(active, name)
+
+	used[name] = true
+	parsed, err := parseTypeExpr(arg)
+	if err != nil {
+		return nil, fmt.Errorf("type argument %q: %w", name, err)
+	}
+	resolved, err := l.resolveTypeExpr(parsed.expr, parsed.refs, typeArgs, used, active)
+	if err != nil {
+		return nil, fmt.Errorf("type argument %q: %w", name, err)
+	}
+	return resolved, nil
+}
+
+func (l *Loader) resolveArrayTypeExpr(
+	expr *ast.ArrayType,
+	refs map[string]string,
+	typeArgs map[string]string,
+	used map[string]bool,
+	active map[string]bool,
+) (*TypeExpr, error) {
+	elem, err := l.resolveTypeExpr(expr.Elt, refs, typeArgs, used, active)
+	if err != nil {
+		return nil, err
+	}
+	if expr.Len == nil {
 		return &TypeExpr{
 			Kind: TypeExprKindSlice,
 			Type: gotypes.NewSlice(elem.Type),
 			Elem: elem,
 		}, nil
-	default:
-		return l.resolveNamedTypeExpr(parsed, typeArgs, used, active)
 	}
+
+	literal, ok := expr.Len.(*ast.BasicLit)
+	if !ok || literal.Kind != token.INT {
+		if _, inferred := expr.Len.(*ast.Ellipsis); inferred {
+			return nil, fmt.Errorf("inferred-length arrays are not supported")
+		}
+		return nil, fmt.Errorf("array length must be a non-negative integer literal")
+	}
+	length, ok := constant.Int64Val(constant.MakeFromLiteral(literal.Value, token.INT, 0))
+	if !ok || length < 0 {
+		return nil, fmt.Errorf("array length %q is invalid or overflows int64", literal.Value)
+	}
+
+	return &TypeExpr{
+		Kind:   TypeExprKindArray,
+		Type:   gotypes.NewArray(elem.Type, length),
+		Elem:   elem,
+		Length: length,
+	}, nil
 }
 
-func (l *Loader) resolveNamedTypeExpr(
-	parsed parsedTypeExpr,
+func (l *Loader) resolveMapTypeExpr(
+	expr *ast.MapType,
+	refs map[string]string,
 	typeArgs map[string]string,
 	used map[string]bool,
 	active map[string]bool,
 ) (*TypeExpr, error) {
-	typ, err := l.Type(parsed.name)
+	key, err := l.resolveTypeExpr(expr.Key, refs, typeArgs, used, active)
+	if err != nil {
+		return nil, fmt.Errorf("map key: %w", err)
+	}
+	if !gotypes.Comparable(key.Type) {
+		return nil, fmt.Errorf("map key type is not comparable")
+	}
+	value, err := l.resolveTypeExpr(expr.Value, refs, typeArgs, used, active)
+	if err != nil {
+		return nil, fmt.Errorf("map value: %w", err)
+	}
+
+	return &TypeExpr{
+		Kind:  TypeExprKindMap,
+		Type:  gotypes.NewMap(key.Type, value.Type),
+		Key:   key,
+		Value: value,
+	}, nil
+}
+
+func (l *Loader) resolveGenericTypeExpr(
+	base ast.Expr,
+	args []ast.Expr,
+	refs map[string]string,
+	typeArgs map[string]string,
+	used map[string]bool,
+	active map[string]bool,
+) (*TypeExpr, error) {
+	for {
+		paren, ok := base.(*ast.ParenExpr)
+		if !ok {
+			break
+		}
+		base = paren.X
+	}
+
+	ident, ok := base.(*ast.Ident)
+	if !ok {
+		return nil, fmt.Errorf("generic base must be a named type")
+	}
+	ref, ok := refs[ident.Name]
+	if !ok {
+		if ident.Name == "comparable" {
+			return nil, fmt.Errorf("constraint-only type %q is not supported as a value type", ident.Name)
+		}
+		if _, predeclared := predeclaredType(ident.Name); predeclared {
+			return nil, fmt.Errorf("predeclared type %q cannot have type arguments", ident.Name)
+		}
+		return nil, fmt.Errorf("type parameter %q cannot have type arguments", ident.Name)
+	}
+	return l.resolveNamedTypeExpr(ref, args, refs, typeArgs, used, active)
+}
+
+func (l *Loader) resolveNamedTypeExpr(
+	ref string,
+	parsedArgs []ast.Expr,
+	refs map[string]string,
+	typeArgs map[string]string,
+	used map[string]bool,
+	active map[string]bool,
+) (*TypeExpr, error) {
+	typ, err := l.Type(ref)
 	if err != nil {
 		return nil, err
 	}
 	if typ.Named == nil {
-		return nil, fmt.Errorf("%q is not a named type", parsed.name)
+		return nil, fmt.Errorf("%q is not a named type", ref)
 	}
 
 	var args []TypeExpr
 	var argTypes []gotypes.Type
-	for _, parsedArg := range parsed.args {
-		arg, err := l.resolveTypeExpr(parsedArg, typeArgs, used, active)
+	for _, parsedArg := range parsedArgs {
+		arg, err := l.resolveTypeExpr(parsedArg, refs, typeArgs, used, active)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +257,7 @@ func (l *Loader) resolveNamedTypeExpr(
 
 	typeParamCount := typ.Named.TypeParams().Len()
 	if typeParamCount != len(args) {
-		return nil, fmt.Errorf("type %q requires %d type arguments, got %d", parsed.name, typeParamCount, len(args))
+		return nil, fmt.Errorf("type %q requires %d type arguments, got %d", ref, typeParamCount, len(args))
 	}
 
 	exprType := typ.Type
@@ -132,14 +265,14 @@ func (l *Loader) resolveNamedTypeExpr(
 	if len(argTypes) > 0 {
 		instantiated, err := gotypes.Instantiate(nil, typ.Named, argTypes, true)
 		if err != nil {
-			return nil, fmt.Errorf("instantiate type %q: %w", parsed.name, err)
+			return nil, fmt.Errorf("instantiate type %q: %w", ref, err)
 		}
 		exprType = instantiated
 		named, _ = instantiated.(*gotypes.Named)
 	}
 
 	return &TypeExpr{
-		Ref:        parsed.name,
+		Ref:        ref,
 		Kind:       TypeExprKindNamed,
 		ImportPath: typ.ImportPath,
 		Name:       typ.Name,
@@ -150,120 +283,94 @@ func (l *Loader) resolveNamedTypeExpr(
 	}, nil
 }
 
-type typeExprParser struct {
-	input string
-	pos   int
+func predeclaredType(name string) (gotypes.Type, bool) {
+	if name == "comparable" {
+		return nil, false
+	}
+	obj, ok := gotypes.Universe.Lookup(name).(*gotypes.TypeName)
+	if !ok {
+		return nil, false
+	}
+	return obj.Type(), true
 }
 
 func parseTypeExpr(input string) (parsedTypeExpr, error) {
-	parser := typeExprParser{input: strings.TrimSpace(input)}
-	expr, err := parser.parseExpr()
+	normalized, refs := normalizeQualifiedTypeRefs(strings.TrimSpace(input))
+	expr, err := parser.ParseExpr(normalized)
 	if err != nil {
-		return parsedTypeExpr{}, err
+		message := restoreQualifiedTypeRefs(err.Error(), refs)
+		return parsedTypeExpr{}, fmt.Errorf("invalid type expression %q: %s", input, message)
 	}
-	parser.skipSpace()
-	if parser.pos != len(parser.input) {
-		return parsedTypeExpr{}, fmt.Errorf("unexpected %q", parser.input[parser.pos:])
-	}
-	return expr, nil
+	return parsedTypeExpr{expr: expr, refs: refs}, nil
 }
 
-func (p *typeExprParser) parseExpr() (parsedTypeExpr, error) {
-	p.skipSpace()
-	switch {
-	case p.consume("*"):
-		elem, err := p.parseExpr()
-		if err != nil {
-			return parsedTypeExpr{}, err
-		}
-		return parsedTypeExpr{kind: parsedTypeExprKindPointer, elem: &elem}, nil
-	case p.consume("[]"):
-		elem, err := p.parseExpr()
-		if err != nil {
-			return parsedTypeExpr{}, err
-		}
-		return parsedTypeExpr{kind: parsedTypeExprKindSlice, elem: &elem}, nil
-	default:
-		return p.parseNamedOrParam()
+func restoreQualifiedTypeRefs(value string, refs map[string]string) string {
+	syntheticRefs := make([]string, 0, len(refs))
+	for synthetic := range refs {
+		syntheticRefs = append(syntheticRefs, synthetic)
 	}
+	sort.Slice(syntheticRefs, func(i, j int) bool {
+		return len(syntheticRefs[i]) > len(syntheticRefs[j])
+	})
+	for _, synthetic := range syntheticRefs {
+		value = strings.ReplaceAll(value, synthetic, refs[synthetic])
+	}
+	return value
 }
 
-func (p *typeExprParser) parseNamedOrParam() (parsedTypeExpr, error) {
-	name := p.parseName()
-	if name == "" {
-		return parsedTypeExpr{}, fmt.Errorf("expected type expression")
+func normalizeQualifiedTypeRefs(input string) (string, map[string]string) {
+	refs := make(map[string]string)
+	syntheticPrefix := "__tego_type_ref_"
+	for strings.Contains(input, syntheticPrefix) {
+		syntheticPrefix = "_" + syntheticPrefix
 	}
-
-	kind := parsedTypeExprKindNamed
-	if tokenIsIdentifier(name) {
-		kind = parsedTypeExprKindParam
-	}
-
-	expr := parsedTypeExpr{kind: kind, name: name}
-	p.skipSpace()
-	if !p.consume("[") {
-		return expr, nil
-	}
-	if kind == parsedTypeExprKindParam {
-		return parsedTypeExpr{}, fmt.Errorf("type parameter %q cannot have type arguments", name)
-	}
-
-	for {
-		arg, err := p.parseExpr()
-		if err != nil {
-			return parsedTypeExpr{}, err
+	var normalized strings.Builder
+	for pos := 0; pos < len(input); {
+		r, size := rune(input[pos]), 1
+		if r >= unicode.MaxASCII {
+			r, size = utf8.DecodeRuneInString(input[pos:])
 		}
-		expr.args = append(expr.args, arg)
-
-		p.skipSpace()
-		if p.consume("]") {
-			break
-		}
-		if !p.consume(",") {
-			return parsedTypeExpr{}, fmt.Errorf("expected comma or closing bracket")
-		}
-	}
-	return expr, nil
-}
-
-func (p *typeExprParser) parseName() string {
-	p.skipSpace()
-	start := p.pos
-	for p.pos < len(p.input) {
-		r := rune(p.input[p.pos])
-		if unicode.IsSpace(r) || strings.ContainsRune("*[],", r) {
-			break
-		}
-		p.pos++
-	}
-	return p.input[start:p.pos]
-}
-
-func (p *typeExprParser) consume(value string) bool {
-	if strings.HasPrefix(p.input[p.pos:], value) {
-		p.pos += len(value)
-		return true
-	}
-	return false
-}
-
-func (p *typeExprParser) skipSpace() {
-	for p.pos < len(p.input) && unicode.IsSpace(rune(p.input[p.pos])) {
-		p.pos++
-	}
-}
-
-func tokenIsIdentifier(value string) bool {
-	for i, r := range value {
-		if i == 0 {
-			if r != '_' && !unicode.IsLetter(r) {
-				return false
-			}
+		if typeExprDelimiter(r) {
+			normalized.WriteString(input[pos : pos+size])
+			pos += size
 			continue
 		}
-		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return false
+
+		start := pos
+		for pos < len(input) {
+			r, size = rune(input[pos]), 1
+			if r >= unicode.MaxASCII {
+				r, size = utf8.DecodeRuneInString(input[pos:])
+			}
+			if typeExprDelimiter(r) {
+				break
+			}
+			pos += size
+		}
+		atom := input[start:pos]
+		if isQualifiedTypeRef(atom) {
+			synthetic := fmt.Sprintf("%s%d", syntheticPrefix, len(refs))
+			refs[synthetic] = atom
+			normalized.WriteString(synthetic)
+		} else {
+			normalized.WriteString(atom)
 		}
 	}
-	return value != ""
+	return normalized.String(), refs
+}
+
+func typeExprDelimiter(r rune) bool {
+	return unicode.IsSpace(r) || strings.ContainsRune("*[],(){}~|<>;:", r)
+}
+
+func isQualifiedTypeRef(atom string) bool {
+	if !strings.Contains(atom, ".") || atom == "..." {
+		return false
+	}
+	for _, r := range atom {
+		if unicode.IsLetter(r) {
+			return true
+		}
+	}
+	return false
 }

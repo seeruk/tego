@@ -13,6 +13,9 @@ type Customer struct {
 	DisplayName    *types.DisplayName
 	Labels         types.Set[types.Label]
 	ContactAliases types.Box[*[]*types.Email]
+	FixedMonths    [12]uint
+	MonthlyValues  types.MonthlyArray[uint]
+	Counts         map[string]uint
 }
 
 func CustomerFromProto(source *custompbv1.Customer) (Customer, error) {
@@ -42,6 +45,17 @@ func CustomerFromProto(source *custompbv1.Customer) (Customer, error) {
 		return target, err
 	}
 	target.ContactAliases = contactAliases
+	fixedMonths, err := types.FixedMonthsFromProto(source.GetFixedMonths())
+	if err != nil {
+		return target, err
+	}
+	target.FixedMonths = fixedMonths
+	monthlyValues, err := types.MonthlyValuesFromProto(source.GetMonthlyValues())
+	if err != nil {
+		return target, err
+	}
+	target.MonthlyValues = monthlyValues
+	target.Counts = types.CountsFromProto(source.GetCounts())
 	return target, nil
 }
 
@@ -64,6 +78,9 @@ func CustomerToProto(source Customer) (*custompbv1.Customer, error) {
 		DisplayName:    new(types.DisplayNameToProto(source.DisplayName)),
 		Labels:         types.LabelSetToProto(source.Labels),
 		ContactAliases: contactAliases,
+		FixedMonths:    types.FixedMonthsToProto(source.FixedMonths),
+		MonthlyValues:  types.MonthlyValuesToProto(source.MonthlyValues),
+		Counts:         types.CountsToProto(source.Counts),
 	}.Build()
 	return target, nil
 }

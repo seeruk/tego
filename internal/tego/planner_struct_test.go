@@ -542,6 +542,67 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 		assert.Equal(t, "CustomString", arg.Pointer.Slice.Pointer.Name)
 	})
 
+	t.Run("accepts a fixed array of a predeclared type", func(t *testing.T) {
+		field := fieldWithPlannerGoType("months", plannerGoType(
+			"[12]uint",
+			plannerTestPkg+".UintArrayFromProto",
+			plannerTestPkg+".UintArrayToProto",
+			false,
+		))
+		field.Kind = protoreflect.Uint64Kind
+		field.Cardinality = protoreflect.Repeated
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		require.NotNil(t, plan.Ref.Array)
+		assert.Equal(t, int64(12), plan.Ref.ArrayLen)
+		assert.Equal(t, "uint", plan.Ref.Array.Name)
+	})
+
+	t.Run("accepts a predeclared substituted generic argument", func(t *testing.T) {
+		field := fieldWithPlannerGoType("months", plannerGoTypeWithArgs(
+			plannerTestPkg+".MonthlyArray[T]",
+			map[string]string{"T": "uint"},
+			plannerTestPkg+".MonthlyUintArrayFromProto",
+			plannerTestPkg+".MonthlyUintArrayToProto",
+			false,
+		))
+		field.Kind = protoreflect.Uint64Kind
+		field.Cardinality = protoreflect.Repeated
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.Equal(t, "MonthlyArray", plan.Ref.Name)
+		require.Len(t, plan.Ref.Args, 1)
+		assert.Equal(t, "uint", plan.Ref.Args[0].Name)
+	})
+
+	t.Run("accepts a map of predeclared types", func(t *testing.T) {
+		field := fieldWithPlannerGoType("counts", plannerGoType(
+			"map[string]uint",
+			plannerTestPkg+".UintMapFromProto",
+			plannerTestPkg+".UintMapToProto",
+			false,
+		))
+		field.Kind = protoreflect.MessageKind
+		field.Cardinality = protoreflect.Repeated
+		field.MapKey = &ProtoField{Name: "key", Kind: protoreflect.StringKind, Options: &tegopb.FieldOptions{}}
+		field.MapValue = &ProtoField{Name: "value", Kind: protoreflect.Uint64Kind, Options: &tegopb.FieldOptions{}}
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		require.NotNil(t, plan.Ref.MapKey)
+		require.NotNil(t, plan.Ref.MapValue)
+		assert.Equal(t, "string", plan.Ref.MapKey.Name)
+		assert.Equal(t, "uint", plan.Ref.MapValue.Name)
+	})
+
 	t.Run("accepts as pointer on generic type expressions", func(t *testing.T) {
 		field := fieldWithPlannerGoType("custom", plannerGoTypeWithArgs(
 			plannerTestPkg+".Set[T]",

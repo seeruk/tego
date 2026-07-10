@@ -301,6 +301,10 @@ func generateNamedType(g *protogen.GeneratedFile, ref GoTypeRef) string {
 		return "*" + generateNamedType(g, *ref.Pointer)
 	case ref.Slice != nil:
 		return "[]" + generateNamedType(g, *ref.Slice)
+	case ref.Array != nil:
+		return "[" + strconv.FormatInt(ref.ArrayLen, 10) + "]" + generateNamedType(g, *ref.Array)
+	case ref.MapKey != nil && ref.MapValue != nil:
+		return "map[" + generateNamedType(g, *ref.MapKey) + "]" + generateNamedType(g, *ref.MapValue)
 	}
 
 	var name string

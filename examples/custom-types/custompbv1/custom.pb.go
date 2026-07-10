@@ -185,6 +185,9 @@ type Customer struct {
 	xxx_hidden_DisplayName    *string                `protobuf:"bytes,4,opt,name=display_name,json=displayName"`
 	xxx_hidden_Labels         []string               `protobuf:"bytes,5,rep,name=labels"`
 	xxx_hidden_ContactAliases []string               `protobuf:"bytes,6,rep,name=contact_aliases,json=contactAliases"`
+	xxx_hidden_FixedMonths    []uint64               `protobuf:"varint,7,rep,packed,name=fixed_months,json=fixedMonths"`
+	xxx_hidden_MonthlyValues  []uint64               `protobuf:"varint,8,rep,packed,name=monthly_values,json=monthlyValues"`
+	xxx_hidden_Counts         map[string]uint64      `protobuf:"bytes,9,rep,name=counts" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -261,6 +264,27 @@ func (x *Customer) GetContactAliases() []string {
 	return nil
 }
 
+func (x *Customer) GetFixedMonths() []uint64 {
+	if x != nil {
+		return x.xxx_hidden_FixedMonths
+	}
+	return nil
+}
+
+func (x *Customer) GetMonthlyValues() []uint64 {
+	if x != nil {
+		return x.xxx_hidden_MonthlyValues
+	}
+	return nil
+}
+
+func (x *Customer) GetCounts() map[string]uint64 {
+	if x != nil {
+		return x.xxx_hidden_Counts
+	}
+	return nil
+}
+
 func (x *Customer) SetId(v *UUID) {
 	x.xxx_hidden_Id = v
 }
@@ -271,12 +295,12 @@ func (x *Customer) SetEmail(v *EmailAddress) {
 
 func (x *Customer) SetCreditCents(v int64) {
 	x.xxx_hidden_CreditCents = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *Customer) SetDisplayName(v string) {
 	x.xxx_hidden_DisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *Customer) SetLabels(v []string) {
@@ -285,6 +309,18 @@ func (x *Customer) SetLabels(v []string) {
 
 func (x *Customer) SetContactAliases(v []string) {
 	x.xxx_hidden_ContactAliases = v
+}
+
+func (x *Customer) SetFixedMonths(v []uint64) {
+	x.xxx_hidden_FixedMonths = v
+}
+
+func (x *Customer) SetMonthlyValues(v []uint64) {
+	x.xxx_hidden_MonthlyValues = v
+}
+
+func (x *Customer) SetCounts(v map[string]uint64) {
+	x.xxx_hidden_Counts = v
 }
 
 func (x *Customer) HasId() bool {
@@ -342,6 +378,9 @@ type Customer_builder struct {
 	DisplayName    *string
 	Labels         []string
 	ContactAliases []string
+	FixedMonths    []uint64
+	MonthlyValues  []uint64
+	Counts         map[string]uint64
 }
 
 func (b0 Customer_builder) Build() *Customer {
@@ -351,15 +390,18 @@ func (b0 Customer_builder) Build() *Customer {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_Email = b.Email
 	if b.CreditCents != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_CreditCents = *b.CreditCents
 	}
 	if b.DisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_DisplayName = b.DisplayName
 	}
 	x.xxx_hidden_Labels = b.Labels
 	x.xxx_hidden_ContactAliases = b.ContactAliases
+	x.xxx_hidden_FixedMonths = b.FixedMonths
+	x.xxx_hidden_MonthlyValues = b.MonthlyValues
+	x.xxx_hidden_Counts = b.Counts
 	return m0
 }
 
@@ -376,7 +418,7 @@ const file_custom_v1_custom_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\xc8\x01҅\n" +
 	"\xc3\x01\x1a\xc0\x01\n" +
 	"8github.com/seeruk/tego/examples/custom-types/types.Email\x12Agithub.com/seeruk/tego/examples/custom-types/types.EmailFromProto\x1a?github.com/seeruk/tego/examples/custom-types/types.EmailToProto \x01R\x05value:\x06҅\n" +
-	"\x028\x01\"\xbf\t\n" +
+	"\x028\x01\"\xb7\x0f\n" +
 	"\bCustomer\x12\x1f\n" +
 	"\x02id\x18\x01 \x01(\v2\x0f.custom.v1.UUIDR\x02id\x12-\n" +
 	"\x05email\x18\x02 \x01(\v2\x17.custom.v1.EmailAddressR\x05email\x12\xec\x01\n" +
@@ -395,24 +437,40 @@ const file_custom_v1_custom_proto_rawDesc = "" +
 	"\x99\x02\x1a\x96\x02\n" +
 	"=github.com/seeruk/tego/examples/custom-types/types.Box[*[]*T]\x12Jgithub.com/seeruk/tego/examples/custom-types/types.ContactAliasesFromProto\x1aHgithub.com/seeruk/tego/examples/custom-types/types.ContactAliasesToProto2?\n" +
 	"\x01T\x12:\n" +
-	"8github.com/seeruk/tego/examples/custom-types/types.EmailR\x0econtactAliasesB\x84\x01҅\n" +
+	"8github.com/seeruk/tego/examples/custom-types/types.EmailR\x0econtactAliases\x12\xc6\x01\n" +
+	"\ffixed_months\x18\a \x03(\x04B\xa2\x01҅\n" +
+	"\x9d\x01\x1a\x9a\x01\n" +
+	"\b[12]uint\x12Ggithub.com/seeruk/tego/examples/custom-types/types.FixedMonthsFromProto\x1aEgithub.com/seeruk/tego/examples/custom-types/types.FixedMonthsToProtoR\vfixedMonths\x12\x95\x02\n" +
+	"\x0emonthly_values\x18\b \x03(\x04B\xed\x01҅\n" +
+	"\xe8\x01\x1a\xe5\x01\n" +
+	"Bgithub.com/seeruk/tego/examples/custom-types/types.MonthlyArray[T]\x12Igithub.com/seeruk/tego/examples/custom-types/types.MonthlyValuesFromProto\x1aGgithub.com/seeruk/tego/examples/custom-types/types.MonthlyValuesToProto2\v\n" +
+	"\x01T\x12\x06\n" +
+	"\x04uintR\rmonthlyValues\x12\xd9\x01\n" +
+	"\x06counts\x18\t \x03(\v2\x1f.custom.v1.Customer.CountsEntryB\x9f\x01҅\n" +
+	"\x9a\x01\x1a\x97\x01\n" +
+	"\x0fmap[string]uint\x12Bgithub.com/seeruk/tego/examples/custom-types/types.CountsFromProto\x1a@github.com/seeruk/tego/examples/custom-types/types.CountsToProtoR\x06counts\x1a9\n" +
+	"\vCountsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01B\x84\x01҅\n" +
 	"<\n" +
 	":github.com/seeruk/tego/examples/custom-types/custom;customZBgithub.com/seeruk/tego/examples/custom-types/custompbv1;custompbv1b\beditionsp\xe9\a"
 
-var file_custom_v1_custom_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_custom_v1_custom_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_custom_v1_custom_proto_goTypes = []any{
 	(*UUID)(nil),         // 0: custom.v1.UUID
 	(*EmailAddress)(nil), // 1: custom.v1.EmailAddress
 	(*Customer)(nil),     // 2: custom.v1.Customer
+	nil,                  // 3: custom.v1.Customer.CountsEntry
 }
 var file_custom_v1_custom_proto_depIdxs = []int32{
 	0, // 0: custom.v1.Customer.id:type_name -> custom.v1.UUID
 	1, // 1: custom.v1.Customer.email:type_name -> custom.v1.EmailAddress
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: custom.v1.Customer.counts:type_name -> custom.v1.Customer.CountsEntry
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_custom_v1_custom_proto_init() }
@@ -426,7 +484,7 @@ func file_custom_v1_custom_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_custom_v1_custom_proto_rawDesc), len(file_custom_v1_custom_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

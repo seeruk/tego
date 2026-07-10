@@ -758,6 +758,13 @@ func goTypeRefFromTypeExpr(expr *types.TypeExpr) GoTypeRef {
 		return GoTypeRef{Pointer: new(goTypeRefFromTypeExpr(expr.Elem))}
 	case types.TypeExprKindSlice:
 		return GoTypeRef{Slice: new(goTypeRefFromTypeExpr(expr.Elem))}
+	case types.TypeExprKindArray:
+		return GoTypeRef{Array: new(goTypeRefFromTypeExpr(expr.Elem)), ArrayLen: expr.Length}
+	case types.TypeExprKindMap:
+		return GoTypeRef{
+			MapKey:   new(goTypeRefFromTypeExpr(expr.Key)),
+			MapValue: new(goTypeRefFromTypeExpr(expr.Value)),
+		}
 	default:
 		ref := GoTypeRef{
 			ImportPath: expr.ImportPath,

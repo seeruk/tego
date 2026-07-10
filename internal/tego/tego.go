@@ -176,13 +176,17 @@ const (
 	ScalarKindAny                    // from well-known dynamic values
 )
 
-// GoTypeRef identifies a Go type, including simple generic, pointer, and slice forms.
+// GoTypeRef identifies a Go type expression.
 type GoTypeRef struct {
 	ImportPath string
 	Name       string
 	Args       []GoTypeRef
 	Pointer    *GoTypeRef
 	Slice      *GoTypeRef
+	Array      *GoTypeRef
+	ArrayLen   int64
+	MapKey     *GoTypeRef
+	MapValue   *GoTypeRef
 }
 
 // CustomGoTypePlan records a user-provided Go type and its conversion functions.

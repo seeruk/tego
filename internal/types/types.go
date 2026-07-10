@@ -12,6 +12,12 @@ const (
 	TypeExprKindPointer
 	// TypeExprKindSlice is a slice type expression.
 	TypeExprKindSlice
+	// TypeExprKindPredeclared is a predeclared Go value type.
+	TypeExprKindPredeclared
+	// TypeExprKindArray is a fixed-length array type expression.
+	TypeExprKindArray
+	// TypeExprKindMap is a map type expression.
+	TypeExprKindMap
 )
 
 // Type is a loaded named Go type referenced by a Tego option.
@@ -35,6 +41,9 @@ type TypeExpr struct {
 	Named      *types.Named
 	Args       []TypeExpr
 	Elem       *TypeExpr
+	Key        *TypeExpr
+	Value      *TypeExpr
+	Length     int64
 }
 
 // Function is a loaded package-level Go function referenced by a Tego option.

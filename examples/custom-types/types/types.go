@@ -130,3 +130,55 @@ func ContactAliasesToProto(value Box[*[]*Email]) ([]string, error) {
 	}
 	return values, nil
 }
+
+func FixedMonthsFromProto(values []uint64) ([12]uint, error) {
+	if len(values) != 12 {
+		return [12]uint{}, fmt.Errorf("fixed months must contain 12 values, got %d", len(values))
+	}
+	var months [12]uint
+	for i, value := range values {
+		months[i] = uint(value)
+	}
+	return months, nil
+}
+
+func FixedMonthsToProto(months [12]uint) []uint64 {
+	values := make([]uint64, len(months))
+	for i, month := range months {
+		values[i] = uint64(month)
+	}
+	return values
+}
+
+type MonthlyArray[T any] [12]T
+
+func MonthlyValuesFromProto(values []uint64) (MonthlyArray[uint], error) {
+	months, err := FixedMonthsFromProto(values)
+	return MonthlyArray[uint](months), err
+}
+
+func MonthlyValuesToProto(months MonthlyArray[uint]) []uint64 {
+	return FixedMonthsToProto([12]uint(months))
+}
+
+func CountsFromProto(values map[string]uint64) map[string]uint {
+	if values == nil {
+		return nil
+	}
+	counts := make(map[string]uint, len(values))
+	for key, value := range values {
+		counts[key] = uint(value)
+	}
+	return counts
+}
+
+func CountsToProto(counts map[string]uint) map[string]uint64 {
+	if counts == nil {
+		return nil
+	}
+	values := make(map[string]uint64, len(counts))
+	for key, count := range counts {
+		values[key] = uint64(count)
+	}
+	return values
+}

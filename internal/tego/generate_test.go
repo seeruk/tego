@@ -575,6 +575,25 @@ func generatorTestFilePlan() FilePlan {
 			Args:       []GoTypeRef{{ImportPath: plannerTestPkg, Name: "CustomString"}},
 		},
 	}
+	uintArrayType := TypePlan{
+		Kind: TypeKindCustom,
+		Ref:  GoTypeRef{Array: &GoTypeRef{Name: "uint"}, ArrayLen: 12},
+	}
+	monthlyArrayType := TypePlan{
+		Kind: TypeKindCustom,
+		Ref: GoTypeRef{
+			ImportPath: plannerTestPkg,
+			Name:       "MonthlyArray",
+			Args:       []GoTypeRef{{Name: "uint"}},
+		},
+	}
+	uintMapType := TypePlan{
+		Kind: TypeKindCustom,
+		Ref: GoTypeRef{
+			MapKey:   &GoTypeRef{Name: "string"},
+			MapValue: &GoTypeRef{Slice: &GoTypeRef{Name: "uint64"}},
+		},
+	}
 	return FilePlan{
 		ProtoPath: "generated.proto",
 		Output: FileOutputPlan{
@@ -653,6 +672,9 @@ func generatorTestFilePlan() FilePlan {
 						Elem: &TypePlan{Kind: TypeKindCustom, Ref: GoTypeRef{ImportPath: plannerTestPkg, Name: "Description"}},
 					}},
 					{Name: "Labels", Type: labelSetType},
+					{Name: "Months", Type: uintArrayType},
+					{Name: "Monthly", Type: monthlyArrayType},
+					{Name: "Counts", Type: uintMapType},
 					{Name: "Box", Type: TypePlan{
 						Kind: TypeKindCustom,
 						Ref: GoTypeRef{
