@@ -486,6 +486,39 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 		assert.Equal(t, GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"}, plan.Ref)
 	})
 
+	t.Run("accepts automatic casts for bidirectionally convertible types", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			"",
+			"",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.True(t, plan.Custom.AutoCast)
+		assert.Empty(t, plan.Custom.FromProto.Name)
+		assert.Empty(t, plan.Custom.ToProto.Name)
+	})
+
+	t.Run("uses explicit conversions for convertible types", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			plannerTestPkg+".CustomStringFromProto",
+			plannerTestPkg+".CustomStringToProto",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.False(t, plan.Custom.AutoCast)
+		assert.Equal(t, "CustomStringFromProto", plan.Custom.FromProto.Name)
+		assert.Equal(t, "CustomStringToProto", plan.Custom.ToProto.Name)
+	})
+
 	t.Run("accepts pointer conversions and method to proto", func(t *testing.T) {
 		field := fieldWithPlannerGoType("custom", plannerGoType(
 			plannerTestPkg+".CustomString",
@@ -651,6 +684,26 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 				name:       "missing refs",
 				goType:     &tegopb.GoType{},
 				diagnostic: "go_type ref is required",
+			},
+			{
+				name: "only from conversion",
+				goType: plannerGoType(
+					plannerTestPkg+".CustomString",
+					plannerTestPkg+".CustomStringFromProto",
+					"",
+					false,
+				),
+				diagnostic: "must either both be set or both be omitted",
+			},
+			{
+				name: "automatic conversion is not possible",
+				goType: plannerGoType(
+					plannerTestPkg+".Set[string]",
+					"",
+					"",
+					false,
+				),
+				diagnostic: "from_proto and to_proto are required",
 			},
 			{
 				name: "unresolved ref",

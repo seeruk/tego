@@ -192,6 +192,7 @@ type GoTypeRef struct {
 // CustomGoTypePlan records a user-provided Go type and its conversion functions.
 type CustomGoTypePlan struct {
 	Ref               GoTypeRef
+	AutoCast          bool
 	FromProto         GoSymbolRef
 	FromProtoCanError bool
 	ToProto           GoSymbolRef
@@ -328,7 +329,7 @@ const (
 	MappingValueKindUnsupported MappingValueKind = iota
 	// MappingValueKindDirect maps a value without conversion.
 	MappingValueKindDirect
-	// MappingValueKindScalarCast maps by rendering a Go scalar cast.
+	// MappingValueKindScalarCast maps by rendering a Go conversion for scalar or custom types.
 	MappingValueKindScalarCast
 	// MappingValueKindEnum maps between enum representations.
 	MappingValueKindEnum

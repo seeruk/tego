@@ -22,6 +22,32 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.False(t, plan.CanError)
 	})
 
+	t.Run("plans automatic custom casts but prefers explicit conversions", func(t *testing.T) {
+		automatic := TypePlan{
+			Kind: TypeKindCustom,
+			Ref:  GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"},
+			Custom: CustomGoTypePlan{
+				Ref:      GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"},
+				AutoCast: true,
+			},
+		}
+		explicit := automatic
+		explicit.Custom.AutoCast = false
+		explicit.Custom.FromProto = GoSymbolRef{ImportPath: plannerTestPkg, Name: "CustomStringFromProto"}
+		explicit.Custom.ToProto = GoSymbolRef{ImportPath: plannerTestPkg, Name: "CustomStringToProto"}
+
+		fromProto := planner.planMappingValue(stringType, automatic, mappingDirectionFromProto)
+		toProto := planner.planMappingValue(automatic, stringType, mappingDirectionToProto)
+		explicitFromProto := planner.planMappingValue(stringType, explicit, mappingDirectionFromProto)
+
+		assert.Equal(t, MappingValueKindScalarCast, fromProto.Kind)
+		assert.Equal(t, MappingValueKindScalarCast, toProto.Kind)
+		assert.False(t, fromProto.Cast.ProtoTarget)
+		assert.True(t, toProto.Cast.ProtoTarget)
+		assert.Equal(t, MappingValueKindCustom, explicitFromProto.Kind)
+		assert.Equal(t, "CustomStringFromProto", explicitFromProto.Custom.FromProto.Name)
+	})
+
 	t.Run("plans opinionated scalar casts", func(t *testing.T) {
 		intPlan := planner.planMappingValue(int64Type, int64Type, mappingDirectionFromProto)
 		uintPlan := planner.planMappingValue(uint64Type, uint64Type, mappingDirectionToProto)

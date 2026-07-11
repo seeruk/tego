@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/compiler/protogen"
 )
 
 func TestTempIdentifierBase(t *testing.T) {
@@ -70,6 +72,35 @@ func TestBuilderPointerValue(t *testing.T) {
 	assert.Equal(t, "source.Name", builderPointerValue(renderedAddressableValue("*source.Name")))
 	assert.Equal(t, "new(generatedpb.Status(source.Status))", builderPointerValue(renderedNonAddressableValue("generatedpb.Status(source.Status)")))
 	assert.Equal(t, "new(structpb.NullValue_NULL_VALUE)", builderPointerValue(renderedNonAddressableValue("structpb.NullValue_NULL_VALUE")))
+}
+
+func TestRenderValueAutomaticCustomCast(t *testing.T) {
+	plugin := newGeneratorTestPlugin(t)
+	g := plugin.NewGeneratedFile(generatedTestPkg+"/cast.tego.go", protogen.GoImportPath(generatedTestPkg))
+	ctx := newMappingRenderContext(g, false, "")
+	stringType := scalarType(ScalarKindString)
+	customType := TypePlan{
+		Kind: TypeKindCustom,
+		Ref:  GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"},
+	}
+
+	fromProto, err := ctx.renderValue(MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: stringType,
+		Target: customType,
+		Cast:   &MappingCastPlan{Source: stringType, Target: customType},
+	}, "source.Value")
+	require.NoError(t, err)
+	assert.Equal(t, "plannertest.CustomString(source.Value)", fromProto)
+
+	toProto, err := ctx.renderValue(MappingValuePlan{
+		Kind:   MappingValueKindScalarCast,
+		Source: customType,
+		Target: stringType,
+		Cast:   &MappingCastPlan{Source: customType, Target: stringType, ProtoTarget: true},
+	}, "source.Value")
+	require.NoError(t, err)
+	assert.Equal(t, "string(source.Value)", toProto)
 }
 
 func TestNativeCollectionTargetTypes(t *testing.T) {

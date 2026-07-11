@@ -2,6 +2,10 @@
 
 This example shows Tego mapping to user-owned Go types through explicit conversion functions.
 
+`billing_month` also demonstrates the simpler case where conversion functions are unnecessary.
+Because protobuf `int32` and `time.Month` are convertible in both directions, Tego validates the
+types and generates direct Go conversions.
+
 Tego allows you to specify `go_type` overrides at both the field and message level.
 
 There are generic and container examples in here too. `labels` maps a repeated protobuf `string`

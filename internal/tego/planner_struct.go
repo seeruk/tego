@@ -387,11 +387,8 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 	if goType.GetRef() == "" {
 		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type ref is required"))
 	}
-	if goType.GetFromProto() == "" {
-		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type from_proto is required"))
-	}
-	if goType.GetToProto() == "" {
-		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type to_proto is required"))
+	if (goType.GetFromProto() == "") != (goType.GetToProto() == "") {
+		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type from_proto and to_proto must either both be set or both be omitted"))
 	}
 	if len(diagnostics) > 0 {
 		return TypePlan{}, diagnostics
@@ -407,24 +404,34 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 	if goType.GetAsPointer() {
 		customPattern = goTypePattern{pointer: new(customPattern)}
 	}
+	autoCast := goType.GetFromProto() == ""
+	if autoCast {
+		sourceType, err := p.resolveGoTypePattern(source)
+		if err != nil {
+			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve protobuf Go type for automatic conversion: %s", err)}
+		}
+		customPatternType, err := p.resolveGoTypePattern(customPattern)
+		if err != nil {
+			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve custom Go type for automatic conversion: %s", err)}
+		}
+		if !gotypes.ConvertibleTo(sourceType, customPatternType) || !gotypes.ConvertibleTo(customPatternType, sourceType) {
+			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "go_type ref is not convertible to and from the protobuf Go type; from_proto and to_proto are required")}
+		}
+	}
 
-	fromProtoRef, fromProtoCanError, fromProtoDiagnostics := p.resolveAndValidateFromProto(
-		diagnosticPath,
-		goType.GetFromProto(),
-		source,
-		customPattern,
-	)
-	toProtoRef, toProtoCanError, toProtoDiagnostics := p.resolveAndValidateToProto(
-		diagnosticPath,
-		goType.GetToProto(),
-		source,
-		customPattern,
-	)
-	diagnostics = append(diagnostics, fromProtoDiagnostics...)
-	diagnostics = append(diagnostics, toProtoDiagnostics...)
+	var fromProtoRef, toProtoRef GoSymbolRef
+	var fromProtoCanError, toProtoCanError bool
+	if !autoCast {
+		var fromProtoDiagnostics, toProtoDiagnostics []Diagnostic
+		fromProtoRef, fromProtoCanError, fromProtoDiagnostics = p.resolveAndValidateFromProto(diagnosticPath, goType.GetFromProto(), source, customPattern)
+		toProtoRef, toProtoCanError, toProtoDiagnostics = p.resolveAndValidateToProto(diagnosticPath, goType.GetToProto(), source, customPattern)
+		diagnostics = append(diagnostics, fromProtoDiagnostics...)
+		diagnostics = append(diagnostics, toProtoDiagnostics...)
+	}
 
 	customPlan := CustomGoTypePlan{
 		Ref:               customRef,
+		AutoCast:          autoCast,
 		FromProto:         fromProtoRef,
 		FromProtoCanError: fromProtoCanError,
 		ToProto:           toProtoRef,
@@ -442,6 +449,43 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 	}
 
 	return plan, diagnostics
+}
+
+func (p *Planner) resolveGoTypePattern(pattern goTypePattern) (gotypes.Type, error) {
+	switch {
+	case pattern.typ != nil:
+		return pattern.typ, nil
+	case pattern.named != nil:
+		loaded, err := p.typeLoader.Type(pattern.named.ImportPath + "." + pattern.named.Name)
+		if err != nil {
+			return nil, err
+		}
+		return loaded.Type, nil
+	case pattern.pointer != nil:
+		elem, err := p.resolveGoTypePattern(*pattern.pointer)
+		if err != nil {
+			return nil, err
+		}
+		return gotypes.NewPointer(elem), nil
+	case pattern.slice != nil:
+		elem, err := p.resolveGoTypePattern(*pattern.slice)
+		if err != nil {
+			return nil, err
+		}
+		return gotypes.NewSlice(elem), nil
+	case pattern.mapKey != nil && pattern.mapVal != nil:
+		key, err := p.resolveGoTypePattern(*pattern.mapKey)
+		if err != nil {
+			return nil, err
+		}
+		value, err := p.resolveGoTypePattern(*pattern.mapVal)
+		if err != nil {
+			return nil, err
+		}
+		return gotypes.NewMap(key, value), nil
+	default:
+		return gotypes.Typ[pattern.basic], nil
+	}
 }
 
 func goTypeTypeArgs(goType *tegopb.GoType) map[string]string {

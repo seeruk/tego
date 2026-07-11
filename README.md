@@ -198,6 +198,19 @@ int64 cost = 1 [(tego.field).go_type = {
 }];
 ```
 
+For Go types that are convertible to and from the protobuf field type, both conversion functions may
+be omitted and Tego will generate Go casts instead:
+
+```protobuf
+int32 month = 1 [(tego.field).go_type = {
+  ref: "time.Month"
+}];
+```
+
+If supplied, `from_proto` and `to_proto` are always used, even when a direct Go conversion is
+possible. This allows conversion functions to perform validation and return errors. The functions
+must either both be supplied or both be omitted.
+
 This works well in conjunction with the `(tego.message).flatten` option, but can be useful inline
 for one-offs.
 

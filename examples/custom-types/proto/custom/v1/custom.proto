@@ -2,6 +2,7 @@ edition = "2024";
 package custom.v1;
 
 import "tego/options.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "github.com/seeruk/tego/examples/custom-types/custompbv1;custompbv1";
 option (tego.file).go_package = "github.com/seeruk/tego/examples/custom-types/custom;custom";
@@ -91,4 +92,8 @@ message Customer {
     from_proto: "github.com/seeruk/tego/examples/custom-types/types.CountsFromProto"
     to_proto: "github.com/seeruk/tego/examples/custom-types/types.CountsToProto"
   }];
+
+  // Conversion functions can be omitted when the protobuf and custom Go types are directly
+  // convertible in both directions. Tego generates time.Month(value) and int32(value) casts.
+  int32 billing_month = 10 [(tego.field).go_type.ref = "time.Month"];
 }
