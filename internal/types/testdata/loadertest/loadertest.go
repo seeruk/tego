@@ -1,5 +1,7 @@
 package loadertest
 
+import "time"
+
 type Example struct {
 	Value string
 }
@@ -19,6 +21,14 @@ type Pair[K comparable, V any] struct {
 
 func Convert(value string) Example {
 	return Example{Value: value}
+}
+
+func MonthFromProto(value int32) time.Month {
+	return time.Month(value)
+}
+
+func MonthToProto(value time.Month) int32 {
+	return int32(value)
 }
 
 func (Example) ValueReceiver() string {

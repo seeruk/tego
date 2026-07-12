@@ -9,6 +9,35 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+func TestPlannerPreloadsCustomTypePackagesTogether(t *testing.T) {
+	const converters = "github.com/seeruk/tego/internal/types/testdata/loadertest"
+
+	file := protoFileWithOutput("month.proto", "github.com/example/monthpb;monthpb", "")
+	message := plannerMessage("example.v1.Month", "Month")
+	message.File = file
+	month := fieldWithPlannerGoType("month", plannerGoType(
+		"time.Month",
+		converters+".MonthFromProto",
+		converters+".MonthToProto",
+		false,
+	))
+	month.Kind = protoreflect.Int32Kind
+	month.Parent = message
+	month.File = file
+	message.Fields = []*ProtoField{month}
+	file.Messages = []*ProtoMessage{message}
+
+	plan, err := NewPlanner().Plan(&DescriptorIndex{Files: []*ProtoFile{file}}, &ShapeIndex{})
+
+	require.NoError(t, err)
+	require.Len(t, plan.Files, 1)
+	require.Empty(t, plan.Files[0].Diagnostics)
+	structure := structByProtoName(t, plan.Files[0], message.FullName)
+	fieldPlan := fieldPlanByProtoName(t, structure, month.FullName)
+	assert.Equal(t, TypeKindCustom, fieldPlan.Type.Kind)
+	assert.Equal(t, "Month", fieldPlan.Type.Ref.Name)
+}
+
 func TestPlannerPlanYiraFixture(t *testing.T) {
 	descriptorIndex := buildYiraDescriptorIndex(t)
 	shapeIndex, err := BuildShapeIndex(descriptorIndex)
