@@ -70,7 +70,7 @@ func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 			continue
 		}
 
-		if file.Options.HasGoPackage() {
+		if file.Options.HasGoPackage() || file.IsOmitted() {
 			// We only plan Tego files.
 			plan.Files = append(plan.Files, p.planFile(file, si))
 		}
@@ -139,11 +139,13 @@ func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
 		ProtoPath: file.Path,
 	}
 
-	plan.Package = packageRef(file.Options.GetGoPackage())
+	if !file.IsOmitted() {
+		plan.Package = packageRef(file.Options.GetGoPackage())
 
-	output, diagnostics := p.planFileOutput(file, plan.Package)
-	plan.Output = output
-	plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+		output, diagnostics := p.planFileOutput(file, plan.Package)
+		plan.Output = output
+		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+	}
 
 	for _, enum := range file.Enums {
 		p.planFileEnum(&plan, enum)
@@ -165,7 +167,36 @@ func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {
 	}
 
 	plan.Diagnostics = append(plan.Diagnostics, plannedNameCollisionDiagnostics(plan, p.rpc)...)
+	plan.Diagnostics = append(plan.Diagnostics, omittedFileDiagnostics(file, plan)...)
 	return plan
+}
+
+func omittedFileDiagnostics(file *ProtoFile, plan FilePlan) []Diagnostic {
+	if !file.IsOmitted() {
+		return nil
+	}
+
+	var diagnostics []Diagnostic
+	if file.Options.HasGoPackage() {
+		diagnostics = append(diagnostics, fatalDiagnostic(
+			file.Path,
+			"tego.file go_package must not be set when omit is true",
+		))
+	}
+	if file.Options.HasOutputPath() {
+		diagnostics = append(diagnostics, fatalDiagnostic(
+			file.Path,
+			"tego.file output_path must not be set when omit is true",
+		))
+	}
+	if !plan.IsEmpty() || len(file.Services) > 0 {
+		diagnostics = append(diagnostics, fatalDiagnostic(
+			file.Path,
+			"tego.file omit requires the file to produce no output",
+		))
+	}
+
+	return diagnostics
 }
 
 func indexStructsByProtoName(structs []StructPlan) map[protoreflect.FullName]StructPlan {

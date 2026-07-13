@@ -127,6 +127,12 @@ func testProtoFile(path string, generate bool, goPackage string) *ProtoFile {
 	}
 }
 
+func omittedProtoFile(path string) *ProtoFile {
+	file := testProtoFile(path, true, "")
+	file.Options.SetOmit(true)
+	return file
+}
+
 func attachMessagesToFile(file *ProtoFile, messages ...*ProtoMessage) {
 	file.Messages = messages
 	for _, message := range messages {
