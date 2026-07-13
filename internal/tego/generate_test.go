@@ -19,6 +19,41 @@ const (
 )
 
 func TestGenerate(t *testing.T) {
+	t.Run("skips empty files", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{{
+			ProtoPath: "empty.proto",
+			Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/empty.tego.go"},
+			Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+		}}}
+
+		require.NoError(t, Generate(plugin, plan))
+		assert.Empty(t, plugin.Response().GetFile())
+	})
+
+	t.Run("skips empty files in a mixed plan", func(t *testing.T) {
+		plugin := newGeneratorTestPlugin(t)
+		plan := Plan{Files: []FilePlan{
+			{
+				ProtoPath: "empty.proto",
+				Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/empty.tego.go"},
+				Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+			},
+			{
+				ProtoPath: "populated.proto",
+				Output:    FileOutputPlan{GeneratorPath: generatedTestPkg + "/populated.tego.go"},
+				Package:   PackageRef{ImportPath: generatedTestPkg, Name: "generated"},
+				Structs:   []StructPlan{{Name: "Populated"}},
+			},
+		}}
+
+		require.NoError(t, Generate(plugin, plan))
+		response := plugin.Response()
+		require.Len(t, response.GetFile(), 1)
+		assert.Equal(t, generatedTestPkg+"/populated.tego.go", response.GetFile()[0].GetName())
+		assert.Contains(t, response.GetFile()[0].GetContent(), "type Populated struct")
+	})
+
 	t.Run("renders enums structs types comments and tags", func(t *testing.T) {
 		plan := Plan{Files: []FilePlan{generatorTestFilePlan()}}
 

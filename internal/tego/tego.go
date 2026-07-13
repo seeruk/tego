@@ -26,6 +26,17 @@ type FilePlan struct {
 	Diagnostics           []Diagnostic
 }
 
+// IsEmpty reports whether the plan contains no declarations to generate.
+func (plan FilePlan) IsEmpty() bool {
+	return len(plan.Enums) == 0 &&
+		len(plan.Oneofs) == 0 &&
+		len(plan.Structs) == 0 &&
+		len(plan.Mappings) == 0 &&
+		len(plan.Services) == 0 &&
+		len(plan.RequestInlineHelpers) == 0 &&
+		len(plan.ResponseInlineHelpers) == 0
+}
+
 // FileOutputPlan describes the generated Go file path before and after module stripping.
 type FileOutputPlan struct {
 	// Directory is the generated file directory relative to the plugin output root.
