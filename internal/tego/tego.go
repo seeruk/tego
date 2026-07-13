@@ -9,6 +9,9 @@ import (
 // Plan is the complete generation plan produced by the planner.
 type Plan struct {
 	Files []FilePlan
+	// PackageNames maps import paths to authoritative declared Go package names discovered while
+	// planning.
+	PackageNames map[string]string
 }
 
 // FilePlan describes everything Tego will emit for one generated protobuf file.

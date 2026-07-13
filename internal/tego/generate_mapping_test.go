@@ -76,7 +76,8 @@ func TestBuilderPointerValue(t *testing.T) {
 
 func TestRenderValueAutomaticCustomCast(t *testing.T) {
 	plugin := newGeneratorTestPlugin(t)
-	g := plugin.NewGeneratedFile(generatedTestPkg+"/cast.tego.go", protogen.GoImportPath(generatedTestPkg))
+	output := plugin.NewGeneratedFile(generatedTestPkg+"/cast.tego.go", protogen.GoImportPath(generatedTestPkg))
+	g := newGeneratedFile(output, newGeneratedImportGraph(generatedTestPkg, nil))
 	ctx := newMappingRenderContext(g, false, "")
 	stringType := scalarType(ScalarKindString)
 	customType := TypePlan{

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/danielgtaylor/casing"
-	"google.golang.org/protobuf/compiler/protogen"
 )
 
 const (
@@ -18,7 +17,7 @@ const (
 	timestamppbImportPath = "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func generateMapping(g *protogen.GeneratedFile, mapping MappingPlan) error {
+func generateMapping(g *generatedFile, mapping MappingPlan) error {
 	if err := generateFromProtoMapping(g, mapping); err != nil {
 		return err
 	}
@@ -28,7 +27,7 @@ func generateMapping(g *protogen.GeneratedFile, mapping MappingPlan) error {
 	return generateToProtoMethod(g, mapping)
 }
 
-func generateFromProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) error {
+func generateFromProtoMapping(g *generatedFile, mapping MappingPlan) error {
 	sourceType, err := generateType(g, mapping.FromProto.Source)
 	if err != nil {
 		return fmt.Errorf("from proto source: %w", err)
@@ -67,7 +66,7 @@ func generateFromProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) er
 	return nil
 }
 
-func generateToProtoMapping(g *protogen.GeneratedFile, mapping MappingPlan) error {
+func generateToProtoMapping(g *generatedFile, mapping MappingPlan) error {
 	sourceType, err := generateType(g, mapping.ToProto.Source)
 	if err != nil {
 		return fmt.Errorf("to proto source: %w", err)
@@ -118,7 +117,7 @@ type renderedValue struct {
 	Addressable bool
 }
 
-func generateToProtoMethod(g *protogen.GeneratedFile, mapping MappingPlan) error {
+func generateToProtoMethod(g *generatedFile, mapping MappingPlan) error {
 	sourceType, err := generateType(g, mapping.ToProto.Source)
 	if err != nil {
 		return fmt.Errorf("to proto method source: %w", err)
@@ -147,7 +146,7 @@ func mappingResults(typ string, canError bool) string {
 	return typ
 }
 
-func builderTypeExpr(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
+func builderTypeExpr(g *generatedFile, plan TypePlan) (string, error) {
 	if plan.Kind != TypeKindPointer || plan.Elem == nil {
 		return "", fmt.Errorf("builder target must be a pointer type")
 	}
@@ -158,7 +157,7 @@ func builderTypeExpr(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
 	return target + "_builder", nil
 }
 
-func builderFieldType(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
+func builderFieldType(g *generatedFile, plan TypePlan) (string, error) {
 	typ, err := generateType(g, plan)
 	if err != nil {
 		return "", err
@@ -169,7 +168,7 @@ func builderFieldType(g *protogen.GeneratedFile, plan TypePlan) (string, error) 
 	return typ, nil
 }
 
-func builderFieldTypeForMapping(g *protogen.GeneratedFile, plan TypePlan, value MappingValuePlan) (string, error) {
+func builderFieldTypeForMapping(g *generatedFile, plan TypePlan, value MappingValuePlan) (string, error) {
 	typ, err := mappingValueTargetType(g, value)
 	if err != nil {
 		return "", err
@@ -300,7 +299,7 @@ func generateToProtoNullablePresenceBuilderField(ctx *mappingRenderContext, fiel
 		return nil, fmt.Errorf("nullable mapping is missing an element")
 	}
 
-	fieldType, err := builderFieldTypeForMapping(ctx.g, field.ToProto.Target, *field.ToProto.Elem)
+	fieldType, err := builderFieldTypeForMapping(ctx.file, field.ToProto.Target, *field.ToProto.Elem)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +325,7 @@ func generateFromProtoOneofField(ctx *mappingRenderContext, field FieldMappingPl
 
 	ctx.line("switch source." + oneof.Which + "() {")
 	for _, variant := range oneof.Variants {
-		ctx.line("case " + generateNamedType(ctx.g, variant.Case) + ":")
+		ctx.line("case " + generateNamedType(ctx.file, variant.Case) + ":")
 		expr, err := ctx.renderValueWithTempNameHint(variant.FieldName, variant.Value, "source."+variant.Proto.Getter+"()")
 		if err != nil {
 			return fmt.Errorf("variant %s: %w", variant.ProtoName, err)
@@ -349,7 +348,7 @@ func generateToProtoOneofBuilderFields(ctx *mappingRenderContext, field FieldMap
 	fields := make([]builderField, 0, len(oneof.Variants))
 	var fieldVars []builderField
 	for _, variant := range oneof.Variants {
-		fieldType, err := builderFieldTypeForMapping(ctx.g, variant.Value.Target, variant.Value)
+		fieldType, err := builderFieldTypeForMapping(ctx.file, variant.Value.Target, variant.Value)
 		if err != nil {
 			return nil, fmt.Errorf("variant %s: %w", variant.ProtoName, err)
 		}
@@ -370,7 +369,7 @@ func generateToProtoOneofBuilderFields(ctx *mappingRenderContext, field FieldMap
 		}
 	}
 	ctx.line("default:")
-	ctx.line("return nil, " + errorsNew(ctx.g) + "(" + fmt.Sprintf("%q", "unsupported oneof implementation") + ")")
+	ctx.line("return nil, " + errorsNew(ctx.file) + "(" + fmt.Sprintf("%q", "unsupported oneof implementation") + ")")
 	ctx.line("}")
 	fields = append(fields, fieldVars...)
 	return fields, nil
@@ -408,13 +407,13 @@ func generateFromProtoOmittableField(ctx *mappingRenderContext, field FieldMappi
 		return fmt.Errorf("omittable target is missing an element")
 	}
 
-	elemType, err := generateType(ctx.g, *field.FromProto.Target.Elem)
+	elemType, err := generateType(ctx.file, *field.FromProto.Target.Elem)
 	if err != nil {
 		return err
 	}
 
-	some := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "Of"})
-	none := generateNamedType(ctx.g, GoTypeRef{ImportPath: omittableImportPath, Name: "Empty"})
+	some := generateNamedType(ctx.file, GoTypeRef{ImportPath: omittableImportPath, Name: "Of"})
+	none := generateNamedType(ctx.file, GoTypeRef{ImportPath: omittableImportPath, Name: "Empty"})
 
 	presence := "source." + field.Proto.Has + "()"
 	if field.Proto.Has == "" {
@@ -437,7 +436,7 @@ func generateToProtoOmittableBuilderField(ctx *mappingRenderContext, field Field
 		return nil, fmt.Errorf("omittable mapping is missing an element")
 	}
 
-	fieldType, err := builderFieldTypeForMapping(ctx.g, field.ToProto.Target, *field.ToProto.Elem)
+	fieldType, err := builderFieldTypeForMapping(ctx.file, field.ToProto.Target, *field.ToProto.Elem)
 	if err != nil {
 		return nil, err
 	}
@@ -454,8 +453,10 @@ func generateToProtoOmittableBuilderField(ctx *mappingRenderContext, field Field
 	return []builderField{{Name: field.Proto.Name, Value: fieldValue}}, nil
 }
 
+// mappingRenderContext layers mapping-specific expression, error, and temporary-name state on top
+// of the file-wide renderer. Import handling remains owned by generatedFile.
 type mappingRenderContext struct {
-	g           *protogen.GeneratedFile
+	file        *generatedFile
 	canError    bool
 	errorReturn string
 	errorLines  []string
@@ -465,16 +466,16 @@ type mappingRenderContext struct {
 }
 
 func newMappingRenderContext(
-	g *protogen.GeneratedFile,
+	file *generatedFile,
 	canError bool,
 	errorReturn string,
 	reserved ...string,
 ) *mappingRenderContext {
-	return newMappingRenderContextWithDirection(g, canError, errorReturn, mappingDirectionFromProto, reserved...)
+	return newMappingRenderContextWithDirection(file, canError, errorReturn, mappingDirectionFromProto, reserved...)
 }
 
 func newMappingRenderContextWithDirection(
-	g *protogen.GeneratedFile,
+	file *generatedFile,
 	canError bool,
 	errorReturn string,
 	direction mappingDirection,
@@ -482,7 +483,7 @@ func newMappingRenderContextWithDirection(
 ) *mappingRenderContext {
 	reservedNames := append([]string{"source", "target", "err"}, reserved...)
 	return &mappingRenderContext{
-		g:           g,
+		file:        file,
 		canError:    canError,
 		errorReturn: errorReturn,
 		direction:   direction,
@@ -491,12 +492,12 @@ func newMappingRenderContextWithDirection(
 }
 
 func newMappingRenderContextWithErrorLines(
-	g *protogen.GeneratedFile,
+	file *generatedFile,
 	canError bool,
 	errorLines []string,
 	reserved ...string,
 ) *mappingRenderContext {
-	ctx := newMappingRenderContext(g, canError, "", reserved...)
+	ctx := newMappingRenderContext(file, canError, "", reserved...)
 	ctx.errorLines = errorLines
 	return ctx
 }
@@ -504,7 +505,7 @@ func newMappingRenderContextWithErrorLines(
 func (ctx *mappingRenderContext) line(line string) {
 	// protogen formats generated Go files when building the plugin response, so this
 	// renderer only needs to preserve statement ordering and line breaks.
-	ctx.g.P(line)
+	ctx.file.P(line)
 }
 
 func (ctx *mappingRenderContext) emitErrorReturn() {
@@ -630,13 +631,13 @@ func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, sourc
 	case MappingValueKindDirect:
 		return renderedAddressableValue(source), nil
 	case MappingValueKindScalarCast:
-		target, err := scalarCastTargetType(ctx.g, plan)
+		target, err := scalarCastTargetType(ctx.file, plan)
 		if err != nil {
 			return renderedValue{}, err
 		}
 		return renderedNonAddressableValue(target + "(" + source + ")"), nil
 	case MappingValueKindEnum:
-		target, err := generateType(ctx.g, plan.Target)
+		target, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return renderedValue{}, err
 		}
@@ -647,7 +648,7 @@ func (ctx *mappingRenderContext) renderBuilderValue(plan MappingValuePlan, sourc
 		}
 		name := plan.Struct.Name
 		if plan.Struct.Ref.Name != "" {
-			name = generateSymbol(ctx.g, plan.Struct.Ref)
+			name = generateSymbol(ctx.file, plan.Struct.Ref)
 		}
 		return ctx.renderBuilderCall(name, source, plan.CanError)
 	case MappingValueKindCustom:
@@ -682,7 +683,7 @@ func (ctx *mappingRenderContext) renderToProtoDirectCollectionBuilderValue(
 		if plan.Elem == nil {
 			return renderedValue{}, false, nil
 		}
-		_, ok, err := nativeSliceDirectAssignmentType(ctx.g, plan.Source, plan.Target, *plan.Elem)
+		_, ok, err := nativeSliceDirectAssignmentType(ctx.file, plan.Source, plan.Target, *plan.Elem)
 		if err != nil || !ok {
 			return renderedValue{}, false, err
 		}
@@ -691,7 +692,7 @@ func (ctx *mappingRenderContext) renderToProtoDirectCollectionBuilderValue(
 		if plan.Key == nil || plan.Value == nil {
 			return renderedValue{}, false, nil
 		}
-		_, ok, err := nativeMapDirectAssignmentType(ctx.g, plan.Source, plan.Target, *plan.Key, *plan.Value)
+		_, ok, err := nativeMapDirectAssignmentType(ctx.file, plan.Source, plan.Target, *plan.Key, *plan.Value)
 		if err != nil || !ok {
 			return renderedValue{}, false, err
 		}
@@ -706,13 +707,13 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 	case MappingValueKindDirect:
 		return source, nil
 	case MappingValueKindScalarCast:
-		target, err := scalarCastTargetType(ctx.g, plan)
+		target, err := scalarCastTargetType(ctx.file, plan)
 		if err != nil {
 			return "", err
 		}
 		return target + "(" + source + ")", nil
 	case MappingValueKindEnum:
-		target, err := generateType(ctx.g, plan.Target)
+		target, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -723,7 +724,7 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 		}
 		name := plan.Struct.Name
 		if plan.Struct.Ref.Name != "" {
-			name = generateSymbol(ctx.g, plan.Struct.Ref)
+			name = generateSymbol(ctx.file, plan.Struct.Ref)
 		}
 		return ctx.renderCall(name, source, plan.CanError)
 	case MappingValueKindCustom:
@@ -752,7 +753,7 @@ func (ctx *mappingRenderContext) renderValue(plan MappingValuePlan, source strin
 	}
 }
 
-func scalarCastTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+func scalarCastTargetType(g *generatedFile, plan MappingValuePlan) (string, error) {
 	if plan.Cast != nil && plan.Cast.ProtoTarget {
 		switch plan.Target.Scalar {
 		case ScalarKindInt64, ScalarKindFixedInt64:
@@ -764,7 +765,7 @@ func scalarCastTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (str
 	return generateType(g, plan.Target)
 }
 
-func scalarCastSourceType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+func scalarCastSourceType(g *generatedFile, plan MappingValuePlan) (string, error) {
 	if plan.Cast != nil && !plan.Cast.ProtoTarget {
 		switch plan.Source.Scalar {
 		case ScalarKindInt64, ScalarKindFixedInt64:
@@ -776,7 +777,7 @@ func scalarCastSourceType(g *protogen.GeneratedFile, plan MappingValuePlan) (str
 	return generateType(g, plan.Source)
 }
 
-func mappingValueSourceType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+func mappingValueSourceType(g *generatedFile, plan MappingValuePlan) (string, error) {
 	switch plan.Kind {
 	case MappingValueKindScalarCast:
 		return scalarCastSourceType(g, plan)
@@ -792,7 +793,7 @@ func mappingValueSourceType(g *protogen.GeneratedFile, plan MappingValuePlan) (s
 	return generateType(g, plan.Source)
 }
 
-func mappingValueTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (string, error) {
+func mappingValueTargetType(g *generatedFile, plan MappingValuePlan) (string, error) {
 	switch plan.Kind {
 	case MappingValueKindScalarCast:
 		return scalarCastTargetType(g, plan)
@@ -808,7 +809,7 @@ func mappingValueTargetType(g *protogen.GeneratedFile, plan MappingValuePlan) (s
 	return generateType(g, plan.Target)
 }
 
-func nativeSliceTargetType(g *protogen.GeneratedFile, target TypePlan, elem MappingValuePlan) (string, error) {
+func nativeSliceTargetType(g *generatedFile, target TypePlan, elem MappingValuePlan) (string, error) {
 	if target.Kind != TypeKindSlice || target.Elem == nil {
 		return generateType(g, target)
 	}
@@ -820,7 +821,7 @@ func nativeSliceTargetType(g *protogen.GeneratedFile, target TypePlan, elem Mapp
 	return "[]" + elemType, nil
 }
 
-func nativeSliceSourceType(g *protogen.GeneratedFile, source TypePlan, elem MappingValuePlan) (string, error) {
+func nativeSliceSourceType(g *generatedFile, source TypePlan, elem MappingValuePlan) (string, error) {
 	if source.Kind != TypeKindSlice || source.Elem == nil {
 		return generateType(g, source)
 	}
@@ -833,7 +834,7 @@ func nativeSliceSourceType(g *protogen.GeneratedFile, source TypePlan, elem Mapp
 }
 
 func nativeSliceDirectAssignmentType(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	source TypePlan,
 	target TypePlan,
 	elem MappingValuePlan,
@@ -854,7 +855,7 @@ func nativeSliceDirectAssignmentType(
 }
 
 func nativeMapTargetType(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	target TypePlan,
 	keyPlan MappingValuePlan,
 	valuePlan MappingValuePlan,
@@ -875,7 +876,7 @@ func nativeMapTargetType(
 }
 
 func nativeMapSourceType(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	source TypePlan,
 	keyPlan MappingValuePlan,
 	valuePlan MappingValuePlan,
@@ -896,7 +897,7 @@ func nativeMapSourceType(
 }
 
 func nativeMapDirectAssignmentType(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	source TypePlan,
 	target TypePlan,
 	keyPlan MappingValuePlan,
@@ -937,7 +938,7 @@ func (ctx *mappingRenderContext) customMappingCall(plan MappingValuePlan, source
 	if ref.Receiver != "" {
 		return source + "." + ref.Name, ""
 	}
-	return generateSymbol(ctx.g, ref), source
+	return generateSymbol(ctx.file, ref), source
 }
 
 func (ctx *mappingRenderContext) renderCall(name string, source string, canError bool) (string, error) {
@@ -986,7 +987,7 @@ func (ctx *mappingRenderContext) renderNullable(plan MappingValuePlan, source st
 }
 
 func (ctx *mappingRenderContext) renderNullableFromProto(plan MappingValuePlan, source string) (string, error) {
-	targetType, err := generateType(ctx.g, plan.Target)
+	targetType, err := generateType(ctx.file, plan.Target)
 	if err != nil {
 		return "", err
 	}
@@ -995,7 +996,7 @@ func (ctx *mappingRenderContext) renderNullableFromProto(plan MappingValuePlan, 
 
 	switch plan.Access.NullableForm {
 	case MappingNullableFormOneof:
-		ctx.line("if " + source + " != nil && " + source + "." + plan.Access.Oneof.Which + "() == " + generateNamedType(ctx.g, plan.Access.Oneof.ValueRef) + " {")
+		ctx.line("if " + source + " != nil && " + source + "." + plan.Access.Oneof.Which + "() == " + generateNamedType(ctx.file, plan.Access.Oneof.ValueRef) + " {")
 		if err := ctx.renderNullableFromValue(plan, tmp, source+"."+plan.Access.Oneof.Value.Getter+"()"); err != nil {
 			return "", err
 		}
@@ -1043,7 +1044,7 @@ func (ctx *mappingRenderContext) renderNullableFromValue(plan MappingValuePlan, 
 }
 
 func (ctx *mappingRenderContext) renderNullableToProto(plan MappingValuePlan, source string) (string, error) {
-	targetType, err := generateType(ctx.g, plan.Target)
+	targetType, err := generateType(ctx.file, plan.Target)
 	if err != nil {
 		return "", err
 	}
@@ -1067,7 +1068,7 @@ func (ctx *mappingRenderContext) renderNullableToProto(plan MappingValuePlan, so
 		var builder string
 		if plan.Access.NullableForm == MappingNullableFormOneof || plan.Access.NullableForm == MappingNullableFormValue {
 			var err error
-			builder, err = builderTypeExpr(ctx.g, plan.Target)
+			builder, err = builderTypeExpr(ctx.file, plan.Target)
 			if err != nil {
 				return "", err
 			}
@@ -1097,7 +1098,7 @@ func (ctx *mappingRenderContext) renderNullableToProto(plan MappingValuePlan, so
 			ctx.line("} else {")
 			ctx.line(tmp + " = " + builder + "{")
 			nullType := TypePlan{Kind: TypeKindEnum, Ref: plan.Access.Oneof.NullRef}
-			ctx.line(plan.Access.Oneof.Null.Name + ": " + builderFieldValue(nullType, renderedNonAddressableValue(structpbNullValue(ctx.g))) + ",")
+			ctx.line(plan.Access.Oneof.Null.Name + ": " + builderFieldValue(nullType, renderedNonAddressableValue(structpbNullValue(ctx.file))) + ",")
 			ctx.line("}.Build()")
 			ctx.line("}")
 		case MappingNullableFormValue:
@@ -1140,7 +1141,7 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 	target TypePlan,
 	elem MappingValuePlan,
 ) (string, error) {
-	if targetType, ok, err := nativeSliceDirectAssignmentType(ctx.g, sourceType, target, elem); err != nil {
+	if targetType, ok, err := nativeSliceDirectAssignmentType(ctx.file, sourceType, target, elem); err != nil {
 		return "", err
 	} else if ok {
 		tmp := ctx.tempName("items")
@@ -1153,7 +1154,7 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 		return tmp, nil
 	}
 
-	targetType, err := nativeSliceTargetType(ctx.g, target, elem)
+	targetType, err := nativeSliceTargetType(ctx.file, target, elem)
 	if err != nil {
 		return "", err
 	}
@@ -1179,7 +1180,7 @@ func (ctx *mappingRenderContext) renderNativeSlice(
 func (ctx *mappingRenderContext) renderShapeSlice(plan MappingValuePlan, source string) (string, error) {
 	if plan.Target.Kind == TypeKindSlice {
 		inner := ctx.tempPartName("sourceItems")
-		sourceElemType, err := mappingValueSourceType(ctx.g, *plan.Elem)
+		sourceElemType, err := mappingValueSourceType(ctx.file, *plan.Elem)
 		if err != nil {
 			return "", fmt.Errorf("shape slice source element: %w", err)
 		}
@@ -1196,7 +1197,7 @@ func (ctx *mappingRenderContext) renderShapeSlice(plan MappingValuePlan, source 
 		return "", err
 	}
 	tmp := ctx.tempName("slice")
-	builder, err := builderTypeExpr(ctx.g, plan.Target)
+	builder, err := builderTypeExpr(ctx.file, plan.Target)
 	if err != nil {
 		return "", err
 	}
@@ -1217,7 +1218,7 @@ func (ctx *mappingRenderContext) renderFlatten(plan MappingValuePlan, source str
 }
 
 func (ctx *mappingRenderContext) renderFlattenFromProto(plan MappingValuePlan, source string) (string, error) {
-	targetType, err := generateType(ctx.g, plan.Target)
+	targetType, err := generateType(ctx.file, plan.Target)
 	if err != nil {
 		return "", err
 	}
@@ -1239,7 +1240,7 @@ func (ctx *mappingRenderContext) renderFlattenToProto(plan MappingValuePlan, sou
 	if err != nil {
 		return "", err
 	}
-	builder, err := builderTypeExpr(ctx.g, plan.Target)
+	builder, err := builderTypeExpr(ctx.file, plan.Target)
 	if err != nil {
 		return "", err
 	}
@@ -1279,7 +1280,7 @@ func (ctx *mappingRenderContext) renderDynamic(plan MappingValuePlan, source str
 
 func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source string) (string, error) {
 	if isStructpbStructPointer(plan.Source) && isTegoStruct(plan.Target) {
-		targetType, err := generateType(ctx.g, plan.Target)
+		targetType, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1295,7 +1296,7 @@ func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source s
 		if !ctx.canError {
 			return "", fmt.Errorf("struct map to proto mapping requires an erroring mapper")
 		}
-		targetType, err := generateType(ctx.g, plan.Target)
+		targetType, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1303,7 +1304,7 @@ func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source s
 		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
 		mapped := ctx.tempName("mapped")
-		ctx.line(mapped + ", err := " + structpbNewStruct(ctx.g) + "(" + source + ")")
+		ctx.line(mapped + ", err := " + structpbNewStruct(ctx.file) + "(" + source + ")")
 		ctx.line("if err != nil {")
 		ctx.emitErrorReturn()
 		ctx.line("}")
@@ -1317,7 +1318,7 @@ func (ctx *mappingRenderContext) renderStructMap(plan MappingValuePlan, source s
 
 func (ctx *mappingRenderContext) renderDynamicValue(plan MappingValuePlan, source string) (string, error) {
 	if isStructpbValuePointer(plan.Source) && isTegoValue(plan.Target) {
-		targetType, err := generateType(ctx.g, plan.Target)
+		targetType, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1334,7 +1335,7 @@ func (ctx *mappingRenderContext) renderDynamicValue(plan MappingValuePlan, sourc
 			return "", fmt.Errorf("dynamic value to proto mapping requires an erroring mapper")
 		}
 		tmp := ctx.tempName("value")
-		ctx.line(tmp + ", err := " + structpbNewValue(ctx.g) + "(" + source + ")")
+		ctx.line(tmp + ", err := " + structpbNewValue(ctx.file) + "(" + source + ")")
 		ctx.line("if err != nil {")
 		ctx.emitErrorReturn()
 		ctx.line("}")
@@ -1346,7 +1347,7 @@ func (ctx *mappingRenderContext) renderDynamicValue(plan MappingValuePlan, sourc
 
 func (ctx *mappingRenderContext) renderDynamicList(plan MappingValuePlan, source string) (string, error) {
 	if isStructpbListValuePointer(plan.Source) && isTegoListValue(plan.Target) {
-		targetType, err := generateType(ctx.g, plan.Target)
+		targetType, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1362,7 +1363,7 @@ func (ctx *mappingRenderContext) renderDynamicList(plan MappingValuePlan, source
 		if !ctx.canError {
 			return "", fmt.Errorf("dynamic list to proto mapping requires an erroring mapper")
 		}
-		targetType, err := generateType(ctx.g, plan.Target)
+		targetType, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1370,7 +1371,7 @@ func (ctx *mappingRenderContext) renderDynamicList(plan MappingValuePlan, source
 		ctx.line("var " + tmp + " " + targetType)
 		ctx.line("if " + source + " != nil {")
 		mapped := ctx.tempName("mapped")
-		ctx.line(mapped + ", err := " + structpbNewList(ctx.g) + "(" + source + ")")
+		ctx.line(mapped + ", err := " + structpbNewList(ctx.file) + "(" + source + ")")
 		ctx.line("if err != nil {")
 		ctx.emitErrorReturn()
 		ctx.line("}")
@@ -1403,7 +1404,7 @@ func (ctx *mappingRenderContext) renderTimestamp(plan MappingValuePlan, source s
 	}
 
 	if isTimeTime(plan.Source) && isTimestamppbTimestampPointer(plan.Target) {
-		return timestampNew(ctx.g) + "(" + source + ")", nil
+		return timestampNew(ctx.file) + "(" + source + ")", nil
 	}
 
 	return "", fmt.Errorf("unsupported timestamp mapping")
@@ -1415,14 +1416,14 @@ func (ctx *mappingRenderContext) renderDuration(plan MappingValuePlan, source st
 	}
 
 	if isTimeDuration(plan.Source) && isDurationpbDurationPointer(plan.Target) {
-		return durationNew(ctx.g) + "(" + source + ")", nil
+		return durationNew(ctx.file) + "(" + source + ")", nil
 	}
 
 	return "", fmt.Errorf("unsupported duration mapping")
 }
 
 func (ctx *mappingRenderContext) renderWellKnownFromProto(plan TypePlan, source string, method string) (string, error) {
-	targetType, err := generateType(ctx.g, plan)
+	targetType, err := generateType(ctx.file, plan)
 	if err != nil {
 		return "", err
 	}
@@ -1439,7 +1440,7 @@ func (ctx *mappingRenderContext) renderEmptyStruct(plan MappingValuePlan) (strin
 		return "struct{}{}", nil
 	}
 	if plan.Source.Kind == TypeKindEmptyStruct && isEmptypbEmptyPointer(plan.Target) {
-		empty, err := newValueExpr(ctx.g, plan.Target)
+		empty, err := newValueExpr(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1491,7 +1492,7 @@ func (ctx *mappingRenderContext) renderNativeMap(
 	keyPlan MappingValuePlan,
 	valuePlan MappingValuePlan,
 ) (string, error) {
-	if targetType, ok, err := nativeMapDirectAssignmentType(ctx.g, plan.Source, target, keyPlan, valuePlan); err != nil {
+	if targetType, ok, err := nativeMapDirectAssignmentType(ctx.file, plan.Source, target, keyPlan, valuePlan); err != nil {
 		return "", err
 	} else if ok {
 		tmp := ctx.tempName("items")
@@ -1504,7 +1505,7 @@ func (ctx *mappingRenderContext) renderNativeMap(
 		return tmp, nil
 	}
 
-	targetType, err := nativeMapTargetType(ctx.g, target, keyPlan, valuePlan)
+	targetType, err := nativeMapTargetType(ctx.file, target, keyPlan, valuePlan)
 	if err != nil {
 		return "", err
 	}
@@ -1533,7 +1534,7 @@ func (ctx *mappingRenderContext) renderNativeMap(
 
 func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source string) (string, error) {
 	if plan.Target.Kind == TypeKindMap {
-		targetType, err := generateType(ctx.g, plan.Target)
+		targetType, err := generateType(ctx.file, plan.Target)
 		if err != nil {
 			return "", err
 		}
@@ -1561,11 +1562,11 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 		return tmp, nil
 	}
 
-	entryType, err := generateType(ctx.g, plan.Access.ProtoElemType)
+	entryType, err := generateType(ctx.file, plan.Access.ProtoElemType)
 	if err != nil {
 		return "", err
 	}
-	entryBuilder, err := builderTypeExpr(ctx.g, plan.Access.ProtoElemType)
+	entryBuilder, err := builderTypeExpr(ctx.file, plan.Access.ProtoElemType)
 	if err != nil {
 		return "", err
 	}
@@ -1591,7 +1592,7 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 	ctx.line("}")
 
 	tmp := ctx.tempName("mapping")
-	wrapper, err := builderTypeExpr(ctx.g, plan.Target)
+	wrapper, err := builderTypeExpr(ctx.file, plan.Target)
 	if err != nil {
 		return "", err
 	}
@@ -1601,66 +1602,42 @@ func (ctx *mappingRenderContext) renderShapeMap(plan MappingValuePlan, source st
 	return tmp, nil
 }
 
-func generateSymbol(g *protogen.GeneratedFile, ref GoSymbolRef) string {
+func generateSymbol(g *generatedFile, ref GoSymbolRef) string {
 	if ref.ImportPath == "" {
 		return ref.Name
 	}
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: protogen.GoImportPath(ref.ImportPath),
-		GoName:       ref.Name,
-	})
+	return g.qualify(ref.ImportPath, ref.Name)
 }
 
-func structpbNullValue(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: structpbImportPath,
-		GoName:       "NullValue_NULL_VALUE",
-	})
+func structpbNullValue(g *generatedFile) string {
+	return g.qualify(structpbImportPath, "NullValue_NULL_VALUE")
 }
 
-func structpbNewStruct(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: structpbImportPath,
-		GoName:       "NewStruct",
-	})
+func structpbNewStruct(g *generatedFile) string {
+	return g.qualify(structpbImportPath, "NewStruct")
 }
 
-func structpbNewValue(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: structpbImportPath,
-		GoName:       "NewValue",
-	})
+func structpbNewValue(g *generatedFile) string {
+	return g.qualify(structpbImportPath, "NewValue")
 }
 
-func structpbNewList(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: structpbImportPath,
-		GoName:       "NewList",
-	})
+func structpbNewList(g *generatedFile) string {
+	return g.qualify(structpbImportPath, "NewList")
 }
 
-func timestampNew(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: timestamppbImportPath,
-		GoName:       "New",
-	})
+func timestampNew(g *generatedFile) string {
+	return g.qualify(timestamppbImportPath, "New")
 }
 
-func durationNew(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: durationpbImportPath,
-		GoName:       "New",
-	})
+func durationNew(g *generatedFile) string {
+	return g.qualify(durationpbImportPath, "New")
 }
 
-func errorsNew(g *protogen.GeneratedFile) string {
-	return g.QualifiedGoIdent(protogen.GoIdent{
-		GoImportPath: "errors",
-		GoName:       "New",
-	})
+func errorsNew(g *generatedFile) string {
+	return g.qualify("errors", "New")
 }
 
-func newValueExpr(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
+func newValueExpr(g *generatedFile, plan TypePlan) (string, error) {
 	if plan.Kind == TypeKindPointer && plan.Elem != nil {
 		elem, err := generateType(g, *plan.Elem)
 		if err != nil {

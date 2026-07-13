@@ -46,13 +46,61 @@ func Generate(plugin *protogen.Plugin, plan Plan, opts ...GenerateOption) error 
 			continue
 		}
 
-		g := plugin.NewGeneratedFile(file.Output.GeneratorPath, protogen.GoImportPath(file.Package.ImportPath))
-		if err := generateFile(g, file, options); err != nil {
-			return fmt.Errorf("generate %s: %w", file.ProtoPath, err)
+		importPath := protogen.GoImportPath(file.Package.ImportPath)
+		imports := newGeneratedImportGraph(file.Package.ImportPath, plan.PackageNames)
+
+		// The discovery pass records exactly which imports this generation configuration uses. It
+		// also gives us the complete set of package-level declarations before aliases are chosen.
+		discoveryContent, err := renderGeneratedFilePass(plugin, file, importPath, imports, options)
+		if err != nil {
+			return fmt.Errorf("generate %s import discovery: %w", file.ProtoPath, err)
+		}
+		if err := imports.resolveDiscovery(discoveryContent, file.Package.Name); err != nil {
+			return fmt.Errorf("generate %s imports: %w", file.ProtoPath, err)
+		}
+
+		// Rendering again lets every reference use the resolved alias from the outset. This avoids
+		// fragile textual substitutions and verifies that both passes discover the same imports.
+		finalContent, err := renderGeneratedFilePass(plugin, file, importPath, imports, options)
+		if err != nil {
+			return fmt.Errorf("generate %s final render: %w", file.ProtoPath, err)
+		}
+		content, err := imports.finalize(finalContent)
+		if err != nil {
+			return fmt.Errorf("generate %s imports: %w", file.ProtoPath, err)
+		}
+
+		// Both render passes were transient; only register the completed source with the plugin.
+		output := plugin.NewGeneratedFile(file.Output.GeneratorPath, importPath)
+		if _, err := output.Write(content); err != nil {
+			return fmt.Errorf("generate %s content: %w", file.ProtoPath, err)
 		}
 	}
 
 	return nil
+}
+
+// renderGeneratedFilePass renders one transient pass and returns its formatted content. The pass
+// is skipped so only the finalized file is included in the plugin response.
+func renderGeneratedFilePass(
+	plugin *protogen.Plugin,
+	file FilePlan,
+	importPath protogen.GoImportPath,
+	imports *generatedImportGraph,
+	options generateOptions,
+) ([]byte, error) {
+	output := plugin.NewGeneratedFile(file.Output.GeneratorPath, importPath)
+	defer output.Skip()
+	generated := newGeneratedFile(output, imports)
+
+	if err := generateFile(generated, file, options); err != nil {
+		return nil, err
+	}
+	content, err := output.Content()
+	if err != nil {
+		return nil, fmt.Errorf("format generated content: %w", err)
+	}
+	return content, nil
 }
 
 func newGenerateOptions(opts ...GenerateOption) generateOptions {
@@ -87,7 +135,7 @@ func formatDiagnostics(diagnostics []Diagnostic) string {
 	return out.String()
 }
 
-func generateFile(g *protogen.GeneratedFile, file FilePlan, options generateOptions) error {
+func generateFile(g *generatedFile, file FilePlan, options generateOptions) error {
 	g.P(generatedHeader)
 	g.P("package ", file.Package.Name)
 	g.P()
@@ -137,7 +185,7 @@ func generateFile(g *protogen.GeneratedFile, file FilePlan, options generateOpti
 	return nil
 }
 
-func generateEnum(g *protogen.GeneratedFile, enum EnumPlan) {
+func generateEnum(g *generatedFile, enum EnumPlan) {
 	generateComment(g, "", enum.Comment)
 	g.P("type ", enum.Name, " ", enumUnderlyingName(enum.Underlying))
 	g.P()
@@ -155,7 +203,7 @@ func generateEnum(g *protogen.GeneratedFile, enum EnumPlan) {
 	g.P()
 }
 
-func generateOneof(g *protogen.GeneratedFile, oneof OneofPlan) error {
+func generateOneof(g *generatedFile, oneof OneofPlan) error {
 	generateComment(g, "", oneof.Comment)
 	g.P("type ", oneof.Name, " interface {")
 	g.P("\t", oneof.MarkerMethod, "()")
@@ -171,7 +219,7 @@ func generateOneof(g *protogen.GeneratedFile, oneof OneofPlan) error {
 	return nil
 }
 
-func generateOneofVariant(g *protogen.GeneratedFile, oneof OneofPlan, variant OneofVariantPlan) error {
+func generateOneofVariant(g *generatedFile, oneof OneofPlan, variant OneofVariantPlan) error {
 	fieldType, err := generateType(g, variant.Type)
 	if err != nil {
 		return fmt.Errorf("field type: %w", err)
@@ -209,7 +257,7 @@ func enumConstantLiteral(underlying EnumUnderlyingType, value EnumConstantValue)
 	}
 }
 
-func generateStruct(g *protogen.GeneratedFile, structure StructPlan) error {
+func generateStruct(g *generatedFile, structure StructPlan) error {
 	generateComment(g, "", structure.Comment)
 	g.P("type ", structure.Name, " struct {")
 	for _, field := range structure.Fields {
@@ -230,7 +278,7 @@ func generateStruct(g *protogen.GeneratedFile, structure StructPlan) error {
 	return nil
 }
 
-func generateType(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
+func generateType(g *generatedFile, plan TypePlan) (string, error) {
 	switch plan.Kind {
 	case TypeKindScalar:
 		return scalarTypeName(plan.Scalar), nil
@@ -263,7 +311,7 @@ func generateType(g *protogen.GeneratedFile, plan TypePlan) (string, error) {
 	}
 }
 
-func generateElemType(g *protogen.GeneratedFile, plan *TypePlan, context string) (string, error) {
+func generateElemType(g *generatedFile, plan *TypePlan, context string) (string, error) {
 	if plan == nil {
 		return "", fmt.Errorf("%s type is missing an element", context)
 	}
@@ -299,7 +347,7 @@ func scalarTypeName(kind ScalarKind) string {
 	}
 }
 
-func generateNamedType(g *protogen.GeneratedFile, ref GoTypeRef) string {
+func generateNamedType(g *generatedFile, ref GoTypeRef) string {
 	switch {
 	case ref.Pointer != nil:
 		return "*" + generateNamedType(g, *ref.Pointer)
@@ -315,10 +363,7 @@ func generateNamedType(g *protogen.GeneratedFile, ref GoTypeRef) string {
 	if ref.ImportPath == "" {
 		name = ref.Name
 	} else {
-		name = g.QualifiedGoIdent(protogen.GoIdent{
-			GoName:       ref.Name,
-			GoImportPath: protogen.GoImportPath(ref.ImportPath),
-		})
+		name = g.qualify(ref.ImportPath, ref.Name)
 	}
 	if len(ref.Args) == 0 {
 		return name
@@ -343,7 +388,7 @@ func structTagLiteral(tags []StructTagPlan) string {
 	return "`" + strings.Join(parts, " ") + "`"
 }
 
-func generateComment(g *protogen.GeneratedFile, indent string, comment string) {
+func generateComment(g *generatedFile, indent string, comment string) {
 	comment = strings.TrimSpace(comment)
 	if comment == "" {
 		return

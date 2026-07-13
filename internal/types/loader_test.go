@@ -25,6 +25,13 @@ func TestLoaderPreloadSharesTypeUniverse(t *testing.T) {
 	assert.True(t, gotypes.Identical(month.Type, toProto.Signature.Params().At(0).Type()))
 }
 
+func TestLoaderPackageNames(t *testing.T) {
+	loader := NewLoader()
+	require.NoError(t, loader.Preload([]string{loaderTestPkg}))
+
+	assert.Equal(t, "loadertest", loader.PackageNames()[loaderTestPkg])
+}
+
 func TestLoaderType(t *testing.T) {
 	t.Run("resolves named type", func(t *testing.T) {
 		loader := NewLoader()

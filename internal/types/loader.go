@@ -45,6 +45,17 @@ func (l *Loader) Preload(importPaths []string) error {
 	return nil
 }
 
+// PackageNames returns the declared package name for every package currently cached by the loader.
+func (l *Loader) PackageNames() map[string]string {
+	names := make(map[string]string, len(l.packages))
+	for importPath, pkg := range l.packages {
+		if pkg != nil && pkg.Name != "" {
+			names[importPath] = pkg.Name
+		}
+	}
+	return names
+}
+
 func (l *Loader) indexPackage(pkg *packages.Package) {
 	if pkg == nil || pkg.Types == nil {
 		return
