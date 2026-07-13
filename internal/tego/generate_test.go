@@ -76,6 +76,16 @@ func TestGenerate(t *testing.T) {
 			Assert(t, "generate_rendered_tego_go", []byte(content))
 	})
 
+	t.Run("renders enum go types and converters", func(t *testing.T) {
+		content := generateParsedContent(t, planYiraWithCustomTicketStatus(t))
+
+		assert.NotContains(t, content, "type TicketStatus ")
+		assert.Regexp(t, `Status\s+plannertest\.CustomTicketStatus`, content)
+		assert.Regexp(t, `Statuses\s+\[\]plannertest\.CustomTicketStatus`, content)
+		assert.Contains(t, content, "plannertest.CustomTicketStatusFromProto(")
+		assert.Contains(t, content, "plannertest.CustomTicketStatusToProto(")
+	})
+
 	t.Run("renders nullable scalar and enum fields through proto presence", func(t *testing.T) {
 		plan := Plan{Files: []FilePlan{nullablePresenceTestFilePlan()}}
 

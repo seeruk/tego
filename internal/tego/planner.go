@@ -97,6 +97,14 @@ func goTypeImportPaths(di *DescriptorIndex) []string {
 			}
 		}
 	}
+	visitEnum := func(enum *ProtoEnum) {
+		if enum.File != nil && !enum.File.IsCoveredByTego() {
+			return
+		}
+		if enum.Options.HasGoType() {
+			addGoType(enum.Options.GetGoType())
+		}
+	}
 	var visitMessage func(*ProtoMessage)
 	visitMessage = func(message *ProtoMessage) {
 		if message.Options.HasGoType() {
@@ -107,11 +115,17 @@ func goTypeImportPaths(di *DescriptorIndex) []string {
 				addGoType(field.Options.GetGoType())
 			}
 		}
+		for _, enum := range message.Enums {
+			visitEnum(enum)
+		}
 		for _, nested := range message.Messages {
 			visitMessage(nested)
 		}
 	}
 	for _, file := range di.Files {
+		for _, enum := range file.Enums {
+			visitEnum(enum)
+		}
 		for _, message := range file.Messages {
 			visitMessage(message)
 		}

@@ -52,6 +52,15 @@ func TestPlannerPlanEnum(t *testing.T) {
 		assert.Empty(t, diagnostics)
 	})
 
+	t.Run("custom go type replaces enum", func(t *testing.T) {
+		enum := protoEnum("example.v1.Status", "Status")
+		enum.Options.SetGoType(goTypeRef(plannerTestPkg + ".CustomTicketStatus"))
+
+		_, diagnostics, ok := NewPlanner().planEnum(enum)
+		assert.False(t, ok)
+		assert.Empty(t, diagnostics)
+	})
+
 	t.Run("omits enum value", func(t *testing.T) {
 		enum := protoEnum(
 			"example.v1.Status", "Status",

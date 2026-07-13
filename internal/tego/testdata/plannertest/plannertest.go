@@ -1,8 +1,14 @@
 package plannertest
 
+import "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1"
+
 type Description string
 
 type CustomString string
+
+type CustomTicketStatus int32
+
+type CustomTicketStatuses []CustomTicketStatus
 
 type Set[T any] struct {
 	Values []T
@@ -35,6 +41,30 @@ func CustomStringFromProto(value string) CustomString {
 
 func CustomStringToProto(value CustomString) string {
 	return string(value)
+}
+
+func CustomTicketStatusFromProto(value yirapbv1.TicketStatus) (CustomTicketStatus, error) {
+	return CustomTicketStatus(value), nil
+}
+
+func CustomTicketStatusToProto(value CustomTicketStatus) (yirapbv1.TicketStatus, error) {
+	return yirapbv1.TicketStatus(value), nil
+}
+
+func CustomTicketStatusesFromProto(values []yirapbv1.TicketStatus) CustomTicketStatuses {
+	result := make(CustomTicketStatuses, len(values))
+	for i, value := range values {
+		result[i] = CustomTicketStatus(value)
+	}
+	return result
+}
+
+func CustomTicketStatusesToProto(values CustomTicketStatuses) []yirapbv1.TicketStatus {
+	result := make([]yirapbv1.TicketStatus, len(values))
+	for i, value := range values {
+		result[i] = yirapbv1.TicketStatus(value)
+	}
+	return result
 }
 
 func CustomStringPointerFromProto(value string) *CustomString {

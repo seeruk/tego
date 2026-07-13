@@ -36,6 +36,34 @@ func buildYiraDescriptorIndex(t *testing.T) *DescriptorIndex {
 	return index
 }
 
+func customTicketStatusGoType() *tegopb.GoType {
+	goType := plannerGoType(
+		plannerTestPkg+".CustomTicketStatus",
+		plannerTestPkg+".CustomTicketStatusFromProto",
+		plannerTestPkg+".CustomTicketStatusToProto",
+		false,
+	)
+	goType.SetComparable(true)
+	return goType
+}
+
+func planYiraWithCustomTicketStatus(t *testing.T) Plan {
+	t.Helper()
+
+	descriptors := buildYiraDescriptorIndex(t)
+	status := requireEnum(t, descriptors, "yirapb.v1.TicketStatus")
+	status.Options.SetGoType(customTicketStatusGoType())
+
+	shapes, err := BuildShapeIndex(descriptors)
+	require.NoError(t, err)
+	plan, err := NewPlanner().Plan(descriptors, shapes)
+	require.NoError(t, err)
+	for _, file := range plan.Files {
+		require.False(t, HasFatalDiagnostics(file.Diagnostics), diagnosticsText(file.Diagnostics))
+	}
+	return plan
+}
+
 func fieldByName(t *testing.T, message *ProtoMessage, name protoreflect.Name) *ProtoField {
 	t.Helper()
 
@@ -249,6 +277,19 @@ func enumField(name protoreflect.Name, enum *ProtoEnum) *ProtoField {
 	field := field(name, protoreflect.EnumKind)
 	field.Enum = enum
 	return field
+}
+
+func enumFieldWithGoType(name protoreflect.Name, comparable, asPointer, covered bool) *ProtoField {
+	goPackage := ""
+	if covered {
+		goPackage = "example.com/tego;tego"
+	}
+	enum := plannerEnum("example.v1.Status", "Status", testProtoFile("status.proto", false, goPackage))
+	goType := goTypeRef("example.com/types.Status")
+	goType.SetComparable(comparable)
+	goType.SetAsPointer(asPointer)
+	enum.Options.SetGoType(goType)
+	return enumField(name, enum)
 }
 
 func messageField(name protoreflect.Name, message *ProtoMessage) *ProtoField {

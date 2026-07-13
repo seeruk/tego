@@ -9,7 +9,7 @@ import (
 )
 
 func (p *Planner) planEnum(enum *ProtoEnum) (EnumPlan, []Diagnostic, bool) {
-	if enum.Options.GetOmit() {
+	if enum.Options.GetOmit() || enum.Options.HasGoType() {
 		return EnumPlan{}, nil, false
 	}
 
