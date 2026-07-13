@@ -387,9 +387,6 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 	if goType.GetRef() == "" {
 		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type ref is required"))
 	}
-	if (goType.GetFromProto() == "") != (goType.GetToProto() == "") {
-		diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type from_proto and to_proto must either both be set or both be omitted"))
-	}
 	if len(diagnostics) > 0 {
 		return TypePlan{}, diagnostics
 	}
@@ -404,8 +401,9 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 	if goType.GetAsPointer() {
 		customPattern = goTypePattern{pointer: new(customPattern)}
 	}
-	autoCast := goType.GetFromProto() == ""
-	if autoCast {
+	autoCastFromProto := goType.GetFromProto() == ""
+	autoCastToProto := goType.GetToProto() == ""
+	if autoCastFromProto || autoCastToProto {
 		sourceType, err := p.resolveGoTypePattern(source)
 		if err != nil {
 			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve protobuf Go type for automatic conversion: %s", err)}
@@ -414,24 +412,31 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 		if err != nil {
 			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve custom Go type for automatic conversion: %s", err)}
 		}
-		if !gotypes.ConvertibleTo(sourceType, customPatternType) || !gotypes.ConvertibleTo(customPatternType, sourceType) {
-			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "go_type ref is not convertible to and from the protobuf Go type; from_proto and to_proto are required")}
+		if autoCastFromProto && !gotypes.ConvertibleTo(sourceType, customPatternType) {
+			diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "protobuf Go type is not convertible to go_type ref; from_proto is required"))
+		}
+		if autoCastToProto && !gotypes.ConvertibleTo(customPatternType, sourceType) {
+			diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type ref is not convertible to the protobuf Go type; to_proto is required"))
 		}
 	}
 
 	var fromProtoRef, toProtoRef GoSymbolRef
 	var fromProtoCanError, toProtoCanError bool
-	if !autoCast {
-		var fromProtoDiagnostics, toProtoDiagnostics []Diagnostic
+	if !autoCastFromProto {
+		var fromProtoDiagnostics []Diagnostic
 		fromProtoRef, fromProtoCanError, fromProtoDiagnostics = p.resolveAndValidateFromProto(diagnosticPath, goType.GetFromProto(), source, customPattern)
-		toProtoRef, toProtoCanError, toProtoDiagnostics = p.resolveAndValidateToProto(diagnosticPath, goType.GetToProto(), source, customPattern)
 		diagnostics = append(diagnostics, fromProtoDiagnostics...)
+	}
+	if !autoCastToProto {
+		var toProtoDiagnostics []Diagnostic
+		toProtoRef, toProtoCanError, toProtoDiagnostics = p.resolveAndValidateToProto(diagnosticPath, goType.GetToProto(), source, customPattern)
 		diagnostics = append(diagnostics, toProtoDiagnostics...)
 	}
 
 	customPlan := CustomGoTypePlan{
 		Ref:               customRef,
-		AutoCast:          autoCast,
+		AutoCastFromProto: autoCastFromProto,
+		AutoCastToProto:   autoCastToProto,
 		FromProto:         fromProtoRef,
 		FromProtoCanError: fromProtoCanError,
 		ToProto:           toProtoRef,

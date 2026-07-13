@@ -27,18 +27,25 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 			Kind: TypeKindCustom,
 			Ref:  GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"},
 			Custom: CustomGoTypePlan{
-				Ref:      GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"},
-				AutoCast: true,
+				Ref:               GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"},
+				AutoCastFromProto: true,
+				AutoCastToProto:   true,
 			},
 		}
 		explicit := automatic
-		explicit.Custom.AutoCast = false
+		explicit.Custom.AutoCastFromProto = false
+		explicit.Custom.AutoCastToProto = false
 		explicit.Custom.FromProto = GoSymbolRef{ImportPath: plannerTestPkg, Name: "CustomStringFromProto"}
 		explicit.Custom.ToProto = GoSymbolRef{ImportPath: plannerTestPkg, Name: "CustomStringToProto"}
+		mixed := automatic
+		mixed.Custom.AutoCastFromProto = false
+		mixed.Custom.FromProto = GoSymbolRef{ImportPath: plannerTestPkg, Name: "CustomStringFromProto"}
 
 		fromProto := planner.planMappingValue(stringType, automatic, mappingDirectionFromProto)
 		toProto := planner.planMappingValue(automatic, stringType, mappingDirectionToProto)
 		explicitFromProto := planner.planMappingValue(stringType, explicit, mappingDirectionFromProto)
+		mixedFromProto := planner.planMappingValue(stringType, mixed, mappingDirectionFromProto)
+		mixedToProto := planner.planMappingValue(mixed, stringType, mappingDirectionToProto)
 
 		assert.Equal(t, MappingValueKindScalarCast, fromProto.Kind)
 		assert.Equal(t, MappingValueKindScalarCast, toProto.Kind)
@@ -46,6 +53,8 @@ func TestPlannerPlanMappingValues(t *testing.T) {
 		assert.True(t, toProto.Cast.ProtoTarget)
 		assert.Equal(t, MappingValueKindCustom, explicitFromProto.Kind)
 		assert.Equal(t, "CustomStringFromProto", explicitFromProto.Custom.FromProto.Name)
+		assert.Equal(t, MappingValueKindCustom, mixedFromProto.Kind)
+		assert.Equal(t, MappingValueKindScalarCast, mixedToProto.Kind)
 	})
 
 	t.Run("plans opinionated scalar casts", func(t *testing.T) {

@@ -192,7 +192,8 @@ type GoTypeRef struct {
 // CustomGoTypePlan records a user-provided Go type and its conversion functions.
 type CustomGoTypePlan struct {
 	Ref               GoTypeRef
-	AutoCast          bool
+	AutoCastFromProto bool
+	AutoCastToProto   bool
 	FromProto         GoSymbolRef
 	FromProtoCanError bool
 	ToProto           GoSymbolRef

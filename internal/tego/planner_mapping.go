@@ -920,10 +920,10 @@ func isAutomaticCustomCast(source TypePlan, target TypePlan, direction mappingDi
 	switch direction {
 	case mappingDirectionFromProto:
 		custom, ok := topCustomType(target)
-		return ok && custom.AutoCast
+		return ok && custom.AutoCastFromProto
 	case mappingDirectionToProto:
 		custom, ok := topCustomType(source)
-		return ok && custom.AutoCast
+		return ok && custom.AutoCastToProto
 	default:
 		return false
 	}

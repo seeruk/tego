@@ -498,7 +498,8 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 
 		require.Empty(t, diagnostics)
 		assert.Equal(t, TypeKindCustom, plan.Kind)
-		assert.True(t, plan.Custom.AutoCast)
+		assert.True(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
 		assert.Empty(t, plan.Custom.FromProto.Name)
 		assert.Empty(t, plan.Custom.ToProto.Name)
 	})
@@ -514,8 +515,43 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
 
 		require.Empty(t, diagnostics)
-		assert.False(t, plan.Custom.AutoCast)
+		assert.False(t, plan.Custom.AutoCastFromProto)
+		assert.False(t, plan.Custom.AutoCastToProto)
 		assert.Equal(t, "CustomStringFromProto", plan.Custom.FromProto.Name)
+		assert.Equal(t, "CustomStringToProto", plan.Custom.ToProto.Name)
+	})
+
+	t.Run("mixes an explicit from conversion with an automatic to conversion", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			plannerTestPkg+".CustomStringFromProto",
+			"",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.False(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
+		assert.Equal(t, "CustomStringFromProto", plan.Custom.FromProto.Name)
+		assert.Empty(t, plan.Custom.ToProto.Name)
+	})
+
+	t.Run("mixes an automatic from conversion with an explicit to conversion", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			"",
+			plannerTestPkg+".CustomStringToProto",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.True(t, plan.Custom.AutoCastFromProto)
+		assert.False(t, plan.Custom.AutoCastToProto)
+		assert.Empty(t, plan.Custom.FromProto.Name)
 		assert.Equal(t, "CustomStringToProto", plan.Custom.ToProto.Name)
 	})
 
@@ -686,16 +722,6 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 				diagnostic: "go_type ref is required",
 			},
 			{
-				name: "only from conversion",
-				goType: plannerGoType(
-					plannerTestPkg+".CustomString",
-					plannerTestPkg+".CustomStringFromProto",
-					"",
-					false,
-				),
-				diagnostic: "must either both be set or both be omitted",
-			},
-			{
 				name: "automatic conversion is not possible",
 				goType: plannerGoType(
 					plannerTestPkg+".Set[string]",
@@ -703,7 +729,7 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 					"",
 					false,
 				),
-				diagnostic: "from_proto and to_proto are required",
+				diagnostic: "from_proto is required",
 			},
 			{
 				name: "unresolved ref",
