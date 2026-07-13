@@ -188,7 +188,7 @@ func (p *Planner) planSingularFieldType(field *ProtoField, si *ShapeIndex) (Type
 	case protoreflect.BytesKind:
 		return scalarType(ScalarKindBytes), nil
 	case protoreflect.EnumKind:
-		return p.planEnumType(field), nil
+		return p.planEnumType(field)
 	case protoreflect.MessageKind, protoreflect.GroupKind:
 		return p.planMessageType(field, si)
 	default:
@@ -233,22 +233,36 @@ func enclosingMapField(field *ProtoField) *ProtoField {
 	return nil
 }
 
-func (p *Planner) planEnumType(field *ProtoField) TypePlan {
+func (p *Planner) planEnumType(field *ProtoField) (TypePlan, []Diagnostic) {
 	if field.Enum == nil {
-		return TypePlan{}
+		return TypePlan{}, nil
+	}
+
+	if goType, ok := coveredEnumGoType(field.Enum); ok {
+		return p.planCustomGoType(goType, sourcePatternForSingularField(field), string(field.FullName))
 	}
 
 	if field.Enum.File == nil || field.Enum.File.IsCoveredByTego() {
 		return TypePlan{
 			Kind: TypeKindEnum,
 			Ref:  plannedEnumRef(field.Enum),
-		}
+		}, nil
 	}
 
 	return TypePlan{
 		Kind: TypeKindExternal,
 		Ref:  protoEnumPlanRef(field.Enum),
+	}, nil
+}
+
+func coveredEnumGoType(enum *ProtoEnum) (*tegopb.GoType, bool) {
+	if enum == nil || enum.Options == nil || !enum.Options.HasGoType() {
+		return nil, false
 	}
+	if enum.File != nil && !enum.File.IsCoveredByTego() {
+		return nil, false
+	}
+	return enum.Options.GetGoType(), true
 }
 
 func (p *Planner) planMessageType(field *ProtoField, si *ShapeIndex) (TypePlan, []Diagnostic) {

@@ -38,6 +38,10 @@ message EnumOptions {
   // underlying_type is used to specify the underlying type of the enum generated in Go. By default,
   // Tego will generate uint-based enums.
   EnumUnderlyingType underlying_type = 4;
+  // go_type is used to specify a custom Go type to use for this enum. This means Tego does not
+  // generate a corresponding Go enum or constants, and uses the custom type wherever it is
+  // referenced.
+  GoType go_type = 5;
 }
 
 enum EnumUnderlyingType {

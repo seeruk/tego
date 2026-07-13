@@ -41,6 +41,42 @@ func TestBuildDescriptorIndexFileOmitOption(t *testing.T) {
 	assert.True(t, file.IsOmitted())
 }
 
+func TestBuildDescriptorIndexEnumGoTypeOption(t *testing.T) {
+	goType := goTypeRef("github.com/example/status.Status")
+	tegoOptions := &tegopb.EnumOptions{}
+	tegoOptions.SetGoType(goType)
+	options := &descriptorpb.EnumOptions{}
+	proto.SetExtension(options, tegopb.E_Enum, tegoOptions)
+	request := &pluginpb.CodeGeneratorRequest{
+		FileToGenerate: []string{"status.proto"},
+		ProtoFile: []*descriptorpb.FileDescriptorProto{{
+			Name:    new("status.proto"),
+			Package: new("example.v1"),
+			Syntax:  new("editions"),
+			Edition: descriptorpb.Edition_EDITION_2024.Enum(),
+			Options: &descriptorpb.FileOptions{GoPackage: new("github.com/example/statuspb;statuspb")},
+			EnumType: []*descriptorpb.EnumDescriptorProto{{
+				Name:    new("Status"),
+				Options: options,
+				Value: []*descriptorpb.EnumValueDescriptorProto{{
+					Name:   new("STATUS_UNSPECIFIED"),
+					Number: new(int32(0)),
+				}},
+			}},
+		}},
+	}
+	plugin, err := protogen.Options{}.New(request)
+	require.NoError(t, err)
+
+	index, err := BuildDescriptorIndex(plugin)
+	require.NoError(t, err)
+	status := requireEnum(t, index, "example.v1.Status")
+
+	require.NotNil(t, status.Options)
+	require.True(t, status.Options.HasGoType())
+	assert.Equal(t, "github.com/example/status.Status", status.Options.GetGoType().GetRef())
+}
+
 func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 	index := buildYiraDescriptorIndex(t)
 

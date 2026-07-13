@@ -189,6 +189,9 @@ func TestMapShapeHelpers(t *testing.T) {
 		}{
 			{name: "string key", message: mapShapeWithKey(field("key", protoreflect.StringKind)), want: true},
 			{name: "enum key", message: mapShapeWithKey(field("key", protoreflect.EnumKind)), want: true},
+			{name: "comparable enum go type key", message: mapShapeWithKey(enumFieldWithGoType("key", true, false, true)), want: true},
+			{name: "pointer enum go type key", message: mapShapeWithKey(enumFieldWithGoType("key", false, true, true)), want: true},
+			{name: "foreign enum go type key", message: mapShapeWithKey(enumFieldWithGoType("key", false, false, false)), want: true},
 			{name: "comparable struct key", message: mapShapeWithKey(messageField("key", comparableStructMessage())), want: true},
 			{name: "nullable oneof key", message: mapShapeWithKey(messageField("key", nullableOneofMessage())), want: true},
 			{name: "nullable non-comparable struct key", message: mapShapeWithKey(nullableMessageField("key", nonComparableStructMessage())), want: true},
@@ -209,6 +212,7 @@ func TestMapShapeHelpers(t *testing.T) {
 			{name: "non-comparable struct key", message: mapShapeWithKey(messageField("key", nonComparableStructMessage()))},
 			{name: "non-comparable field go type key", message: mapShapeWithKey(fieldWithGoType("key", protoreflect.MessageKind, "Key", false))},
 			{name: "field go type without comparable option", message: mapShapeWithKey(fieldWithGoTypeRef("key", protoreflect.MessageKind, "Key"))},
+			{name: "enum go type without comparable option", message: mapShapeWithKey(enumFieldWithGoType("key", false, false, true))},
 			{name: "message go type without comparable option", message: mapShapeWithKey(messageField("key", messageWithGoTypeRef("Key")))},
 			{name: "flattened bytes key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(field("value", protoreflect.BytesKind))))},
 			{name: "flattened repeated key", message: mapShapeWithKey(messageField("key", flattenShapeMessage(repeatedField("value", protoreflect.StringKind))))},

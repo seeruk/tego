@@ -90,6 +90,21 @@ func TestPlannerPlanOneofs(t *testing.T) {
 		assert.Equal(t, "TicketEventComment", oneofPlan.Variants[0].Name)
 	})
 
+	t.Run("uses enum go type for variants", func(t *testing.T) {
+		index := buildYiraDescriptorIndex(t)
+		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
+		status.Options.SetGoType(customTicketStatusGoType())
+		message := plannerMessage("example.v1.Event", "Event")
+		oneof := plannerOneof(message, "value", enumField("status", status))
+
+		plan, diagnostics := NewPlanner().planOneof(oneof, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		require.Len(t, plan.Variants, 1)
+		assert.Equal(t, TypeKindCustom, plan.Variants[0].Type.Kind)
+		assert.Equal(t, "CustomTicketStatus", plan.Variants[0].Type.Custom.Ref.Name)
+	})
+
 	t.Run("allows all variants to be omitted", func(t *testing.T) {
 		message := plannerMessage("example.v1.TicketEvent", "TicketEvent")
 		oneof := plannerOneof(

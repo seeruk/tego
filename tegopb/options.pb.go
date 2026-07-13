@@ -221,6 +221,7 @@ type EnumOptions struct {
 	xxx_hidden_Comment        *string                `protobuf:"bytes,2,opt,name=comment"`
 	xxx_hidden_Omit           bool                   `protobuf:"varint,3,opt,name=omit"`
 	xxx_hidden_UnderlyingType EnumUnderlyingType     `protobuf:"varint,4,opt,name=underlying_type,json=underlyingType,enum=tego.EnumUnderlyingType"`
+	xxx_hidden_GoType         *GoType                `protobuf:"bytes,5,opt,name=go_type,json=goType"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -288,24 +289,35 @@ func (x *EnumOptions) GetUnderlyingType() EnumUnderlyingType {
 	return EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UNSPECIFIED
 }
 
+func (x *EnumOptions) GetGoType() *GoType {
+	if x != nil {
+		return x.xxx_hidden_GoType
+	}
+	return nil
+}
+
 func (x *EnumOptions) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *EnumOptions) SetComment(v string) {
 	x.xxx_hidden_Comment = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *EnumOptions) SetOmit(v bool) {
 	x.xxx_hidden_Omit = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *EnumOptions) SetUnderlyingType(v EnumUnderlyingType) {
 	x.xxx_hidden_UnderlyingType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *EnumOptions) SetGoType(v *GoType) {
+	x.xxx_hidden_GoType = v
 }
 
 func (x *EnumOptions) HasName() bool {
@@ -336,6 +348,13 @@ func (x *EnumOptions) HasUnderlyingType() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *EnumOptions) HasGoType() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_GoType != nil
+}
+
 func (x *EnumOptions) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -356,6 +375,10 @@ func (x *EnumOptions) ClearUnderlyingType() {
 	x.xxx_hidden_UnderlyingType = EnumUnderlyingType_ENUM_UNDERLYING_TYPE_UNSPECIFIED
 }
 
+func (x *EnumOptions) ClearGoType() {
+	x.xxx_hidden_GoType = nil
+}
+
 type EnumOptions_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -368,6 +391,10 @@ type EnumOptions_builder struct {
 	// underlying_type is used to specify the underlying type of the enum generated in Go. By default,
 	// Tego will generate uint-based enums.
 	UnderlyingType *EnumUnderlyingType
+	// go_type is used to specify a custom Go type to use for this enum. This means Tego does not
+	// generate a corresponding Go enum or constants, and uses the custom type wherever it is
+	// referenced.
+	GoType *GoType
 }
 
 func (b0 EnumOptions_builder) Build() *EnumOptions {
@@ -375,21 +402,22 @@ func (b0 EnumOptions_builder) Build() *EnumOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Comment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_Comment = b.Comment
 	}
 	if b.Omit != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_Omit = *b.Omit
 	}
 	if b.UnderlyingType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_UnderlyingType = *b.UnderlyingType
 	}
+	x.xxx_hidden_GoType = b.GoType
 	return m0
 }
 
@@ -2439,12 +2467,13 @@ const file_tego_options_proto_rawDesc = "" +
 	"go_package\x18\x01 \x01(\tR\tgoPackage\x12\x1f\n" +
 	"\voutput_path\x18\x02 \x01(\tR\n" +
 	"outputPath\x12\x12\n" +
-	"\x04omit\x18\x03 \x01(\bR\x04omit\"\x92\x01\n" +
+	"\x04omit\x18\x03 \x01(\bR\x04omit\"\xb9\x01\n" +
 	"\vEnumOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12\x12\n" +
 	"\x04omit\x18\x03 \x01(\bR\x04omit\x12A\n" +
-	"\x0funderlying_type\x18\x04 \x01(\x0e2\x18.tego.EnumUnderlyingTypeR\x0eunderlyingType\"\xa1\x01\n" +
+	"\x0funderlying_type\x18\x04 \x01(\x0e2\x18.tego.EnumUnderlyingTypeR\x0eunderlyingType\x12%\n" +
+	"\ago_type\x18\x05 \x01(\v2\f.tego.GoTypeR\x06goType\"\xa1\x01\n" +
 	"\x10EnumValueOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12\x12\n" +
@@ -2549,32 +2578,33 @@ var file_tego_options_proto_goTypes = []any{
 }
 var file_tego_options_proto_depIdxs = []int32{
 	0,  // 0: tego.EnumOptions.underlying_type:type_name -> tego.EnumUnderlyingType
-	11, // 1: tego.MessageOptions.go_type:type_name -> tego.GoType
-	5,  // 2: tego.MessageOptions.fields:type_name -> tego.MessageFieldsOptions
-	11, // 3: tego.FieldOptions.go_type:type_name -> tego.GoType
-	10, // 4: tego.FieldOptions.tags:type_name -> tego.GoStructTag
-	9,  // 5: tego.FieldOptions.json_tag:type_name -> tego.GoJsonStructTag
-	13, // 6: tego.GoType.type_args:type_name -> tego.GoType.TypeArgsEntry
-	12, // 7: tego.GoType.TypeArgsEntry.value:type_name -> tego.GoTypeArg
-	14, // 8: tego.file:extendee -> google.protobuf.FileOptions
-	15, // 9: tego.enum:extendee -> google.protobuf.EnumOptions
-	16, // 10: tego.enum_value:extendee -> google.protobuf.EnumValueOptions
-	17, // 11: tego.message:extendee -> google.protobuf.MessageOptions
-	18, // 12: tego.field:extendee -> google.protobuf.FieldOptions
-	19, // 13: tego.service:extendee -> google.protobuf.ServiceOptions
-	20, // 14: tego.method:extendee -> google.protobuf.MethodOptions
-	1,  // 15: tego.file:type_name -> tego.FileOptions
-	2,  // 16: tego.enum:type_name -> tego.EnumOptions
-	3,  // 17: tego.enum_value:type_name -> tego.EnumValueOptions
-	4,  // 18: tego.message:type_name -> tego.MessageOptions
-	6,  // 19: tego.field:type_name -> tego.FieldOptions
-	7,  // 20: tego.service:type_name -> tego.ServiceOptions
-	8,  // 21: tego.method:type_name -> tego.MethodOptions
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	15, // [15:22] is the sub-list for extension type_name
-	8,  // [8:15] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	11, // 1: tego.EnumOptions.go_type:type_name -> tego.GoType
+	11, // 2: tego.MessageOptions.go_type:type_name -> tego.GoType
+	5,  // 3: tego.MessageOptions.fields:type_name -> tego.MessageFieldsOptions
+	11, // 4: tego.FieldOptions.go_type:type_name -> tego.GoType
+	10, // 5: tego.FieldOptions.tags:type_name -> tego.GoStructTag
+	9,  // 6: tego.FieldOptions.json_tag:type_name -> tego.GoJsonStructTag
+	13, // 7: tego.GoType.type_args:type_name -> tego.GoType.TypeArgsEntry
+	12, // 8: tego.GoType.TypeArgsEntry.value:type_name -> tego.GoTypeArg
+	14, // 9: tego.file:extendee -> google.protobuf.FileOptions
+	15, // 10: tego.enum:extendee -> google.protobuf.EnumOptions
+	16, // 11: tego.enum_value:extendee -> google.protobuf.EnumValueOptions
+	17, // 12: tego.message:extendee -> google.protobuf.MessageOptions
+	18, // 13: tego.field:extendee -> google.protobuf.FieldOptions
+	19, // 14: tego.service:extendee -> google.protobuf.ServiceOptions
+	20, // 15: tego.method:extendee -> google.protobuf.MethodOptions
+	1,  // 16: tego.file:type_name -> tego.FileOptions
+	2,  // 17: tego.enum:type_name -> tego.EnumOptions
+	3,  // 18: tego.enum_value:type_name -> tego.EnumValueOptions
+	4,  // 19: tego.message:type_name -> tego.MessageOptions
+	6,  // 20: tego.field:type_name -> tego.FieldOptions
+	7,  // 21: tego.service:type_name -> tego.ServiceOptions
+	8,  // 22: tego.method:type_name -> tego.MethodOptions
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	16, // [16:23] is the sub-list for extension type_name
+	9,  // [9:16] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_tego_options_proto_init() }

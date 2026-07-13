@@ -101,7 +101,8 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 		nullField := field("null", protoreflect.EnumKind)
 		nullField.Enum = nullValue
 
-		nullPlan := planner.planEnumType(nullField)
+		nullPlan, diagnostics := planner.planEnumType(nullField)
+		require.Empty(t, diagnostics)
 		assert.Equal(t, TypeKindExternal, nullPlan.Kind)
 		assert.Equal(t, GoTypeRef{
 			ImportPath: "google.golang.org/protobuf/types/known/structpb",
@@ -207,6 +208,7 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 
 		externalEnum := plannerEnum("external.v1.Status", "Status", externalFile)
 		foreignEnum := plannerEnum("foreign.v1.Status", "Status", foreignFile)
+		foreignEnum.Options.SetGoType(goTypeRef(plannerTestPkg + ".CustomTicketStatus"))
 		foreignEnum.Desc = &protogen.Enum{GoIdent: protogen.GoIdent{
 			GoImportPath: "example.com/foreign/pb",
 			GoName:       "Status",
@@ -245,7 +247,7 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 			},
 			{
 				name: "external tego enum",
-				plan: NewPlanner().planEnumType(enumField("status", externalEnum)),
+				plan: mustPlanFieldType(t, enumField("status", externalEnum), shapeIndex),
 				want: TypePlan{Kind: TypeKindEnum, Ref: GoTypeRef{
 					ImportPath: "example.com/external/tego",
 					Name:       "Status",
@@ -253,7 +255,7 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 			},
 			{
 				name: "foreign enum",
-				plan: NewPlanner().planEnumType(enumField("status", foreignEnum)),
+				plan: mustPlanFieldType(t, enumField("status", foreignEnum), shapeIndex),
 				want: TypePlan{Kind: TypeKindExternal, Ref: GoTypeRef{
 					ImportPath: "example.com/foreign/pb",
 					Name:       "Status",
@@ -271,6 +273,77 @@ func TestPlannerPlanFieldTypes(t *testing.T) {
 				assert.Equal(t, tt.want, tt.plan)
 			})
 		}
+	})
+}
+
+func TestPlannerEnumGoType(t *testing.T) {
+	t.Run("uses override from a covered imported enum", func(t *testing.T) {
+		index := buildYiraDescriptorIndex(t)
+		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
+		status.File.Generate = false
+		require.True(t, status.File.IsCoveredByTego())
+		status.Options.SetGoType(customTicketStatusGoType())
+		statusField := fieldByName(t, requireMessage(t, index, "yirapb.v1.Ticket"), "status")
+
+		plan, diagnostics := NewPlanner().planFieldType(statusField, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.Equal(t, "CustomTicketStatus", plan.Custom.Ref.Name)
+	})
+
+	t.Run("uses automatic casts from the protoc enum type", func(t *testing.T) {
+		index := buildYiraDescriptorIndex(t)
+		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
+		status.Options.SetGoType(goTypeRef(plannerTestPkg + ".CustomTicketStatus"))
+		statusField := fieldByName(t, requireMessage(t, index, "yirapb.v1.Ticket"), "status")
+
+		plan, diagnostics := NewPlanner().planFieldType(statusField, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		require.Equal(t, TypeKindCustom, plan.Kind)
+		assert.True(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
+	})
+
+	t.Run("validates converters against the protoc enum type", func(t *testing.T) {
+		index := buildYiraDescriptorIndex(t)
+		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
+		status.Options.SetGoType(plannerGoType(
+			plannerTestPkg+".CustomTicketStatus",
+			plannerTestPkg+".WrongParameter",
+			plannerTestPkg+".CustomTicketStatusToProto",
+			false,
+		))
+		statusField := fieldByName(t, requireMessage(t, index, "yirapb.v1.Ticket"), "status")
+
+		_, diagnostics := NewPlanner().planFieldType(statusField, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, diagnostics, "from_proto parameter has wrong type")
+	})
+
+	t.Run("field override retains whole collection semantics", func(t *testing.T) {
+		index := buildYiraDescriptorIndex(t)
+		status := requireEnum(t, index, "yirapb.v1.TicketStatus")
+		status.Options.SetGoType(customTicketStatusGoType())
+		statuses := fieldByName(t, requireMessage(t, index, "yirapb.v1.TicketFilter"), "statuses")
+		if statuses.Options == nil {
+			statuses.Options = &tegopb.FieldOptions{}
+		}
+		statuses.Options.SetGoType(plannerGoType(
+			plannerTestPkg+".CustomTicketStatuses",
+			plannerTestPkg+".CustomTicketStatusesFromProto",
+			plannerTestPkg+".CustomTicketStatusesToProto",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(statuses, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.Equal(t, "CustomTicketStatuses", plan.Custom.Ref.Name)
+		assert.Equal(t, "CustomTicketStatusesFromProto", plan.Custom.FromProto.Name)
+		assert.Equal(t, "CustomTicketStatusesToProto", plan.Custom.ToProto.Name)
 	})
 }
 

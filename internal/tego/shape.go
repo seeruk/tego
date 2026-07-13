@@ -282,6 +282,12 @@ func (b *shapeIndexBuilder) isComparableField(field *ProtoField) bool {
 		goType := field.Options.GetGoType()
 		return goType.GetComparable() || goType.GetAsPointer()
 	}
+	if field.Kind == protoreflect.EnumKind {
+		if goType, ok := coveredEnumGoType(field.Enum); ok {
+			return goType.GetComparable() || goType.GetAsPointer()
+		}
+		return true
+	}
 
 	switch field.Kind {
 	case protoreflect.BoolKind,
@@ -297,8 +303,7 @@ func (b *shapeIndexBuilder) isComparableField(field *ProtoField) bool {
 		protoreflect.Sfixed64Kind,
 		protoreflect.Fixed64Kind,
 		protoreflect.DoubleKind,
-		protoreflect.StringKind,
-		protoreflect.EnumKind:
+		protoreflect.StringKind:
 		return true
 	case protoreflect.BytesKind:
 		return false

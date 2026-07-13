@@ -38,6 +38,38 @@ func TestPlannerPreloadsCustomTypePackagesTogether(t *testing.T) {
 	assert.Equal(t, "Month", fieldPlan.Type.Ref.Name)
 }
 
+func TestPlannerFindsEnumGoTypePackages(t *testing.T) {
+	file := protoFileWithOutput("status.proto", "example.com/status;status", "")
+	topLevel := plannerEnum("example.v1.Status", "Status", file)
+	topLevel.Options.SetGoType(plannerGoTypeWithArgs(
+		"example.com/types.Box[T]",
+		map[string]string{"T": "example.com/args.Value"},
+		"example.com/converters.FromProto",
+		"example.com/converters.ToProto",
+		false,
+	))
+	file.Enums = []*ProtoEnum{topLevel}
+
+	message := plannerMessage("example.v1.Message", "Message")
+	nested := plannerEnum("example.v1.Message.Kind", "Kind", file)
+	nested.Parent = message
+	nested.Options.SetGoType(goTypeRef("example.com/nested.Kind"))
+	message.Enums = []*ProtoEnum{nested}
+	attachMessagesToFile(file, message)
+
+	foreignFile := testProtoFile("foreign.proto", false, "")
+	foreign := plannerEnum("foreign.v1.Status", "Status", foreignFile)
+	foreign.Options.SetGoType(goTypeRef("example.com/ignored.Status"))
+	foreignFile.Enums = []*ProtoEnum{foreign}
+
+	assert.Equal(t, []string{
+		"example.com/args",
+		"example.com/converters",
+		"example.com/nested",
+		"example.com/types",
+	}, goTypeImportPaths(&DescriptorIndex{Files: []*ProtoFile{file, foreignFile}}))
+}
+
 func TestPlannerPlanOmittedFiles(t *testing.T) {
 	t.Run("plans declarations that produce no output", func(t *testing.T) {
 		file := omittedProtoFile("shapes.proto")
@@ -59,7 +91,11 @@ func TestPlannerPlanOmittedFiles(t *testing.T) {
 		status := protoEnum("example.v1.Status", "Status")
 		status.Options.SetOmit(true)
 		status.File = file
-		file.Enums = []*ProtoEnum{status}
+		customStatus := protoEnum("example.v1.CustomStatus", "CustomStatus")
+		customStatus.Options.SetOmit(true)
+		customStatus.Options.SetGoType(goTypeRef("int32"))
+		customStatus.File = file
+		file.Enums = []*ProtoEnum{status, customStatus}
 
 		shapeIndex, err := BuildShapeIndex(&DescriptorIndex{Files: []*ProtoFile{file}})
 		require.NoError(t, err)
@@ -506,9 +542,71 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 	})
 }
 
+func TestPlannerPlanEnumGoType(t *testing.T) {
+	plan := planYiraWithCustomTicketStatus(t)
+	require.Len(t, plan.Files, 1)
+	file := plan.Files[0]
+
+	assert.False(t, hasEnumPlan(file, "yirapb.v1.TicketStatus"))
+
+	ticket := structByProtoName(t, file, "yirapb.v1.Ticket")
+	status := fieldPlanByProtoName(t, ticket, "yirapb.v1.Ticket.status")
+	require.Equal(t, TypeKindCustom, status.Type.Kind)
+	assert.Equal(t, "CustomTicketStatus", status.Type.Custom.Ref.Name)
+
+	filter := structByProtoName(t, file, "yirapb.v1.TicketFilter")
+	statuses := fieldPlanByProtoName(t, filter, "yirapb.v1.TicketFilter.statuses")
+	require.Equal(t, TypeKindSlice, statuses.Type.Kind)
+	require.NotNil(t, statuses.Type.Elem)
+	assert.Equal(t, TypeKindCustom, statuses.Type.Elem.Kind)
+	assert.Equal(t, "CustomTicketStatus", statuses.Type.Elem.Custom.Ref.Name)
+
+	patch := structByProtoName(t, file, "yirapb.v1.TicketPatch")
+	patchStatus := fieldPlanByProtoName(t, patch, "yirapb.v1.TicketPatch.status")
+	require.Equal(t, TypeKindOmittable, patchStatus.Type.Kind)
+	require.NotNil(t, patchStatus.Type.Elem)
+	assert.Equal(t, TypeKindCustom, patchStatus.Type.Elem.Kind)
+
+	response := structByProtoName(t, file, "yirapb.v1.ListTicketsResponse")
+	ticketsByStatus := fieldPlanByProtoName(t, response, "yirapb.v1.ListTicketsResponse.tickets_by_status")
+	require.Equal(t, TypeKindMap, ticketsByStatus.Type.Kind)
+	require.NotNil(t, ticketsByStatus.Type.Key)
+	assert.Equal(t, TypeKindCustom, ticketsByStatus.Type.Key.Kind)
+
+	ticketMapping := mappingByProtoName(t, file, "yirapb.v1.Ticket")
+	statusMapping := fieldMappingByProtoName(t, ticketMapping, "yirapb.v1.Ticket.status")
+	assert.Equal(t, MappingValueKindCustom, statusMapping.FromProto.Kind)
+	assert.Equal(t, MappingValueKindCustom, statusMapping.ToProto.Kind)
+	assert.True(t, statusMapping.FromProto.CanError)
+	assert.True(t, statusMapping.ToProto.CanError)
+
+	filterMapping := mappingByProtoName(t, file, "yirapb.v1.TicketFilter")
+	statusesMapping := fieldMappingByProtoName(t, filterMapping, "yirapb.v1.TicketFilter.statuses")
+	require.Equal(t, MappingValueKindSlice, statusesMapping.FromProto.Kind)
+	require.NotNil(t, statusesMapping.FromProto.Elem)
+	assert.Equal(t, MappingValueKindCustom, statusesMapping.FromProto.Elem.Kind)
+	assert.True(t, statusesMapping.FromProto.CanError)
+
+	responseMapping := mappingByProtoName(t, file, "yirapb.v1.ListTicketsResponse")
+	ticketsByStatusMapping := fieldMappingByProtoName(t, responseMapping, "yirapb.v1.ListTicketsResponse.tickets_by_status")
+	require.Equal(t, MappingValueKindMap, ticketsByStatusMapping.FromProto.Kind)
+	require.NotNil(t, ticketsByStatusMapping.FromProto.Key)
+	assert.Equal(t, MappingValueKindCustom, ticketsByStatusMapping.FromProto.Key.Kind)
+	assert.True(t, ticketsByStatusMapping.FromProto.CanError)
+}
+
 func hasStructPlan(file FilePlan, name protoreflect.FullName) bool {
 	for _, structure := range file.Structs {
 		if structure.ProtoName == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasEnumPlan(file FilePlan, name protoreflect.FullName) bool {
+	for _, enum := range file.Enums {
+		if enum.ProtoName == name {
 			return true
 		}
 	}
