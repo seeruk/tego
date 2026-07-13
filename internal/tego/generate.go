@@ -42,6 +42,10 @@ func Generate(plugin *protogen.Plugin, plan Plan, opts ...GenerateOption) error 
 	}
 
 	for _, file := range plan.Files {
+		if file.IsEmpty() {
+			continue
+		}
+
 		g := plugin.NewGeneratedFile(file.Output.GeneratorPath, protogen.GoImportPath(file.Package.ImportPath))
 		if err := generateFile(g, file, options); err != nil {
 			return fmt.Errorf("generate %s: %w", file.ProtoPath, err)
