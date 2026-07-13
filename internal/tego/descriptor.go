@@ -39,9 +39,14 @@ func (f *ProtoFile) HasOptions() bool {
 	return f.Options != nil
 }
 
+// IsOmitted reports whether this file is acknowledged by Tego without generating output.
+func (f *ProtoFile) IsOmitted() bool {
+	return f != nil && f.Options != nil && f.Options.GetOmit()
+}
+
 // IsCoveredByTego reports whether Tego should apply Tego-specific model semantics to this file.
 func (f *ProtoFile) IsCoveredByTego() bool {
-	return f != nil && (f.Generate || (f.Options != nil && f.Options.HasGoPackage()))
+	return f != nil && (f.Generate || f.IsOmitted() || (f.Options != nil && f.Options.HasGoPackage()))
 }
 
 // ProtoMessage describes a protobuf message and its nested declarations.

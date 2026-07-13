@@ -38,6 +38,133 @@ func TestPlannerPreloadsCustomTypePackagesTogether(t *testing.T) {
 	assert.Equal(t, "Month", fieldPlan.Type.Ref.Name)
 }
 
+func TestPlannerPlanOmittedFiles(t *testing.T) {
+	t.Run("plans declarations that produce no output", func(t *testing.T) {
+		file := omittedProtoFile("shapes.proto")
+
+		flatten := plannerMessage("example.v1.Flatten", "Flatten")
+		flatten.Options.SetFlatten(true)
+		flatten.Fields = []*ProtoField{field("value", protoreflect.StringKind)}
+
+		slice := plannerMessage("example.v1.Strings", "Strings")
+		slice.Fields = []*ProtoField{repeatedField("values", protoreflect.StringKind)}
+
+		custom := plannerMessage("example.v1.Custom", "Custom")
+		custom.Options.SetGoType(goTypeRef("string"))
+
+		omitted := plannerMessage("example.v1.Omitted", "Omitted")
+		omitted.Options.SetOmit(true)
+
+		attachMessagesToFile(file, flatten, slice, custom, omitted)
+		status := protoEnum("example.v1.Status", "Status")
+		status.Options.SetOmit(true)
+		status.File = file
+		file.Enums = []*ProtoEnum{status}
+
+		shapeIndex, err := BuildShapeIndex(&DescriptorIndex{Files: []*ProtoFile{file}})
+		require.NoError(t, err)
+		plan, err := NewPlanner().Plan(&DescriptorIndex{Files: []*ProtoFile{file}}, shapeIndex)
+		require.NoError(t, err)
+		require.Len(t, plan.Files, 1)
+
+		planned := plan.Files[0]
+		assert.Equal(t, "shapes.proto", planned.ProtoPath)
+		assert.Zero(t, planned.Package)
+		assert.Zero(t, planned.Output)
+		assert.True(t, planned.IsEmpty())
+		assert.Empty(t, planned.Diagnostics)
+	})
+
+	t.Run("rejects declarations that produce output", func(t *testing.T) {
+		tests := map[string]func(*ProtoFile){
+			"message": func(file *ProtoFile) {
+				attachMessagesToFile(file, plannerMessage("example.v1.Person", "Person"))
+			},
+			"enum": func(file *ProtoFile) {
+				status := protoEnum("example.v1.Status", "Status")
+				status.File = file
+				file.Enums = []*ProtoEnum{status}
+			},
+			"service": func(file *ProtoFile) {
+				attachServicesToFile(file, plannerService("example.v1.People", "People"))
+			},
+		}
+
+		for name, configure := range tests {
+			t.Run(name, func(t *testing.T) {
+				file := omittedProtoFile(name + ".proto")
+				configure(file)
+				shapeIndex, err := BuildShapeIndex(&DescriptorIndex{Files: []*ProtoFile{file}})
+				require.NoError(t, err)
+
+				plan, err := NewPlanner().Plan(&DescriptorIndex{Files: []*ProtoFile{file}}, shapeIndex)
+				require.NoError(t, err)
+				require.Len(t, plan.Files, 1)
+				requireFatalDiagnostic(t, plan.Files[0].Diagnostics, "omit requires the file to produce no output")
+				assert.False(t, plan.Files[0].IsEmpty())
+			})
+		}
+	})
+
+	t.Run("rejects services when rpc planning is disabled", func(t *testing.T) {
+		file := omittedProtoFile("service.proto")
+		attachServicesToFile(file, plannerService("example.v1.People", "People"))
+
+		plan, err := NewPlanner(WithRPCPlanning(RPCOptions{})).Plan(
+			&DescriptorIndex{Files: []*ProtoFile{file}},
+			&ShapeIndex{},
+		)
+
+		require.NoError(t, err)
+		require.Len(t, plan.Files, 1)
+		assert.True(t, plan.Files[0].IsEmpty())
+		requireFatalDiagnostic(t, plan.Files[0].Diagnostics, "omit requires the file to produce no output")
+	})
+
+	t.Run("rejects go package", func(t *testing.T) {
+		file := protoFileWithOutput("omitted.proto", "github.com/example/omitted;omitted", "")
+		file.Options.SetOmit(true)
+
+		plan, err := NewPlanner().Plan(
+			&DescriptorIndex{Files: []*ProtoFile{file}},
+			&ShapeIndex{},
+		)
+
+		require.NoError(t, err)
+		require.Len(t, plan.Files, 1)
+		requireFatalDiagnostic(t, plan.Files[0].Diagnostics, "go_package must not be set when omit is true")
+		assert.Zero(t, plan.Files[0].Package)
+		assert.Zero(t, plan.Files[0].Output)
+	})
+
+	t.Run("rejects output path presence", func(t *testing.T) {
+		file := omittedProtoFile("omitted.proto")
+		file.Options.SetOutputPath("")
+
+		plan, err := NewPlanner().Plan(
+			&DescriptorIndex{Files: []*ProtoFile{file}},
+			&ShapeIndex{},
+		)
+
+		require.NoError(t, err)
+		require.Len(t, plan.Files, 1)
+		requireFatalDiagnostic(t, plan.Files[0].Diagnostics, "output_path must not be set when omit is true")
+	})
+
+	t.Run("ignores false omit without go package", func(t *testing.T) {
+		file := testProtoFile("plain.proto", true, "")
+		file.Options.SetOmit(false)
+
+		plan, err := NewPlanner().Plan(
+			&DescriptorIndex{Files: []*ProtoFile{file}},
+			&ShapeIndex{},
+		)
+
+		require.NoError(t, err)
+		assert.Empty(t, plan.Files)
+	})
+}
+
 func TestPlannerPlanYiraFixture(t *testing.T) {
 	descriptorIndex := buildYiraDescriptorIndex(t)
 	shapeIndex, err := BuildShapeIndex(descriptorIndex)

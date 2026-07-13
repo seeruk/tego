@@ -6,8 +6,40 @@ import (
 	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/pluginpb"
 )
+
+func TestBuildDescriptorIndexFileOmitOption(t *testing.T) {
+	tegoOptions := &tegopb.FileOptions{}
+	tegoOptions.SetOmit(true)
+	options := &descriptorpb.FileOptions{GoPackage: new("github.com/example/omittedpb;omittedpb")}
+	proto.SetExtension(options, tegopb.E_File, tegoOptions)
+	request := &pluginpb.CodeGeneratorRequest{
+		FileToGenerate: []string{"omitted.proto"},
+		ProtoFile: []*descriptorpb.FileDescriptorProto{{
+			Name:    new("omitted.proto"),
+			Package: new("example.v1"),
+			Syntax:  new("editions"),
+			Edition: descriptorpb.Edition_EDITION_2024.Enum(),
+			Options: options,
+		}},
+	}
+	plugin, err := protogen.Options{}.New(request)
+	require.NoError(t, err)
+
+	index, err := BuildDescriptorIndex(plugin)
+	require.NoError(t, err)
+	file := requireFile(t, index, "omitted.proto")
+
+	require.NotNil(t, file.Options)
+	assert.True(t, file.Options.HasOmit())
+	assert.True(t, file.Options.GetOmit())
+	assert.True(t, file.IsOmitted())
+}
 
 func TestBuildDescriptorIndexYiraFixture(t *testing.T) {
 	index := buildYiraDescriptorIndex(t)

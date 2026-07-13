@@ -72,6 +72,7 @@ type FileOptions struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GoPackage   *string                `protobuf:"bytes,1,opt,name=go_package,json=goPackage"`
 	xxx_hidden_OutputPath  *string                `protobuf:"bytes,2,opt,name=output_path,json=outputPath"`
+	xxx_hidden_Omit        bool                   `protobuf:"varint,3,opt,name=omit"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -123,14 +124,26 @@ func (x *FileOptions) GetOutputPath() string {
 	return ""
 }
 
+func (x *FileOptions) GetOmit() bool {
+	if x != nil {
+		return x.xxx_hidden_Omit
+	}
+	return false
+}
+
 func (x *FileOptions) SetGoPackage(v string) {
 	x.xxx_hidden_GoPackage = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *FileOptions) SetOutputPath(v string) {
 	x.xxx_hidden_OutputPath = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *FileOptions) SetOmit(v bool) {
+	x.xxx_hidden_Omit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *FileOptions) HasGoPackage() bool {
@@ -147,6 +160,13 @@ func (x *FileOptions) HasOutputPath() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *FileOptions) HasOmit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *FileOptions) ClearGoPackage() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GoPackage = nil
@@ -155,6 +175,11 @@ func (x *FileOptions) ClearGoPackage() {
 func (x *FileOptions) ClearOutputPath() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_OutputPath = nil
+}
+
+func (x *FileOptions) ClearOmit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Omit = false
 }
 
 type FileOptions_builder struct {
@@ -166,6 +191,9 @@ type FileOptions_builder struct {
 	// output_path is used to specify a full generated Go file path relative to the plugin output
 	// root. When unset, Tego derives the output path from go_package and the proto filename.
 	OutputPath *string
+	// omit acknowledges this file as a Tego file without generating any output. When true,
+	// go_package and output_path must not be set, and every declaration must plan no output.
+	Omit *bool
 }
 
 func (b0 FileOptions_builder) Build() *FileOptions {
@@ -173,12 +201,16 @@ func (b0 FileOptions_builder) Build() *FileOptions {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GoPackage != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_GoPackage = b.GoPackage
 	}
 	if b.OutputPath != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_OutputPath = b.OutputPath
+	}
+	if b.Omit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Omit = *b.Omit
 	}
 	return m0
 }
@@ -2401,12 +2433,13 @@ var File_tego_options_proto protoreflect.FileDescriptor
 
 const file_tego_options_proto_rawDesc = "" +
 	"\n" +
-	"\x12tego/options.proto\x12\x04tego\x1a google/protobuf/descriptor.proto\"M\n" +
+	"\x12tego/options.proto\x12\x04tego\x1a google/protobuf/descriptor.proto\"a\n" +
 	"\vFileOptions\x12\x1d\n" +
 	"\n" +
 	"go_package\x18\x01 \x01(\tR\tgoPackage\x12\x1f\n" +
 	"\voutput_path\x18\x02 \x01(\tR\n" +
-	"outputPath\"\x92\x01\n" +
+	"outputPath\x12\x12\n" +
+	"\x04omit\x18\x03 \x01(\bR\x04omit\"\x92\x01\n" +
 	"\vEnumOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\acomment\x18\x02 \x01(\tR\acomment\x12\x12\n" +

@@ -96,6 +96,21 @@ option (tego.file).go_package = "github.com/acme/project/ticket;ticket";
 The `go_package` option is still for protobuf's Go types. The `(tego.file).go_package` option is
 where Tego writes the types you work with in the rest of your app.
 
+A file that only provides reusable shapes can opt into Tego without inventing an output package:
+
+```protobuf
+option (tego.file).omit = true;
+
+message Labels {
+  option (tego.message).flatten = true;
+  repeated string values = 1;
+}
+```
+
+An omitted Tego file is still included in shape and type planning, but its effective plan must
+produce no declarations. `omit: true` cannot be combined with `(tego.file).go_package` or
+`(tego.file).output_path`.
+
 ### Types and Mappings
 
 Tego generates plain Go structs and mapping functions beside the protobuf types:

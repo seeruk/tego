@@ -19,6 +19,9 @@ message FileOptions {
   // output_path is used to specify a full generated Go file path relative to the plugin output
   // root. When unset, Tego derives the output path from go_package and the proto filename.
   string output_path = 2;
+  // omit acknowledges this file as a Tego file without generating any output. When true,
+  // go_package and output_path must not be set, and every declaration must plan no output.
+  bool omit = 3;
 }
 
 extend google.protobuf.EnumOptions {

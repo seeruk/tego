@@ -118,6 +118,16 @@ func TestBuildShapeIndexTegoCoverage(t *testing.T) {
 			indexName: "example.v1.ExternalList",
 		},
 		{
+			name: "omitted tego file",
+			file: func() *ProtoFile {
+				file := shapeIndexTestFile("omitted.proto", false, "", "example.v1.OmittedList")
+				file.Options.SetOmit(true)
+				return file
+			}(),
+			indexed:   true,
+			indexName: "example.v1.OmittedList",
+		},
+		{
 			name:      "plain imported file",
 			file:      shapeIndexTestFile("foreign.proto", false, "", "example.v1.ForeignList"),
 			indexed:   false,
