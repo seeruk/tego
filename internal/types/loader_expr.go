@@ -304,6 +304,50 @@ func parseTypeExpr(input string) (parsedTypeExpr, error) {
 	return parsedTypeExpr{expr: expr, refs: refs}, nil
 }
 
+// TypeExprImportPaths returns every possible import path referenced by a supported type
+// expression. Resolution tries the same candidates later, after they have been loaded together.
+func TypeExprImportPaths(input string) ([]string, error) {
+	parsed, err := parseTypeExpr(input)
+	if err != nil {
+		return nil, err
+	}
+	paths := make(map[string]struct{})
+	for _, ref := range parsed.refs {
+		candidates, err := refCandidates(ref, 1)
+		if err != nil {
+			continue
+		}
+		for _, candidate := range candidates {
+			paths[candidate.importPath] = struct{}{}
+		}
+	}
+	return sortedPaths(paths), nil
+}
+
+// CallableImportPaths returns every possible package portion of a function or method reference.
+func CallableImportPaths(ref string) []string {
+	paths := make(map[string]struct{})
+	for _, symbolCount := range []int{1, 2} {
+		candidates, err := refCandidates(ref, symbolCount)
+		if err != nil {
+			continue
+		}
+		for _, candidate := range candidates {
+			paths[candidate.importPath] = struct{}{}
+		}
+	}
+	return sortedPaths(paths)
+}
+
+func sortedPaths(paths map[string]struct{}) []string {
+	result := make([]string, 0, len(paths))
+	for path := range paths {
+		result = append(result, path)
+	}
+	sort.Strings(result)
+	return result
+}
+
 func restoreQualifiedTypeRefs(value string, refs map[string]string) string {
 	syntheticRefs := make([]string, 0, len(refs))
 	for synthetic := range refs {

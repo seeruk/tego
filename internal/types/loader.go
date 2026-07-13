@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
+	"sort"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
@@ -18,6 +19,43 @@ type Loader struct {
 	types     map[string]*Type
 	functions map[string]*Function
 	methods   map[string]*Method
+}
+
+// Preload loads importPaths together so that all of their dependencies share one go/types
+// universe. Packages with loading errors are left out of the cache so that resolving one of their
+// symbols later still returns the usual focused error.
+func (l *Loader) Preload(importPaths []string) error {
+	if len(importPaths) == 0 {
+		return nil
+	}
+
+	paths := append([]string(nil), importPaths...)
+	sort.Strings(paths)
+	pkgs, err := packages.Load(l.packagesConfig(), paths...)
+	if err != nil {
+		// Preserve the loader's existing per-symbol diagnostics when the environment itself cannot
+		// be loaded (for example, an invalid module root).
+		return nil
+	}
+	for _, pkg := range pkgs {
+		if len(pkg.Errors) == 0 && pkg.Types != nil {
+			l.indexPackage(pkg)
+		}
+	}
+	return nil
+}
+
+func (l *Loader) indexPackage(pkg *packages.Package) {
+	if pkg == nil || pkg.Types == nil {
+		return
+	}
+	if _, ok := l.packages[pkg.PkgPath]; ok {
+		return
+	}
+	l.packages[pkg.PkgPath] = pkg
+	for _, imported := range pkg.Imports {
+		l.indexPackage(imported)
+	}
 }
 
 // LoaderOption allows this Loader to be customized during construction.
@@ -197,20 +235,7 @@ func (l *Loader) loadPackage(importPath string) (*packages.Package, error) {
 		return pkg, nil
 	}
 
-	config := l.config
-	if config == nil {
-		config = &packages.Config{}
-	}
-
-	if config.Mode == 0 {
-		config.Mode = packages.NeedName |
-			packages.NeedTypes |
-			packages.NeedTypesInfo |
-			packages.NeedImports |
-			packages.NeedDeps
-	}
-
-	pkgs, err := packages.Load(config, importPath)
+	pkgs, err := packages.Load(l.packagesConfig(), importPath)
 	if err != nil {
 		return nil, fmt.Errorf("load package %q: %w", importPath, err)
 	}
@@ -228,6 +253,24 @@ func (l *Loader) loadPackage(importPath string) (*packages.Package, error) {
 
 	l.packages[importPath] = pkg
 	return pkg, nil
+}
+
+func (l *Loader) packagesConfig() *packages.Config {
+	config := l.config
+	if config == nil {
+		config = &packages.Config{}
+	} else {
+		copy := *config
+		config = &copy
+	}
+	if config.Mode == 0 {
+		config.Mode = packages.NeedName |
+			packages.NeedTypes |
+			packages.NeedTypesInfo |
+			packages.NeedImports |
+			packages.NeedDeps
+	}
+	return config
 }
 
 type refCandidate struct {

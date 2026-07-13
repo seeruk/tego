@@ -5,9 +5,11 @@ import (
 	"go/token"
 	"path"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/seeruk/tego/internal/types"
+	"github.com/seeruk/tego/tegopb"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -59,6 +61,9 @@ func NewPlanner(opts ...PlannerOption) *Planner {
 // the returned Plan should be ready to generate code for.
 func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 	var plan Plan
+	if err := p.typeLoader.Preload(goTypeImportPaths(di)); err != nil {
+		return plan, fmt.Errorf("preload Go type packages: %w", err)
+	}
 
 	for _, file := range di.Files {
 		if !file.Generate {
@@ -74,6 +79,59 @@ func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 	propagateMappingErrors(&plan)
 
 	return plan, nil
+}
+
+func goTypeImportPaths(di *DescriptorIndex) []string {
+	paths := make(map[string]struct{})
+	addGoType := func(goType *tegopb.GoType) {
+		if goType == nil {
+			return
+		}
+		addTypeExprImportPaths(paths, goType.GetRef())
+		for _, arg := range goType.GetTypeArgs() {
+			addTypeExprImportPaths(paths, arg.GetType())
+		}
+		for _, ref := range []string{goType.GetFromProto(), goType.GetToProto()} {
+			for _, importPath := range types.CallableImportPaths(ref) {
+				paths[importPath] = struct{}{}
+			}
+		}
+	}
+	var visitMessage func(*ProtoMessage)
+	visitMessage = func(message *ProtoMessage) {
+		if message.Options.HasGoType() {
+			addGoType(message.Options.GetGoType())
+		}
+		for _, field := range message.Fields {
+			if field.Options.HasGoType() {
+				addGoType(field.Options.GetGoType())
+			}
+		}
+		for _, nested := range message.Messages {
+			visitMessage(nested)
+		}
+	}
+	for _, file := range di.Files {
+		for _, message := range file.Messages {
+			visitMessage(message)
+		}
+	}
+	result := make([]string, 0, len(paths))
+	for importPath := range paths {
+		result = append(result, importPath)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func addTypeExprImportPaths(paths map[string]struct{}, ref string) {
+	importPaths, err := types.TypeExprImportPaths(ref)
+	if err != nil {
+		return
+	}
+	for _, importPath := range importPaths {
+		paths[importPath] = struct{}{}
+	}
 }
 
 func (p *Planner) planFile(file *ProtoFile, si *ShapeIndex) FilePlan {

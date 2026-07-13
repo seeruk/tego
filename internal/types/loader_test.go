@@ -1,6 +1,7 @@
 package types
 
 import (
+	gotypes "go/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,21 @@ import (
 )
 
 const loaderTestPkg = "github.com/seeruk/tego/internal/types/testdata/loadertest"
+
+func TestLoaderPreloadSharesTypeUniverse(t *testing.T) {
+	loader := NewLoader()
+	require.NoError(t, loader.Preload([]string{"time", loaderTestPkg}))
+
+	month, err := loader.Type("time.Month")
+	require.NoError(t, err)
+	fromProto, err := loader.Function(loaderTestPkg + ".MonthFromProto")
+	require.NoError(t, err)
+	toProto, err := loader.Function(loaderTestPkg + ".MonthToProto")
+	require.NoError(t, err)
+
+	assert.True(t, gotypes.Identical(month.Type, fromProto.Signature.Results().At(0).Type()))
+	assert.True(t, gotypes.Identical(month.Type, toProto.Signature.Params().At(0).Type()))
+}
 
 func TestLoaderType(t *testing.T) {
 	t.Run("resolves named type", func(t *testing.T) {
