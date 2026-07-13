@@ -486,6 +486,85 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 		assert.Equal(t, GoTypeRef{ImportPath: plannerTestPkg, Name: "CustomString"}, plan.Ref)
 	})
 
+	t.Run("accepts automatic casts for bidirectionally convertible types", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			"",
+			"",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, TypeKindCustom, plan.Kind)
+		assert.True(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
+		assert.Empty(t, plan.Custom.FromProto.Name)
+		assert.Empty(t, plan.Custom.ToProto.Name)
+	})
+
+	t.Run("uses explicit conversions for convertible types", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			plannerTestPkg+".CustomStringFromProto",
+			plannerTestPkg+".CustomStringToProto",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.False(t, plan.Custom.AutoCastFromProto)
+		assert.False(t, plan.Custom.AutoCastToProto)
+		assert.Equal(t, "CustomStringFromProto", plan.Custom.FromProto.Name)
+		assert.Equal(t, "CustomStringToProto", plan.Custom.ToProto.Name)
+	})
+
+	t.Run("mixes an explicit from conversion with an automatic to conversion", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			plannerTestPkg+".CustomStringFromProto",
+			"",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.False(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
+		assert.Equal(t, "CustomStringFromProto", plan.Custom.FromProto.Name)
+		assert.Empty(t, plan.Custom.ToProto.Name)
+	})
+
+	t.Run("mixes an automatic from conversion with an explicit to conversion", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType(
+			plannerTestPkg+".CustomString",
+			"",
+			plannerTestPkg+".CustomStringToProto",
+			false,
+		))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.True(t, plan.Custom.AutoCastFromProto)
+		assert.False(t, plan.Custom.AutoCastToProto)
+		assert.Empty(t, plan.Custom.FromProto.Name)
+		assert.Equal(t, "CustomStringToProto", plan.Custom.ToProto.Name)
+	})
+
+	t.Run("accepts an asymmetric automatic conversion to proto", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType("int", plannerTestPkg+".StringToInt", "", false))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.False(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
+	})
+
 	t.Run("accepts pointer conversions and method to proto", func(t *testing.T) {
 		field := fieldWithPlannerGoType("custom", plannerGoType(
 			plannerTestPkg+".CustomString",
@@ -653,6 +732,21 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 				diagnostic: "go_type ref is required",
 			},
 			{
+				name: "automatic conversion is not possible",
+				goType: plannerGoType(
+					plannerTestPkg+".Set[string]",
+					"",
+					"",
+					false,
+				),
+				diagnostic: "from_proto and to_proto are required",
+			},
+			{
+				name:       "only from automatic conversion is not possible",
+				goType:     plannerGoType("int", "", "", false),
+				diagnostic: "from_proto is required",
+			},
+			{
 				name: "unresolved ref",
 				goType: plannerGoType(
 					plannerTestPkg+".Missing",
@@ -725,6 +819,15 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 				requireFatalDiagnostic(t, diagnostics, tt.diagnostic)
 			})
 		}
+	})
+
+	t.Run("reports only to_proto for the opposite asymmetric conversion", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType("string", "", "", false))
+		field.Kind = protoreflect.Int32Kind
+
+		_, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, diagnostics, "to_proto is required")
 	})
 }
 

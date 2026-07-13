@@ -785,6 +785,14 @@ func (p *Planner) planMapShapeMappingValue(
 }
 
 func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction mappingDirection) MappingValuePlan {
+	if isAutomaticCustomCast(source, target, direction) {
+		return MappingValuePlan{
+			Kind:   MappingValueKindScalarCast,
+			Source: source,
+			Target: target,
+			Cast:   &MappingCastPlan{Source: source, Target: target, ProtoTarget: direction == mappingDirectionToProto},
+		}
+	}
 	if custom, canError, ok := mappingCustomConversion(source, target, direction); ok {
 		return MappingValuePlan{
 			Kind:     MappingValueKindCustom,
@@ -905,6 +913,19 @@ func (p *Planner) planMappingValue(source TypePlan, target TypePlan, direction m
 		Kind:   MappingValueKindUnsupported,
 		Source: source,
 		Target: target,
+	}
+}
+
+func isAutomaticCustomCast(source TypePlan, target TypePlan, direction mappingDirection) bool {
+	switch direction {
+	case mappingDirectionFromProto:
+		custom, ok := topCustomType(target)
+		return ok && custom.AutoCastFromProto
+	case mappingDirectionToProto:
+		custom, ok := topCustomType(source)
+		return ok && custom.AutoCastToProto
+	default:
+		return false
 	}
 }
 

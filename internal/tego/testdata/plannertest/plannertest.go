@@ -14,6 +14,10 @@ type Box[T any] struct {
 
 type MonthlyArray[T any] [12]T
 
+func StringToInt(value string) int {
+	return len(value)
+}
+
 func DescriptionFromProto(value string) (*Description, error) {
 	return new(Description(value)), nil
 }

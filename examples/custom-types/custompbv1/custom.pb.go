@@ -10,6 +10,7 @@ import (
 	_ "github.com/seeruk/tego/tegopb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -188,6 +189,7 @@ type Customer struct {
 	xxx_hidden_FixedMonths    []uint64               `protobuf:"varint,7,rep,packed,name=fixed_months,json=fixedMonths"`
 	xxx_hidden_MonthlyValues  []uint64               `protobuf:"varint,8,rep,packed,name=monthly_values,json=monthlyValues"`
 	xxx_hidden_Counts         map[string]uint64      `protobuf:"bytes,9,rep,name=counts" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	xxx_hidden_BillingMonth   int32                  `protobuf:"varint,10,opt,name=billing_month,json=billingMonth"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -285,6 +287,13 @@ func (x *Customer) GetCounts() map[string]uint64 {
 	return nil
 }
 
+func (x *Customer) GetBillingMonth() int32 {
+	if x != nil {
+		return x.xxx_hidden_BillingMonth
+	}
+	return 0
+}
+
 func (x *Customer) SetId(v *UUID) {
 	x.xxx_hidden_Id = v
 }
@@ -295,12 +304,12 @@ func (x *Customer) SetEmail(v *EmailAddress) {
 
 func (x *Customer) SetCreditCents(v int64) {
 	x.xxx_hidden_CreditCents = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
 }
 
 func (x *Customer) SetDisplayName(v string) {
 	x.xxx_hidden_DisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
 }
 
 func (x *Customer) SetLabels(v []string) {
@@ -321,6 +330,11 @@ func (x *Customer) SetMonthlyValues(v []uint64) {
 
 func (x *Customer) SetCounts(v map[string]uint64) {
 	x.xxx_hidden_Counts = v
+}
+
+func (x *Customer) SetBillingMonth(v int32) {
+	x.xxx_hidden_BillingMonth = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
 }
 
 func (x *Customer) HasId() bool {
@@ -351,6 +365,13 @@ func (x *Customer) HasDisplayName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *Customer) HasBillingMonth() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
 func (x *Customer) ClearId() {
 	x.xxx_hidden_Id = nil
 }
@@ -369,6 +390,11 @@ func (x *Customer) ClearDisplayName() {
 	x.xxx_hidden_DisplayName = nil
 }
 
+func (x *Customer) ClearBillingMonth() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_BillingMonth = 0
+}
+
 type Customer_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -381,6 +407,9 @@ type Customer_builder struct {
 	FixedMonths    []uint64
 	MonthlyValues  []uint64
 	Counts         map[string]uint64
+	// Conversion functions can be omitted when the protobuf and custom Go types are directly
+	// convertible in both directions. Tego generates time.Month(value) and int32(value) casts.
+	BillingMonth *int32
 }
 
 func (b0 Customer_builder) Build() *Customer {
@@ -390,11 +419,11 @@ func (b0 Customer_builder) Build() *Customer {
 	x.xxx_hidden_Id = b.Id
 	x.xxx_hidden_Email = b.Email
 	if b.CreditCents != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
 		x.xxx_hidden_CreditCents = *b.CreditCents
 	}
 	if b.DisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
 		x.xxx_hidden_DisplayName = b.DisplayName
 	}
 	x.xxx_hidden_Labels = b.Labels
@@ -402,6 +431,10 @@ func (b0 Customer_builder) Build() *Customer {
 	x.xxx_hidden_FixedMonths = b.FixedMonths
 	x.xxx_hidden_MonthlyValues = b.MonthlyValues
 	x.xxx_hidden_Counts = b.Counts
+	if b.BillingMonth != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		x.xxx_hidden_BillingMonth = *b.BillingMonth
+	}
 	return m0
 }
 
@@ -409,7 +442,7 @@ var File_custom_v1_custom_proto protoreflect.FileDescriptor
 
 const file_custom_v1_custom_proto_rawDesc = "" +
 	"\n" +
-	"\x16custom/v1/custom.proto\x12\tcustom.v1\x1a\x12tego/options.proto\"\xe4\x01\n" +
+	"\x16custom/v1/custom.proto\x12\tcustom.v1\x1a\x12tego/options.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe4\x01\n" +
 	"\x04UUID\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value:\xc5\x01҅\n" +
 	"\xc0\x01\x1a\xbd\x01\n" +
@@ -418,7 +451,7 @@ const file_custom_v1_custom_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\xc8\x01҅\n" +
 	"\xc3\x01\x1a\xc0\x01\n" +
 	"8github.com/seeruk/tego/examples/custom-types/types.Email\x12Agithub.com/seeruk/tego/examples/custom-types/types.EmailFromProto\x1a?github.com/seeruk/tego/examples/custom-types/types.EmailToProto \x01R\x05value:\x06҅\n" +
-	"\x028\x01\"\xcd\x0f\n" +
+	"\x028\x01\"\x86\x10\n" +
 	"\bCustomer\x12\x1f\n" +
 	"\x02id\x18\x01 \x01(\v2\x0f.custom.v1.UUIDR\x02id\x12-\n" +
 	"\x05email\x18\x02 \x01(\v2\x17.custom.v1.EmailAddressR\x05email\x12\xec\x01\n" +
@@ -450,7 +483,12 @@ const file_custom_v1_custom_proto_rawDesc = "" +
 	"\x04uintR\rmonthlyValues\x12\xd9\x01\n" +
 	"\x06counts\x18\t \x03(\v2\x1f.custom.v1.Customer.CountsEntryB\x9f\x01҅\n" +
 	"\x9a\x01\x1a\x97\x01\n" +
-	"\x0fmap[string]uint\x12Bgithub.com/seeruk/tego/examples/custom-types/types.CountsFromProto\x1a@github.com/seeruk/tego/examples/custom-types/types.CountsToProtoR\x06counts\x1a9\n" +
+	"\x0fmap[string]uint\x12Bgithub.com/seeruk/tego/examples/custom-types/types.CountsFromProto\x1a@github.com/seeruk/tego/examples/custom-types/types.CountsToProtoR\x06counts\x127\n" +
+	"\rbilling_month\x18\n" +
+	" \x01(\x05B\x12҅\n" +
+	"\x0e\x1a\f\n" +
+	"\n" +
+	"time.MonthR\fbillingMonth\x1a9\n" +
 	"\vCountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x04R\x05value:\x028\x01B\x84\x01҅\n" +

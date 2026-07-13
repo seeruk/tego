@@ -4,6 +4,7 @@ package custom
 import (
 	custompbv1 "github.com/seeruk/tego/examples/custom-types/custompbv1"
 	types "github.com/seeruk/tego/examples/custom-types/types"
+	time "time"
 )
 
 type Customer struct {
@@ -16,6 +17,7 @@ type Customer struct {
 	FixedMonths    [12]uint
 	MonthlyValues  types.MonthlyArray[uint]
 	Counts         map[string]uint
+	BillingMonth   time.Month
 }
 
 func CustomerFromProto(source *custompbv1.Customer) (Customer, error) {
@@ -56,6 +58,7 @@ func CustomerFromProto(source *custompbv1.Customer) (Customer, error) {
 	}
 	target.MonthlyValues = monthlyValues
 	target.Counts = types.CountsFromProto(source.GetCounts())
+	target.BillingMonth = time.Month(source.GetBillingMonth())
 	return target, nil
 }
 
@@ -81,6 +84,7 @@ func CustomerToProto(source Customer) (*custompbv1.Customer, error) {
 		FixedMonths:    types.FixedMonthsToProto(source.FixedMonths),
 		MonthlyValues:  types.MonthlyValuesToProto(source.MonthlyValues),
 		Counts:         types.CountsToProto(source.Counts),
+		BillingMonth:   new(int32(source.BillingMonth)),
 	}.Build()
 	return target, nil
 }
