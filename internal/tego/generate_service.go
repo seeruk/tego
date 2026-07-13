@@ -3,8 +3,6 @@ package tego
 import (
 	"fmt"
 	"strings"
-
-	"google.golang.org/protobuf/compiler/protogen"
 )
 
 const (
@@ -18,7 +16,7 @@ const (
 	iterImportPath    = "iter"
 )
 
-func generateService(g *protogen.GeneratedFile, service ServicePlan, rpc RPCOptions) error {
+func generateService(g *generatedFile, service ServicePlan, rpc RPCOptions) error {
 	generateComment(g, "", service.Comment)
 	g.P("type ", service.Name, " interface {")
 	for _, method := range service.Methods {
@@ -54,7 +52,7 @@ func generateService(g *protogen.GeneratedFile, service ServicePlan, rpc RPCOpti
 	return nil
 }
 
-func generateServiceMethodSignature(g *protogen.GeneratedFile, method ServiceMethodPlan) (string, error) {
+func generateServiceMethodSignature(g *generatedFile, method ServiceMethodPlan) (string, error) {
 	request, response, err := generateServiceMethodTypes(g, method)
 	if err != nil {
 		return "", err
@@ -125,7 +123,7 @@ func generateServiceMethodSignature(g *protogen.GeneratedFile, method ServiceMet
 	}
 }
 
-func generateServiceMethodTypes(g *protogen.GeneratedFile, method ServiceMethodPlan) (string, string, error) {
+func generateServiceMethodTypes(g *generatedFile, method ServiceMethodPlan) (string, string, error) {
 	request, err := generateType(g, method.Request.Type)
 	if err != nil {
 		return "", "", fmt.Errorf("request type: %w", err)
@@ -139,15 +137,15 @@ func generateServiceMethodTypes(g *protogen.GeneratedFile, method ServiceMethodP
 	return request, response, nil
 }
 
-func generateContextType(g *protogen.GeneratedFile) string {
+func generateContextType(g *generatedFile) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: contextImportPath, Name: "Context"})
 }
 
-func generateContextWithCancel(g *protogen.GeneratedFile) string {
+func generateContextWithCancel(g *generatedFile) string {
 	return generateSymbol(g, GoSymbolRef{ImportPath: contextImportPath, Name: "WithCancel"})
 }
 
-func generateSeq2Type(g *protogen.GeneratedFile, value string) string {
+func generateSeq2Type(g *generatedFile, value string) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: iterImportPath, Name: "Seq2"}) + "[" + value + ", error]"
 }
 
@@ -155,7 +153,7 @@ func serviceResponseIsEmpty(method ServiceMethodPlan) bool {
 	return method.Response.Type.Kind == TypeKindEmptyStruct
 }
 
-func generateServiceRequestInlineHelper(g *protogen.GeneratedFile, helper ServiceInlineHelperPlan) error {
+func generateServiceRequestInlineHelper(g *generatedFile, helper ServiceInlineHelperPlan) error {
 	messageType, err := generateType(g, helper.Type)
 	if err != nil {
 		return fmt.Errorf("inline helper type: %w", err)
@@ -182,7 +180,7 @@ func generateServiceRequestInlineHelper(g *protogen.GeneratedFile, helper Servic
 	return nil
 }
 
-func generateServiceResponseInlineHelper(g *protogen.GeneratedFile, helper ServiceInlineHelperPlan) error {
+func generateServiceResponseInlineHelper(g *generatedFile, helper ServiceInlineHelperPlan) error {
 	messageType, err := generateType(g, helper.Type)
 	if err != nil {
 		return fmt.Errorf("inline helper type: %w", err)
@@ -215,7 +213,7 @@ func generateServiceResponseInlineHelper(g *protogen.GeneratedFile, helper Servi
 	return nil
 }
 
-func generateServiceInlineFieldParameters(g *protogen.GeneratedFile, fields []ServiceInlineFieldPlan) (string, error) {
+func generateServiceInlineFieldParameters(g *generatedFile, fields []ServiceInlineFieldPlan) (string, error) {
 	parameters := make([]string, 0, len(fields))
 	for _, field := range fields {
 		typ, err := generateType(g, field.Type)
@@ -227,7 +225,7 @@ func generateServiceInlineFieldParameters(g *protogen.GeneratedFile, fields []Se
 	return strings.Join(parameters, ", "), nil
 }
 
-func generateServiceInlineFieldTypes(g *protogen.GeneratedFile, fields []ServiceInlineFieldPlan) (string, error) {
+func generateServiceInlineFieldTypes(g *generatedFile, fields []ServiceInlineFieldPlan) (string, error) {
 	types := make([]string, 0, len(fields))
 	for _, field := range fields {
 		typ, err := generateType(g, field.Type)
@@ -255,7 +253,7 @@ func serviceInlineStructLiteralFields(fields []ServiceInlineFieldPlan) string {
 	return strings.Join(values, ", ")
 }
 
-func generateServiceInlineErrorReturn(g *protogen.GeneratedFile, fields []ServiceInlineFieldPlan) error {
+func generateServiceInlineErrorReturn(g *generatedFile, fields []ServiceInlineFieldPlan) error {
 	g.P("\tif err != nil {")
 	zeros := make([]string, 0, len(fields))
 	names := newTempNameAllocator("err")
@@ -273,7 +271,7 @@ func generateServiceInlineErrorReturn(g *protogen.GeneratedFile, fields []Servic
 	return nil
 }
 
-func generateUnimplementedService(g *protogen.GeneratedFile, service ServicePlan) error {
+func generateUnimplementedService(g *generatedFile, service ServicePlan) error {
 	g.P("type ", service.UnimplementedName, " struct{}")
 	g.P()
 
@@ -299,7 +297,7 @@ func generateUnimplementedService(g *protogen.GeneratedFile, service ServicePlan
 }
 
 func generateUnimplementedServiceMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -333,7 +331,7 @@ func (service ServicePlan) UnimplementedErrorName() string {
 }
 
 func generateServiceInlineZeroReturn(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	fields []ServiceInlineFieldPlan,
 	errExpr string,
 ) error {
@@ -352,7 +350,7 @@ func generateServiceInlineZeroReturn(
 	return nil
 }
 
-func generateServiceHooks(g *protogen.GeneratedFile, service ServicePlan) error {
+func generateServiceHooks(g *generatedFile, service ServicePlan) error {
 	hooksType := serviceHooksTypeName(service)
 	g.P("type ", hooksType, " struct {")
 	for _, method := range service.Methods {
@@ -457,7 +455,7 @@ func hookSlots() []hookSlot {
 	}
 }
 
-func generateGRPCService(g *protogen.GeneratedFile, service ServicePlan) error {
+func generateGRPCService(g *generatedFile, service ServicePlan) error {
 	g.P("func ", service.GRPCRegisterName, "(", "registrar ", generateGRPCType(g, "ServiceRegistrar"), ", service ", service.Name, ", opts ...", generateTegoSymbol(g, "GRPCServerOption"), ") {")
 	g.P("\t", generateProtoServiceSymbol(g, service, "Register", "Server"), "(registrar, ", service.GRPCNewServerName, "(service, opts...))")
 	g.P("}")
@@ -540,7 +538,7 @@ func (service ServicePlan) GRPCRegisterWithAdapterName() string {
 	return service.GRPCRegisterName + "WithAdapter"
 }
 
-func generateGRPCAdapter(g *protogen.GeneratedFile, service ServicePlan) {
+func generateGRPCAdapter(g *generatedFile, service ServicePlan) {
 	g.P("type ", service.GRPCAdapterName, " struct {")
 	g.P("\tservice ", service.Name)
 	g.P("\terrorMapper ", generateTegoSymbol(g, "ErrorMapper"))
@@ -569,11 +567,11 @@ func generateGRPCAdapter(g *protogen.GeneratedFile, service ServicePlan) {
 	generateAdapterHookMethods(g, service, service.GRPCAdapterName)
 }
 
-func generateAdapterInterfaceHookFields(g *protogen.GeneratedFile) {
+func generateAdapterInterfaceHookFields(g *generatedFile) {
 	g.P("\tinterfaceHooks ", generateTegoSymbol(g, "InterfaceHooks"))
 }
 
-func generateAdapterHookMethods(g *protogen.GeneratedFile, service ServicePlan, adapterName string) {
+func generateAdapterHookMethods(g *generatedFile, service ServicePlan, adapterName string) {
 	hooksType := serviceHooksTypeName(service)
 	g.P("func (a *", adapterName, ") AddServiceHooks(hooks ", hooksType, ") *", adapterName, " {")
 	g.P("\ta.serviceHooks = ", mergeHooksName(service), "(a.serviceHooks, hooks)")
@@ -600,7 +598,7 @@ func generateAdapterHookMethods(g *protogen.GeneratedFile, service ServicePlan, 
 	g.P()
 }
 
-func generateAdapterHookRunners(g *protogen.GeneratedFile, service ServicePlan, adapterName string) error {
+func generateAdapterHookRunners(g *generatedFile, service ServicePlan, adapterName string) error {
 	for _, method := range service.Methods {
 		if err := generateAdapterHookRunner(g, service, adapterName, method, "Pre", "Request", method.Request.ProtoType); err != nil {
 			return err
@@ -619,7 +617,7 @@ func generateAdapterHookRunners(g *protogen.GeneratedFile, service ServicePlan, 
 }
 
 func generateAdapterHookRunner(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	adapterName string,
 	method ServiceMethodPlan,
@@ -684,21 +682,21 @@ func interfaceHookFieldName(when string, side string) string {
 	return when + side + "Mapping"
 }
 
-func requestInterfaceHookRunnerSymbol(g *protogen.GeneratedFile, when string) string {
+func requestInterfaceHookRunnerSymbol(g *generatedFile, when string) string {
 	if when == "Pre" {
 		return generateTegoSymbol(g, "RunPreRequestMappingInterfaceHooks")
 	}
 	return generateTegoSymbol(g, "RunPostRequestMappingInterfaceHooks")
 }
 
-func responseInterfaceHookRunnerSymbol(g *protogen.GeneratedFile, when string) string {
+func responseInterfaceHookRunnerSymbol(g *generatedFile, when string) string {
 	if when == "Pre" {
 		return generateTegoSymbol(g, "RunPreResponseMappingInterfaceHooks")
 	}
 	return generateTegoSymbol(g, "RunPostResponseMappingInterfaceHooks")
 }
 
-func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCServerMethod(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	nativeMethodName := serviceNativeMethodName(method)
 	signature, err := generateGRPCServerMethodSignature(g, nativeMethodName, method)
 	if err != nil {
@@ -717,7 +715,7 @@ func generateGRPCServerMethod(g *protogen.GeneratedFile, service ServicePlan, me
 	return nil
 }
 
-func generateGRPCAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCAdapterMethod(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	signature, err := generateGRPCServerMethodSignature(g, "Adapt"+serviceNativeMethodName(method), method)
 	if err != nil {
 		return err
@@ -745,7 +743,7 @@ func generateGRPCAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, m
 }
 
 func generateGRPCServerMethodSignature(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	name string,
 	method ServiceMethodPlan,
 ) (string, error) {
@@ -795,7 +793,7 @@ func generateGRPCServerMethodArguments(method ServiceMethodPlan) (string, error)
 }
 
 func generateGRPCAdapterUnaryMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -857,7 +855,7 @@ func generateGRPCAdapterUnaryMethodBody(
 }
 
 func generateGRPCAdapterServerStreamingMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -907,7 +905,7 @@ func generateGRPCAdapterServerStreamingMethodBody(
 }
 
 func generateGRPCAdapterClientStreamingMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -1007,7 +1005,7 @@ func generateGRPCAdapterClientStreamingMethodBody(
 }
 
 func generateGRPCAdapterBidiStreamingMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -1085,7 +1083,7 @@ func generateGRPCAdapterBidiStreamingMethodBody(
 	return nil
 }
 
-func generateGRPCClientMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCClientMethod(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	signature, err := generateServiceMethodSignature(g, method)
 	if err != nil {
 		return err
@@ -1112,7 +1110,7 @@ func generateGRPCClientMethod(g *protogen.GeneratedFile, service ServicePlan, me
 	return nil
 }
 
-func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCClientUnaryMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
 	if method.InlineRequest != nil {
@@ -1145,7 +1143,7 @@ func generateGRPCClientUnaryMethodBody(g *protogen.GeneratedFile, service Servic
 	return nil
 }
 
-func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCClientServerStreamingMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	responseType, err := generateType(g, method.Response.Type)
 	if err != nil {
 		return fmt.Errorf("response type: %w", err)
@@ -1190,7 +1188,7 @@ func generateGRPCClientServerStreamingMethodBody(g *protogen.GeneratedFile, serv
 	return nil
 }
 
-func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCClientClientStreamingMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
 	ctx.line("stream, err := c.client." + serviceNativeMethodName(method) + "(ctx)")
@@ -1228,7 +1226,7 @@ func generateGRPCClientClientStreamingMethodBody(g *protogen.GeneratedFile, serv
 	return nil
 }
 
-func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateGRPCClientBidiStreamingMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	_, responseType, err := generateServiceMethodTypes(g, method)
 	if err != nil {
 		return err
@@ -1289,7 +1287,7 @@ func generateGRPCClientBidiStreamingMethodBody(g *protogen.GeneratedFile, servic
 	return nil
 }
 
-func generateConnectService(g *protogen.GeneratedFile, service ServicePlan) error {
+func generateConnectService(g *generatedFile, service ServicePlan) error {
 	g.P("func ", service.ConnectNewHandlerName, "(service ", service.Name, ", opts ...", generateTegoSymbol(g, "ConnectHandlerOption"), ") (string, ", generateHTTPType(g, "Handler"), ") {")
 	g.P("\treturn ", service.ConnectNewHandlerWithAdapterName(), "(New", service.ConnectAdapterName, "(service), opts...)")
 	g.P("}")
@@ -1357,7 +1355,7 @@ func (service ServicePlan) ConnectNewHandlerWithAdapterName() string {
 	return service.ConnectNewHandlerName + "WithAdapter"
 }
 
-func generateConnectAdapter(g *protogen.GeneratedFile, service ServicePlan) {
+func generateConnectAdapter(g *generatedFile, service ServicePlan) {
 	g.P("type ", service.ConnectAdapterName, " struct {")
 	g.P("\tservice ", service.Name)
 	g.P("\terrorMapper ", generateTegoSymbol(g, "ErrorMapper"))
@@ -1386,7 +1384,7 @@ func generateConnectAdapter(g *protogen.GeneratedFile, service ServicePlan) {
 	generateAdapterHookMethods(g, service, service.ConnectAdapterName)
 }
 
-func generateConnectHandlerMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectHandlerMethod(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	nativeMethodName := serviceNativeMethodName(method)
 	signature, err := generateConnectHandlerMethodSignature(g, nativeMethodName, method)
 	if err != nil {
@@ -1404,7 +1402,7 @@ func generateConnectHandlerMethod(g *protogen.GeneratedFile, service ServicePlan
 	return nil
 }
 
-func generateConnectAdapterMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectAdapterMethod(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	signature, err := generateConnectHandlerMethodSignature(g, "Adapt"+serviceNativeMethodName(method), method)
 	if err != nil {
 		return err
@@ -1431,7 +1429,7 @@ func generateConnectAdapterMethod(g *protogen.GeneratedFile, service ServicePlan
 	return nil
 }
 
-func generateConnectHandlerMethodSignature(g *protogen.GeneratedFile, name string, method ServiceMethodPlan) (string, error) {
+func generateConnectHandlerMethodSignature(g *generatedFile, name string, method ServiceMethodPlan) (string, error) {
 	contextType := generateContextType(g)
 
 	switch method.StreamType {
@@ -1490,7 +1488,7 @@ func generateConnectHandlerMethodArguments(method ServiceMethodPlan) (string, er
 }
 
 func generateConnectAdapterUnaryMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -1553,7 +1551,7 @@ func generateConnectAdapterUnaryMethodBody(
 }
 
 func generateConnectAdapterServerStreamingMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -1603,7 +1601,7 @@ func generateConnectAdapterServerStreamingMethodBody(
 }
 
 func generateConnectAdapterClientStreamingMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -1698,7 +1696,7 @@ func generateConnectAdapterClientStreamingMethodBody(
 }
 
 func generateConnectAdapterBidiStreamingMethodBody(
-	g *protogen.GeneratedFile,
+	g *generatedFile,
 	service ServicePlan,
 	method ServiceMethodPlan,
 ) error {
@@ -1775,7 +1773,7 @@ func generateConnectAdapterBidiStreamingMethodBody(
 	return nil
 }
 
-func generateConnectClientMethod(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectClientMethod(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	signature, err := generateServiceMethodSignature(g, method)
 	if err != nil {
 		return err
@@ -1802,7 +1800,7 @@ func generateConnectClientMethod(g *protogen.GeneratedFile, service ServicePlan,
 	return nil
 }
 
-func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectClientUnaryMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
 	if method.InlineRequest != nil {
@@ -1835,7 +1833,7 @@ func generateConnectClientUnaryMethodBody(g *protogen.GeneratedFile, service Ser
 	return nil
 }
 
-func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectClientServerStreamingMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	responseType, err := generateType(g, method.Response.Type)
 	if err != nil {
 		return fmt.Errorf("response type: %w", err)
@@ -1876,7 +1874,7 @@ func generateConnectClientServerStreamingMethodBody(g *protogen.GeneratedFile, s
 	return nil
 }
 
-func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectClientClientStreamingMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	ctx := newMappingRenderContext(g, true, serviceClientErrorReturn(g, method))
 	generateServiceClientZeroValue(ctx, g, method)
 	ctx.line("stream := c.client." + serviceNativeMethodName(method) + "(ctx)")
@@ -1911,7 +1909,7 @@ func generateConnectClientClientStreamingMethodBody(g *protogen.GeneratedFile, s
 	return nil
 }
 
-func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) error {
+func generateConnectClientBidiStreamingMethodBody(g *generatedFile, service ServicePlan, method ServiceMethodPlan) error {
 	_, responseType, err := generateServiceMethodTypes(g, method)
 	if err != nil {
 		return err
@@ -1972,11 +1970,11 @@ func generateConnectClientBidiStreamingMethodBody(g *protogen.GeneratedFile, ser
 	return nil
 }
 
-func serviceClientErrorReturn(g *protogen.GeneratedFile, method ServiceMethodPlan) string {
+func serviceClientErrorReturn(g *generatedFile, method ServiceMethodPlan) string {
 	return serviceClientErrorReturnExpr(method, "err")
 }
 
-func serviceClientMappedErrorReturn(g *protogen.GeneratedFile, method ServiceMethodPlan) string {
+func serviceClientMappedErrorReturn(g *generatedFile, method ServiceMethodPlan) string {
 	return serviceClientErrorReturnExpr(method, "c.mapError(err)")
 }
 
@@ -2009,7 +2007,7 @@ func serviceNativeMethodName(method ServiceMethodPlan) string {
 	return method.Name
 }
 
-func serviceRPCInfoExpr(g *protogen.GeneratedFile, service ServicePlan, method ServiceMethodPlan) string {
+func serviceRPCInfoExpr(g *generatedFile, service ServicePlan, method ServiceMethodPlan) string {
 	return generateTegoSymbol(g, "RPCInfo") + "{" +
 		"Service: " + fmt.Sprintf("%q", string(service.ProtoName)) + ", " +
 		"Method: " + fmt.Sprintf("%q", serviceNativeMethodName(method)) + ", " +
@@ -2049,7 +2047,7 @@ func serviceSeq2SendErrorLines() []string {
 	}
 }
 
-func generateServiceClientZeroValue(ctx *mappingRenderContext, g *protogen.GeneratedFile, method ServiceMethodPlan) {
+func generateServiceClientZeroValue(ctx *mappingRenderContext, g *generatedFile, method ServiceMethodPlan) {
 	if serviceResponseIsEmpty(method) {
 		return
 	}
@@ -2084,7 +2082,7 @@ func generateServiceMappedAssignment(
 	return nil
 }
 
-func generateServiceMethodProtoTypes(g *protogen.GeneratedFile, method ServiceMethodPlan) (string, string, error) {
+func generateServiceMethodProtoTypes(g *generatedFile, method ServiceMethodPlan) (string, string, error) {
 	request, err := generateType(g, method.Request.ProtoType)
 	if err != nil {
 		return "", "", fmt.Errorf("request proto type: %w", err)
@@ -2098,7 +2096,7 @@ func generateServiceMethodProtoTypes(g *protogen.GeneratedFile, method ServiceMe
 	return request, response, nil
 }
 
-func generateGRPCStreamType(g *protogen.GeneratedFile, name string, types ...TypePlan) (string, error) {
+func generateGRPCStreamType(g *generatedFile, name string, types ...TypePlan) (string, error) {
 	args := make([]GoTypeRef, 0, len(types))
 	for _, typ := range types {
 		arg, err := protoMessageTypeArg(typ)
@@ -2110,7 +2108,7 @@ func generateGRPCStreamType(g *protogen.GeneratedFile, name string, types ...Typ
 	return generateNamedType(g, GoTypeRef{ImportPath: grpcImportPath, Name: name, Args: args}), nil
 }
 
-func generateConnectMessageType(g *protogen.GeneratedFile, name string, types ...TypePlan) (string, error) {
+func generateConnectMessageType(g *generatedFile, name string, types ...TypePlan) (string, error) {
 	args := make([]GoTypeRef, 0, len(types))
 	for _, typ := range types {
 		arg, err := protoMessageTypeArg(typ)
@@ -2129,56 +2127,56 @@ func protoMessageTypeArg(plan TypePlan) (GoTypeRef, error) {
 	return GoTypeRef{}, fmt.Errorf("RPC proto type argument must be a proto message pointer")
 }
 
-func generateProtoServiceType(g *protogen.GeneratedFile, service ServicePlan, prefix, suffix string) string {
+func generateProtoServiceType(g *generatedFile, service ServicePlan, prefix, suffix string) string {
 	ref := service.ProtoRef
 	ref.Name = prefix + ref.Name + suffix
 	return generateNamedType(g, ref)
 }
 
-func generateProtoServiceSymbol(g *protogen.GeneratedFile, service ServicePlan, prefix, suffix string) string {
+func generateProtoServiceSymbol(g *generatedFile, service ServicePlan, prefix, suffix string) string {
 	return generateSymbol(g, GoSymbolRef{
 		ImportPath: service.ProtoRef.ImportPath,
 		Name:       prefix + service.ProtoRef.Name + suffix,
 	})
 }
 
-func generateConnectServiceType(g *protogen.GeneratedFile, service ServicePlan, prefix, suffix string) string {
+func generateConnectServiceType(g *generatedFile, service ServicePlan, prefix, suffix string) string {
 	ref := service.ConnectRef
 	ref.Name = prefix + ref.Name + suffix
 	return generateNamedType(g, ref)
 }
 
-func generateConnectServiceSymbol(g *protogen.GeneratedFile, service ServicePlan, prefix, suffix string) string {
+func generateConnectServiceSymbol(g *generatedFile, service ServicePlan, prefix, suffix string) string {
 	return generateSymbol(g, GoSymbolRef{
 		ImportPath: service.ConnectRef.ImportPath,
 		Name:       prefix + service.ConnectRef.Name + suffix,
 	})
 }
 
-func generateGRPCType(g *protogen.GeneratedFile, name string) string {
+func generateGRPCType(g *generatedFile, name string) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: grpcImportPath, Name: name})
 }
 
-func generateConnectSymbol(g *protogen.GeneratedFile, name string) string {
+func generateConnectSymbol(g *generatedFile, name string) string {
 	return generateSymbol(g, GoSymbolRef{ImportPath: connectImportPath, Name: name})
 }
 
-func generateFmtSymbol(g *protogen.GeneratedFile, name string) string {
+func generateFmtSymbol(g *generatedFile, name string) string {
 	return generateSymbol(g, GoSymbolRef{ImportPath: fmtImportPath, Name: name})
 }
 
-func generateErrorsSymbol(g *protogen.GeneratedFile, name string) string {
+func generateErrorsSymbol(g *generatedFile, name string) string {
 	return generateSymbol(g, GoSymbolRef{ImportPath: errorsImportPath, Name: name})
 }
 
-func generateTegoSymbol(g *protogen.GeneratedFile, name string) string {
+func generateTegoSymbol(g *generatedFile, name string) string {
 	return generateSymbol(g, GoSymbolRef{ImportPath: tegoImportPath, Name: name})
 }
 
-func generateHTTPType(g *protogen.GeneratedFile, name string) string {
+func generateHTTPType(g *generatedFile, name string) string {
 	return generateNamedType(g, GoTypeRef{ImportPath: httpImportPath, Name: name})
 }
 
-func generateIOSymbol(g *protogen.GeneratedFile, name string) string {
+func generateIOSymbol(g *generatedFile, name string) string {
 	return generateSymbol(g, GoSymbolRef{ImportPath: ioImportPath, Name: name})
 }

@@ -10,7 +10,7 @@ import (
 	tego "github.com/seeruk/tego"
 	yirapbv1 "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1"
 	yirapbv1connect "github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect"
-	types "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types"
+	yiratypes "github.com/seeruk/tego/internal/tego/testdata/yira/v1/types"
 	grpc "google.golang.org/grpc"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -153,8 +153,8 @@ type Ticket struct {
 	Assignee    *Person
 	Reporter    Person
 	Watchers    []Person
-	Labels      types.Set[types.Label]
-	DueDate     types.Date
+	Labels      yiratypes.Set[yiratypes.Label]
+	DueDate     yiratypes.Date
 	Visibility  TicketVisibility
 	Metadata    tego.Struct
 	Source      TicketSource
@@ -167,8 +167,8 @@ type TicketDraft struct {
 	Description string
 	Priority    TicketPriority
 	Reporter    Person
-	DueDate     types.Date
-	Labels      types.Set[types.Label]
+	DueDate     yiratypes.Date
+	Labels      yiratypes.Set[yiratypes.Label]
 	Metadata    tego.Struct
 }
 
@@ -178,8 +178,8 @@ type TicketPatch struct {
 	Status      omittable.Value[TicketStatus]
 	Priority    omittable.Value[TicketPriority]
 	Assignee    omittable.Value[*Person]
-	DueDate     omittable.Value[types.Date]
-	Labels      omittable.Value[types.Set[types.Label]]
+	DueDate     omittable.Value[yiratypes.Date]
+	Labels      omittable.Value[yiratypes.Set[yiratypes.Label]]
 	Metadata    omittable.Value[tego.Struct]
 	Version     string
 }
@@ -187,7 +187,7 @@ type TicketPatch struct {
 type TicketFilter struct {
 	Statuses []TicketStatus
 	Assignee *Person
-	Labels   types.Set[types.Label]
+	Labels   yiratypes.Set[yiratypes.Label]
 }
 
 type TicketEvent struct {
@@ -3438,8 +3438,8 @@ func ImportTicketEventsRequestToProto(source ImportTicketEventsRequest) (*yirapb
 	return target, nil
 }
 
-func (iter ImportTicketEventsRequest) ToProto() (*yirapbv1.ImportTicketEventsRequest, error) {
-	return ImportTicketEventsRequestToProto(iter)
+func (iter2 ImportTicketEventsRequest) ToProto() (*yirapbv1.ImportTicketEventsRequest, error) {
+	return ImportTicketEventsRequestToProto(iter2)
 }
 
 func ImportTicketEventsResponseFromProto(source *yirapbv1.ImportTicketEventsResponse) ImportTicketEventsResponse {
@@ -3458,8 +3458,8 @@ func ImportTicketEventsResponseToProto(source ImportTicketEventsResponse) *yirap
 	return target
 }
 
-func (iter ImportTicketEventsResponse) ToProto() *yirapbv1.ImportTicketEventsResponse {
-	return ImportTicketEventsResponseToProto(iter)
+func (iter2 ImportTicketEventsResponse) ToProto() *yirapbv1.ImportTicketEventsResponse {
+	return ImportTicketEventsResponseToProto(iter2)
 }
 
 func SyncTicketEventsRequestFromProto(source *yirapbv1.SyncTicketEventsRequest) SyncTicketEventsRequest {
@@ -3536,18 +3536,18 @@ func TicketFromProto(source *yirapbv1.Ticket) (Ticket, error) {
 		watchers[watchersIndex] = PersonFromProto(watchersItem)
 	}
 	target.Watchers = watchers
-	var labels types.Set[types.Label]
+	var labels yiratypes.Set[yiratypes.Label]
 	if source.GetLabels() != nil {
-		labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+		labelsValues, err := yiratypes.LabelSetFromProto(source.GetLabels().GetValues())
 		if err != nil {
 			return target, err
 		}
 		labels = labelsValues
 	}
 	target.Labels = labels
-	var dueDate types.Date
+	var dueDate yiratypes.Date
 	if source.GetDueDate() != nil {
-		dueDateValue, err := types.DateFromProto(source.GetDueDate().GetValue())
+		dueDateValue, err := yiratypes.DateFromProto(source.GetDueDate().GetValue())
 		if err != nil {
 			return target, err
 		}
@@ -3592,14 +3592,14 @@ func TicketToProto(source Ticket) (*yirapbv1.Ticket, error) {
 	watchers2 := yirapbv1.PersonList_builder{
 		People: watchers,
 	}.Build()
-	labelsValues, err := types.LabelSetToProto(source.Labels)
+	labelsValues, err := yiratypes.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
 	labels := yirapbv1.Labels_builder{
 		Values: labelsValues,
 	}.Build()
-	dueDateValue, err := types.DateToProto(source.DueDate)
+	dueDateValue, err := yiratypes.DateToProto(source.DueDate)
 	if err != nil {
 		return nil, err
 	}
@@ -3676,18 +3676,18 @@ func TicketDraftFromProto(source *yirapbv1.TicketDraft) (TicketDraft, error) {
 	target.Description = source.GetDescription()
 	target.Priority = TicketPriority(source.GetPriority())
 	target.Reporter = PersonFromProto(source.GetReporter())
-	var dueDate types.Date
+	var dueDate yiratypes.Date
 	if source.GetDueDate() != nil {
-		dueDateValue, err := types.DateFromProto(source.GetDueDate().GetValue())
+		dueDateValue, err := yiratypes.DateFromProto(source.GetDueDate().GetValue())
 		if err != nil {
 			return target, err
 		}
 		dueDate = dueDateValue
 	}
 	target.DueDate = dueDate
-	var labels types.Set[types.Label]
+	var labels yiratypes.Set[yiratypes.Label]
 	if source.GetLabels() != nil {
-		labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+		labelsValues, err := yiratypes.LabelSetFromProto(source.GetLabels().GetValues())
 		if err != nil {
 			return target, err
 		}
@@ -3703,14 +3703,14 @@ func TicketDraftFromProto(source *yirapbv1.TicketDraft) (TicketDraft, error) {
 }
 
 func TicketDraftToProto(source TicketDraft) (*yirapbv1.TicketDraft, error) {
-	dueDateValue, err := types.DateToProto(source.DueDate)
+	dueDateValue, err := yiratypes.DateToProto(source.DueDate)
 	if err != nil {
 		return nil, err
 	}
 	dueDate := yirapbv1.DueDate_builder{
 		Value: &dueDateValue,
 	}.Build()
-	labelsValues, err := types.LabelSetToProto(source.Labels)
+	labelsValues, err := yiratypes.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -3777,9 +3777,9 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 		target.Assignee = omittable.Empty[*Person]()
 	}
 	if source.HasDueDate() {
-		var dueDate types.Date
+		var dueDate yiratypes.Date
 		if source.GetDueDate() != nil {
-			dueDateValue, err := types.DateFromProto(source.GetDueDate().GetValue())
+			dueDateValue, err := yiratypes.DateFromProto(source.GetDueDate().GetValue())
 			if err != nil {
 				return target, err
 			}
@@ -3787,12 +3787,12 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 		}
 		target.DueDate = omittable.Of(dueDate)
 	} else {
-		target.DueDate = omittable.Empty[types.Date]()
+		target.DueDate = omittable.Empty[yiratypes.Date]()
 	}
 	if source.HasLabels() {
-		var labels types.Set[types.Label]
+		var labels yiratypes.Set[yiratypes.Label]
 		if source.GetLabels() != nil {
-			labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+			labelsValues, err := yiratypes.LabelSetFromProto(source.GetLabels().GetValues())
 			if err != nil {
 				return target, err
 			}
@@ -3800,7 +3800,7 @@ func TicketPatchFromProto(source *yirapbv1.TicketPatch) (TicketPatch, error) {
 		}
 		target.Labels = omittable.Of(labels)
 	} else {
-		target.Labels = omittable.Empty[types.Set[types.Label]]()
+		target.Labels = omittable.Empty[yiratypes.Set[yiratypes.Label]]()
 	}
 	if source.HasMetadata() {
 		var metadata tego.Struct
@@ -3848,7 +3848,7 @@ func TicketPatchToProto(source TicketPatch) (*yirapbv1.TicketPatch, error) {
 	}
 	var dueDate *yirapbv1.DueDate
 	if source.DueDate.IsPresent() {
-		dueDateValue, err := types.DateToProto(source.DueDate.Get())
+		dueDateValue, err := yiratypes.DateToProto(source.DueDate.Get())
 		if err != nil {
 			return nil, err
 		}
@@ -3859,7 +3859,7 @@ func TicketPatchToProto(source TicketPatch) (*yirapbv1.TicketPatch, error) {
 	}
 	var labels *yirapbv1.Labels
 	if source.Labels.IsPresent() {
-		labelsValues, err := types.LabelSetToProto(source.Labels.Get())
+		labelsValues, err := yiratypes.LabelSetToProto(source.Labels.Get())
 		if err != nil {
 			return nil, err
 		}
@@ -3913,9 +3913,9 @@ func TicketFilterFromProto(source *yirapbv1.TicketFilter) (TicketFilter, error) 
 		assignee = new(PersonFromProto(source.GetAssignee().GetPerson()))
 	}
 	target.Assignee = assignee
-	var labels types.Set[types.Label]
+	var labels yiratypes.Set[yiratypes.Label]
 	if source.GetLabels() != nil {
-		labelsValues, err := types.LabelSetFromProto(source.GetLabels().GetValues())
+		labelsValues, err := yiratypes.LabelSetFromProto(source.GetLabels().GetValues())
 		if err != nil {
 			return target, err
 		}
@@ -3940,7 +3940,7 @@ func TicketFilterToProto(source TicketFilter) (*yirapbv1.TicketFilter, error) {
 			Null: new(structpb.NullValue_NULL_VALUE),
 		}.Build()
 	}
-	labelsValues, err := types.LabelSetToProto(source.Labels)
+	labelsValues, err := yiratypes.LabelSetToProto(source.Labels)
 	if err != nil {
 		return nil, err
 	}

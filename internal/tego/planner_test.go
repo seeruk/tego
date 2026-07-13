@@ -209,6 +209,10 @@ func TestPlannerPlanYiraFixture(t *testing.T) {
 	plan, err := NewPlanner().Plan(descriptorIndex, shapeIndex)
 	require.NoError(t, err)
 	require.Len(t, plan.Files, 1)
+	assert.Equal(t, "yirapbv1", plan.PackageNames["github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1"])
+	assert.Equal(t, "yirapbv1connect", plan.PackageNames["github.com/seeruk/tego/internal/tego/testdata/proto/yirapbv1/yirapbv1connect"])
+	assert.Equal(t, "yirav1", plan.PackageNames["github.com/seeruk/tego/internal/tego/testdata/yira/v1"])
+	assert.Equal(t, "yiratypes", plan.PackageNames["github.com/seeruk/tego/internal/tego/testdata/yira/v1/types"])
 
 	file := plan.Files[0]
 

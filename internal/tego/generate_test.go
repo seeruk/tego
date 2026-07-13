@@ -167,6 +167,9 @@ func TestGenerate(t *testing.T) {
 
 		assert.NotContains(t, content, "type TicketService interface")
 		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
+		assert.NotContains(t, content, `connect "connectrpc.com/connect"`)
+		assert.NotContains(t, content, `grpc "google.golang.org/grpc"`)
+		assert.NotContains(t, content, `http "net/http"`)
 	})
 
 	t.Run("renders grpc-only rpc output", func(t *testing.T) {
@@ -176,6 +179,8 @@ func TestGenerate(t *testing.T) {
 
 		assert.Contains(t, content, "RegisterTicketServiceGRPCServer")
 		assert.NotContains(t, content, "NewTicketServiceConnectHandler")
+		assert.NotContains(t, content, `connect "connectrpc.com/connect"`)
+		assert.NotContains(t, content, `http "net/http"`)
 	})
 
 	t.Run("renders connect-only rpc output", func(t *testing.T) {
@@ -185,6 +190,7 @@ func TestGenerate(t *testing.T) {
 
 		assert.Contains(t, content, "NewTicketServiceConnectHandler")
 		assert.NotContains(t, content, "RegisterTicketServiceGRPCServer")
+		assert.NotContains(t, content, `grpc "google.golang.org/grpc"`)
 	})
 
 	t.Run("blocks fatal diagnostics", func(t *testing.T) {
@@ -261,8 +267,11 @@ func generateParsedContent(t *testing.T, plan Plan, opts ...GenerateOption) stri
 	require.NoError(t, Generate(plugin, plan, opts...))
 	content := generatedResponseContent(t, plugin)
 
-	_, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
+	file, err := parser.ParseFile(token.NewFileSet(), "generated.tego.go", content, parser.ParseComments)
 	require.NoError(t, err)
+	for _, imported := range file.Imports {
+		require.NotNil(t, imported.Name, "generated import %s must have an explicit alias", imported.Path.Value)
+	}
 	return content
 }
 

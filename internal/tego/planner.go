@@ -78,6 +78,12 @@ func (p *Planner) Plan(di *DescriptorIndex, si *ShapeIndex) (Plan, error) {
 
 	propagateMappingErrors(&plan)
 
+	packageNames, err := p.planPackageNames(di)
+	if err != nil {
+		return Plan{}, fmt.Errorf("resolve Go package names: %w", err)
+	}
+	plan.PackageNames = packageNames
+
 	return plan, nil
 }
 
