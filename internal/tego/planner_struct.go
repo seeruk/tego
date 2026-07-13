@@ -412,10 +412,13 @@ func (p *Planner) planCustomGoType(goType *tegopb.GoType, source goTypePattern, 
 		if err != nil {
 			return TypePlan{}, []Diagnostic{fatalDiagnostic(diagnosticPath, "couldn't resolve custom Go type for automatic conversion: %s", err)}
 		}
-		if autoCastFromProto && !gotypes.ConvertibleTo(sourceType, customPatternType) {
+		canCastFromProto := gotypes.ConvertibleTo(sourceType, customPatternType)
+		canCastToProto := gotypes.ConvertibleTo(customPatternType, sourceType)
+		if autoCastFromProto && autoCastToProto && !canCastFromProto && !canCastToProto {
+			diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type ref is not convertible to and from the protobuf Go type; from_proto and to_proto are required"))
+		} else if autoCastFromProto && !canCastFromProto {
 			diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "protobuf Go type is not convertible to go_type ref; from_proto is required"))
-		}
-		if autoCastToProto && !gotypes.ConvertibleTo(customPatternType, sourceType) {
+		} else if autoCastToProto && !canCastToProto {
 			diagnostics = append(diagnostics, fatalDiagnostic(diagnosticPath, "go_type ref is not convertible to the protobuf Go type; to_proto is required"))
 		}
 	}

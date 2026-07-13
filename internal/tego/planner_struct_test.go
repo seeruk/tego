@@ -555,6 +555,16 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 		assert.Equal(t, "CustomStringToProto", plan.Custom.ToProto.Name)
 	})
 
+	t.Run("accepts an asymmetric automatic conversion to proto", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType("int", plannerTestPkg+".StringToInt", "", false))
+
+		plan, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		require.Empty(t, diagnostics)
+		assert.False(t, plan.Custom.AutoCastFromProto)
+		assert.True(t, plan.Custom.AutoCastToProto)
+	})
+
 	t.Run("accepts pointer conversions and method to proto", func(t *testing.T) {
 		field := fieldWithPlannerGoType("custom", plannerGoType(
 			plannerTestPkg+".CustomString",
@@ -729,6 +739,11 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 					"",
 					false,
 				),
+				diagnostic: "from_proto and to_proto are required",
+			},
+			{
+				name:       "only from automatic conversion is not possible",
+				goType:     plannerGoType("int", "", "", false),
 				diagnostic: "from_proto is required",
 			},
 			{
@@ -804,6 +819,15 @@ func TestPlannerGoTypeValidation(t *testing.T) {
 				requireFatalDiagnostic(t, diagnostics, tt.diagnostic)
 			})
 		}
+	})
+
+	t.Run("reports only to_proto for the opposite asymmetric conversion", func(t *testing.T) {
+		field := fieldWithPlannerGoType("custom", plannerGoType("string", "", "", false))
+		field.Kind = protoreflect.Int32Kind
+
+		_, diagnostics := NewPlanner().planFieldType(field, &ShapeIndex{})
+
+		requireFatalDiagnostic(t, diagnostics, "to_proto is required")
 	})
 }
 
