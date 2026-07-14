@@ -72,6 +72,7 @@ func TestGenerate(t *testing.T) {
 		assert.NotContains(t, content, "metadata := source.Metadata\n\tif metadata == nil")
 		assert.Contains(t, content, "WatcherIds:       source.WatcherIDs")
 		assert.Contains(t, content, "Metadata:         source.Metadata")
+		assert.Contains(t, content, "Name string `json:\"name\"`")
 		goldie.New(t, goldie.WithFixtureDir("testdata/golden")).
 			Assert(t, "generate_rendered_tego_go", []byte(content))
 	})
@@ -686,6 +687,7 @@ func generatorTestFilePlan() FilePlan {
 						FieldName: "Name",
 						Comment:   "PersonName stores a plain scalar value.",
 						Type:      stringType,
+						Tags:      []StructTagPlan{{Key: "json", Value: "name"}},
 					},
 					{
 						Name:      "PersonBestFriend",

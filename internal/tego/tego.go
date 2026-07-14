@@ -114,6 +114,7 @@ type OneofVariantPlan struct {
 	FieldName string
 	Comment   string
 	Type      TypePlan
+	Tags      []StructTagPlan
 }
 
 // StructPlan describes a generated Go struct for a protobuf message.

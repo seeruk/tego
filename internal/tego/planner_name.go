@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/danielgtaylor/casing"
+	"github.com/seeruk/tego/tegopb"
 )
 
 func plannedMessageName(message *ProtoMessage) string {
@@ -160,6 +161,29 @@ func enumValueSuffix(value *ProtoEnumValue) string {
 
 func goName(name string) string {
 	return casing.Camel(name, strings.ToLower, goInitialism)
+}
+
+func casingStyleName(name string, style tegopb.CasingStyle) string {
+	if name == "" {
+		return ""
+	}
+
+	switch style {
+	case tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE:
+		return casing.LowerCamel(name)
+	case tegopb.CasingStyle_CASING_STYLE_KEBAB_CASE:
+		return casing.Kebab(name)
+	case tegopb.CasingStyle_CASING_STYLE_SNAKE_CASE:
+		return casing.Snake(name)
+	case tegopb.CasingStyle_CASING_STYLE_SCREAMING_SNAKE_CASE:
+		return casingScreamingSnake(name)
+	case tegopb.CasingStyle_CASING_STYLE_PASCAL_CASE:
+		return casing.Camel(name)
+	case tegopb.CasingStyle_CASING_STYLE_GO_CASE:
+		return goName(name)
+	default:
+		return name
+	}
 }
 
 func goInitialism(part string) string {

@@ -1013,23 +1013,25 @@ const file_options_v1_options_proto_rawDesc = "" +
 	"\rinternal_note\x18\x05 \x01(\tB\x06҅\n" +
 	"\x02 \x01R\finternalNote:@҅\n" +
 	"<\n" +
-	"\vUserAccount\x12-UserAccount is the hand-facing account shape.\"\xeb\x01\n" +
+	"\vUserAccount\x12-UserAccount is the hand-facing account shape.\"\xed\x01\n" +
 	"\fAccountPatch\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x120\n" +
 	"\x05email\x18\x02 \x01(\v2\x1a.options.v1.NullableStringR\x05email\x12$\n" +
 	"\x04role\x18\x03 \x01(\x0e2\x10.options.v1.RoleR\x04role\x123\n" +
 	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
 	"\bactor_id\x18\x05 \x01(\tB\x06҅\n" +
-	"\x028\x00R\aactorId:\b҅\n" +
-	"\x04*\x02\b\x01\"\x8f\x01\n" +
+	"\x028\x00R\aactorId:\n" +
+	"҅\n" +
+	"\x06*\x04\b\x01\x18\x03\"\x91\x01\n" +
 	"\x0eAccountMetrics\x12\x1f\n" +
 	"\vevent_count\x18\x01 \x01(\x03R\n" +
 	"eventCount\x12\x1d\n" +
 	"\n" +
 	"byte_count\x18\x02 \x01(\x04R\tbyteCount\x123\n" +
 	"\x11approximate_count\x18\x03 \x01(\x03B\x06҅\n" +
-	"\x02H\x00R\x10approximateCount:\b҅\n" +
-	"\x04*\x02\x10\x01\"-\n" +
+	"\x02H\x00R\x10approximateCount:\n" +
+	"҅\n" +
+	"\x06*\x04\x10\x01\x18\x00\"-\n" +
 	"\rLegacyCounter\x12\x1c\n" +
 	"\x05count\x18\x01 \x01(\x03B\x06҅\n" +
 	"\x02H\x01R\x05count\"a\n" +
@@ -1055,9 +1057,10 @@ const file_options_v1_options_proto_rawDesc = "" +
 	"+\n" +
 	"\x04Find\x12\x1fFind fetches one account by ID. \x01(\x01\x1al҅\n" +
 	"h\n" +
-	"\bAccounts\x12ZAccounts is the facade service name this schema would generate when RPC output is enabled.\x18\x00B~҅\n" +
-	"9\n" +
-	"7github.com/seeruk/tego/examples/options/options;optionsZ?github.com/seeruk/tego/examples/options/optionspbv1;optionspbv1b\beditionsp\xe9\a"
+	"\bAccounts\x12ZAccounts is the facade service name this schema would generate when RPC output is enabled.\x18\x00B\x84\x01҅\n" +
+	"?\n" +
+	"7github.com/seeruk/tego/examples/options/options;options\"\x04\n" +
+	"\x02\b\x01Z?github.com/seeruk/tego/examples/options/optionspbv1;optionspbv1b\beditionsp\xe9\a"
 
 var file_options_v1_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_options_v1_options_proto_msgTypes = make([]protoimpl.MessageInfo, 7)

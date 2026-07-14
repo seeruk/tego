@@ -227,7 +227,11 @@ func generateOneofVariant(g *generatedFile, oneof OneofPlan, variant OneofVarian
 
 	generateComment(g, "", variant.Comment)
 	g.P("type ", variant.Name, " struct {")
-	g.P("\t", variant.FieldName, " ", fieldType)
+	if tags := structTagLiteral(variant.Tags); tags != "" {
+		g.P("\t", variant.FieldName, " ", fieldType, " ", tags)
+	} else {
+		g.P("\t", variant.FieldName, " ", fieldType)
+	}
 	g.P("}")
 	g.P()
 	g.P("func (", variant.Name, ") ", oneof.MarkerMethod, "() {}")

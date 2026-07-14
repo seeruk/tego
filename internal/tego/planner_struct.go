@@ -652,9 +652,62 @@ func structTags(field *ProtoField) ([]StructTagPlan, []Diagnostic) {
 			Key:   "json",
 			Value: jsonStructTagValue(field.Options.GetJsonTag()),
 		})
+		hasJSONTag = true
+	}
+
+	if !hasJSONTag {
+		if style, ok := messageJSONTagsCasing(field.Parent); ok {
+			tags = append(tags, StructTagPlan{
+				Key:   "json",
+				Value: casingStyleName(jsonTagFieldName(field), style),
+			})
+		}
 	}
 
 	return tags, nil
+}
+
+func jsonTagFieldName(field *ProtoField) string {
+	if field.Options.HasName() {
+		return field.Options.GetName()
+	}
+	return string(field.Name)
+}
+
+func messageJSONTagsCasing(message *ProtoMessage) (tegopb.CasingStyle, bool) {
+	if message == nil {
+		return tegopb.CasingStyle_CASING_STYLE_UNSPECIFIED, false
+	}
+
+	if message.Options.HasFields() && message.Options.GetFields().HasJsonTags() {
+		style := message.Options.GetFields().GetJsonTags()
+		return style, style != tegopb.CasingStyle_CASING_STYLE_UNSPECIFIED
+	}
+
+	if message.File == nil || !message.File.Options.HasMessages() {
+		return tegopb.CasingStyle_CASING_STYLE_UNSPECIFIED, false
+	}
+	fields := message.File.Options.GetMessages().GetFields()
+	if !fields.HasJsonTags() {
+		return tegopb.CasingStyle_CASING_STYLE_UNSPECIFIED, false
+	}
+
+	style := fields.GetJsonTags()
+	return style, style != tegopb.CasingStyle_CASING_STYLE_UNSPECIFIED
+}
+
+func oneofStructTags(oneof *ProtoOneof) []StructTagPlan {
+	if oneof == nil {
+		return nil
+	}
+	style, ok := messageJSONTagsCasing(oneof.Parent)
+	if !ok {
+		return nil
+	}
+	return []StructTagPlan{{
+		Key:   "json",
+		Value: casingStyleName(string(oneof.Name), style),
+	}}
 }
 
 func jsonStructTagValue(tag *tegopb.GoJsonStructTag) string {

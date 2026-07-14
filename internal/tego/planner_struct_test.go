@@ -543,6 +543,168 @@ func TestPlannerPlanFieldDiagnostics(t *testing.T) {
 	})
 }
 
+func TestPlannerAutomaticJSONTags(t *testing.T) {
+	t.Run("uses message casing and field name overrides", func(t *testing.T) {
+		message := plannerMessage("example.v1.Message", "Message")
+		setMessageFieldsJSONTags(message.Options, tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE)
+		field := field("legacy_name", protoreflect.StringKind)
+		field.Parent = message
+		field.Options = &tegopb.FieldOptions{}
+		field.Options.SetName("watcher_ids")
+
+		tags, diagnostics := structTags(field)
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "watcherIds"}}, tags)
+	})
+
+	t.Run("inherits file casing and lets messages override or disable it", func(t *testing.T) {
+		file := &ProtoFile{Options: &tegopb.FileOptions{}}
+		setFileMessageFieldsJSONTags(file.Options, tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE)
+
+		inherited := plannerMessage("example.v1.Inherited", "Inherited")
+		inherited.File = file
+		inheritedField := field("api_url", protoreflect.StringKind)
+		inheritedField.Parent = inherited
+
+		overridden := plannerMessage("example.v1.Overridden", "Overridden")
+		overridden.File = file
+		setMessageFieldsJSONTags(overridden.Options, tegopb.CasingStyle_CASING_STYLE_SNAKE_CASE)
+		overriddenField := field("api_url", protoreflect.StringKind)
+		overriddenField.Parent = overridden
+
+		disabled := plannerMessage("example.v1.Disabled", "Disabled")
+		disabled.File = file
+		setMessageFieldsJSONTags(disabled.Options, tegopb.CasingStyle_CASING_STYLE_UNSPECIFIED)
+		disabledField := field("api_url", protoreflect.StringKind)
+		disabledField.Parent = disabled
+
+		inheritedTags, inheritedDiagnostics := structTags(inheritedField)
+		overriddenTags, overriddenDiagnostics := structTags(overriddenField)
+		disabledTags, disabledDiagnostics := structTags(disabledField)
+
+		require.Empty(t, inheritedDiagnostics)
+		require.Empty(t, overriddenDiagnostics)
+		require.Empty(t, disabledDiagnostics)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "apiUrl"}}, inheritedTags)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "api_url"}}, overriddenTags)
+		assert.Empty(t, disabledTags)
+	})
+
+	t.Run("nested messages inherit from the file rather than their parent message", func(t *testing.T) {
+		file := &ProtoFile{Options: &tegopb.FileOptions{}}
+		setFileMessageFieldsJSONTags(file.Options, tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE)
+		parent := plannerMessage("example.v1.Parent", "Parent")
+		parent.File = file
+		setMessageFieldsJSONTags(parent.Options, tegopb.CasingStyle_CASING_STYLE_SNAKE_CASE)
+		nested := plannerMessage("example.v1.Parent.Nested", "Nested")
+		nested.File = file
+		nested.Parent = parent
+		nestedField := field("api_url", protoreflect.StringKind)
+		nestedField.Parent = nested
+
+		tags, diagnostics := structTags(nestedField)
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "apiUrl"}}, tags)
+	})
+
+	t.Run("explicit JSON tags win and non-JSON tags are preserved", func(t *testing.T) {
+		message := plannerMessage("example.v1.Message", "Message")
+		setMessageFieldsJSONTags(message.Options, tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE)
+
+		jsonTagField := field("first_name", protoreflect.StringKind)
+		jsonTagField.Parent = message
+		jsonTagField.Options = &tegopb.FieldOptions{}
+		jsonTag := &tegopb.GoJsonStructTag{}
+		jsonTag.SetValue("given_name")
+		jsonTag.SetOmitempty(true)
+		jsonTagField.Options.SetJsonTag(jsonTag)
+
+		tagsField := field("last_name", protoreflect.StringKind)
+		tagsField.Parent = message
+		tagsField.Options = &tegopb.FieldOptions{}
+		tagsField.Options.SetTags([]*tegopb.GoStructTag{
+			goStructTag("validate", "required"),
+			goStructTag("json", "surname"),
+		})
+
+		jsonTags, jsonDiagnostics := structTags(jsonTagField)
+		explicitTags, explicitDiagnostics := structTags(tagsField)
+
+		require.Empty(t, jsonDiagnostics)
+		require.Empty(t, explicitDiagnostics)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "given_name,omitempty"}}, jsonTags)
+		assert.Equal(t, []StructTagPlan{
+			{Key: "validate", Value: "required"},
+			{Key: "json", Value: "surname"},
+		}, explicitTags)
+	})
+
+	t.Run("adds automatic JSON tags after non-JSON tags", func(t *testing.T) {
+		message := plannerMessage("example.v1.Message", "Message")
+		setMessageFieldsJSONTags(message.Options, tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE)
+		field := field("display_name", protoreflect.StringKind)
+		field.Parent = message
+		field.Options = &tegopb.FieldOptions{}
+		field.Options.SetTags([]*tegopb.GoStructTag{
+			goStructTag("validate", "required"),
+		})
+
+		tags, diagnostics := structTags(field)
+
+		require.Empty(t, diagnostics)
+		assert.Equal(t, []StructTagPlan{
+			{Key: "validate", Value: "required"},
+			{Key: "json", Value: "displayName"},
+		}, tags)
+	})
+
+	t.Run("tags list and map fields", func(t *testing.T) {
+		message := plannerMessage("example.v1.Message", "Message")
+		setMessageFieldsJSONTags(message.Options, tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE)
+		aliases := repeatedField("display_aliases", protoreflect.StringKind)
+		labels := protoMapField("labels_by_id")
+		for _, field := range []*ProtoField{aliases, labels} {
+			field.Parent = message
+			field.FullName = protoreflect.FullName(string(message.FullName) + "." + string(field.Name))
+		}
+		message.Fields = []*ProtoField{aliases, labels}
+
+		plan, diagnostics, ok := NewPlanner().planStruct(message, &ShapeIndex{})
+
+		require.True(t, ok)
+		require.Empty(t, diagnostics)
+		require.Len(t, plan.Fields, 2)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "displayAliases"}}, plan.Fields[0].Tags)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "labelsById"}}, plan.Fields[1].Tags)
+	})
+}
+
+func setMessageFieldsJSONTags(options *tegopb.MessageOptions, style tegopb.CasingStyle) {
+	fields := options.GetFields()
+	if fields == nil {
+		fields = &tegopb.MessageFieldsOptions{}
+		options.SetFields(fields)
+	}
+	fields.SetJsonTags(style)
+}
+
+func setFileMessageFieldsJSONTags(options *tegopb.FileOptions, style tegopb.CasingStyle) {
+	fields := &tegopb.FileMessageFieldsOptions{}
+	fields.SetJsonTags(style)
+	messages := &tegopb.FileMessagesOptions{}
+	messages.SetFields(fields)
+	options.SetMessages(messages)
+}
+
+func goStructTag(key, value string) *tegopb.GoStructTag {
+	tag := &tegopb.GoStructTag{}
+	tag.SetKey(key)
+	tag.SetValue(value)
+	return tag
+}
+
 func TestPlannerGoTypeValidation(t *testing.T) {
 	t.Run("accepts value conversions", func(t *testing.T) {
 		field := fieldWithPlannerGoType("custom", plannerGoType(
