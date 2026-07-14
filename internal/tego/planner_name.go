@@ -179,11 +179,24 @@ func casingStyleName(name string, style tegopb.CasingStyle) string {
 		return casingScreamingSnake(name)
 	case tegopb.CasingStyle_CASING_STYLE_PASCAL_CASE:
 		return casing.Camel(name)
-	case tegopb.CasingStyle_CASING_STYLE_GO_CASE:
+	case tegopb.CasingStyle_CASING_STYLE_LOWER_GO_CASE:
+		return lowerGoName(name)
+	case tegopb.CasingStyle_CASING_STYLE_UPPER_GO_CASE:
 		return goName(name)
 	default:
 		return name
 	}
+}
+
+func lowerGoName(name string) string {
+	parts := casing.Split(name)
+	if len(parts) == 0 {
+		return ""
+	}
+
+	first := strings.ToLower(parts[0])
+	rest := casing.Join(parts[1:], "", strings.ToLower, goInitialism, strings.Title)
+	return first + rest
 }
 
 func goInitialism(part string) string {

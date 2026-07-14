@@ -50,8 +50,12 @@ enum CasingStyle {
   CASING_STYLE_SCREAMING_SNAKE_CASE = 4;
   // pascal_case formats names as conventional upper camel case, such as ApiUrl.
   CASING_STYLE_PASCAL_CASE = 5;
-  // go_case formats names like Tego's generated Go fields, preserving initialisms, such as APIURL.
-  CASING_STYLE_GO_CASE = 6;
+  // lower_go_case formats names as lower camel case while preserving Go initialisms after the first
+  // word, such as httpAPIURL.
+  CASING_STYLE_LOWER_GO_CASE = 6;
+  // upper_go_case formats names like Tego's exported Go fields, preserving initialisms, such as
+  // HTTPAPIURL.
+  CASING_STYLE_UPPER_GO_CASE = 7;
 }
 
 extend google.protobuf.EnumOptions {

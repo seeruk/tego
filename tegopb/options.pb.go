@@ -37,8 +37,12 @@ const (
 	CasingStyle_CASING_STYLE_SCREAMING_SNAKE_CASE CasingStyle = 4
 	// pascal_case formats names as conventional upper camel case, such as ApiUrl.
 	CasingStyle_CASING_STYLE_PASCAL_CASE CasingStyle = 5
-	// go_case formats names like Tego's generated Go fields, preserving initialisms, such as APIURL.
-	CasingStyle_CASING_STYLE_GO_CASE CasingStyle = 6
+	// lower_go_case formats names as lower camel case while preserving Go initialisms after the first
+	// word, such as httpAPIURL.
+	CasingStyle_CASING_STYLE_LOWER_GO_CASE CasingStyle = 6
+	// upper_go_case formats names like Tego's exported Go fields, preserving initialisms, such as
+	// HTTPAPIURL.
+	CasingStyle_CASING_STYLE_UPPER_GO_CASE CasingStyle = 7
 )
 
 // Enum value maps for CasingStyle.
@@ -50,7 +54,8 @@ var (
 		3: "CASING_STYLE_SNAKE_CASE",
 		4: "CASING_STYLE_SCREAMING_SNAKE_CASE",
 		5: "CASING_STYLE_PASCAL_CASE",
-		6: "CASING_STYLE_GO_CASE",
+		6: "CASING_STYLE_LOWER_GO_CASE",
+		7: "CASING_STYLE_UPPER_GO_CASE",
 	}
 	CasingStyle_value = map[string]int32{
 		"CASING_STYLE_UNSPECIFIED":          0,
@@ -59,7 +64,8 @@ var (
 		"CASING_STYLE_SNAKE_CASE":           3,
 		"CASING_STYLE_SCREAMING_SNAKE_CASE": 4,
 		"CASING_STYLE_PASCAL_CASE":          5,
-		"CASING_STYLE_GO_CASE":              6,
+		"CASING_STYLE_LOWER_GO_CASE":        6,
+		"CASING_STYLE_UPPER_GO_CASE":        7,
 	}
 )
 
@@ -2814,15 +2820,16 @@ const file_tego_options_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12%\n" +
 	"\x05value\x18\x02 \x01(\v2\x0f.tego.GoTypeArgR\x05value:\x028\x01\"\x1f\n" +
 	"\tGoTypeArg\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type*\xe1\x01\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type*\x87\x02\n" +
 	"\vCasingStyle\x12\x1c\n" +
 	"\x18CASING_STYLE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17CASING_STYLE_CAMEL_CASE\x10\x01\x12\x1b\n" +
 	"\x17CASING_STYLE_KEBAB_CASE\x10\x02\x12\x1b\n" +
 	"\x17CASING_STYLE_SNAKE_CASE\x10\x03\x12%\n" +
 	"!CASING_STYLE_SCREAMING_SNAKE_CASE\x10\x04\x12\x1c\n" +
-	"\x18CASING_STYLE_PASCAL_CASE\x10\x05\x12\x18\n" +
-	"\x14CASING_STYLE_GO_CASE\x10\x06*\x98\x01\n" +
+	"\x18CASING_STYLE_PASCAL_CASE\x10\x05\x12\x1e\n" +
+	"\x1aCASING_STYLE_LOWER_GO_CASE\x10\x06\x12\x1e\n" +
+	"\x1aCASING_STYLE_UPPER_GO_CASE\x10\a*\x98\x01\n" +
 	"\x12EnumUnderlyingType\x12$\n" +
 	" ENUM_UNDERLYING_TYPE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19ENUM_UNDERLYING_TYPE_UINT\x10\x01\x12\x1c\n" +

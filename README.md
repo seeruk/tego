@@ -433,7 +433,8 @@ This generates `json:"ticket_id"` and `json:"display_name"` without adding `omit
 `omitzero`. The available styles are `CASING_STYLE_CAMEL_CASE` (`apiUrl`),
 `CASING_STYLE_KEBAB_CASE` (`api-url`), `CASING_STYLE_SNAKE_CASE` (`api_url`),
 `CASING_STYLE_SCREAMING_SNAKE_CASE` (`API_URL`), `CASING_STYLE_PASCAL_CASE` (`ApiUrl`), and
-`CASING_STYLE_GO_CASE` (`APIURL`).
+the initialism-aware `CASING_STYLE_LOWER_GO_CASE` (`httpAPIURL`) and
+`CASING_STYLE_UPPER_GO_CASE` (`HTTPAPIURL`).
 
 A message setting overrides the file default. Explicitly setting
 `CASING_STYLE_UNSPECIFIED` on a message disables an inherited file default. Field-level
