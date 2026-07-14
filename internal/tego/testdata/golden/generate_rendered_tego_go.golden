@@ -41,7 +41,7 @@ type PersonValue interface {
 
 // PersonName stores a plain scalar value.
 type PersonName struct {
-	Name string
+	Name string `json:"name"`
 }
 
 func (PersonName) isPersonValue() {}

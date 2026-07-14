@@ -3,6 +3,7 @@ package tego
 import (
 	"testing"
 
+	"github.com/seeruk/tego/tegopb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -73,6 +74,31 @@ func TestPlannerPlanOneofs(t *testing.T) {
 		assert.Equal(t, "HTTPURL", oneofPlan.Variants[0].FieldName)
 		assert.Equal(t, "TicketEventStatusComment", oneofPlan.Variants[1].Name)
 		assert.Equal(t, "StatusComment", oneofPlan.Variants[1].FieldName)
+	})
+
+	t.Run("plans automatic JSON tags for oneof and variant fields", func(t *testing.T) {
+		message := plannerMessage("example.v1.TicketEvent", "TicketEvent")
+		setMessageFieldsJSONTags(message.Options, tegopb.CasingStyle_CASING_STYLE_SNAKE_CASE)
+		watcherIDs := field("watcher_ids", protoreflect.StringKind)
+		watcherIDs.Options = &tegopb.FieldOptions{}
+		watcherIDs.Options.SetName("subscriber_ids")
+		oneof := plannerOneof(
+			message, "api_response",
+			field("http_url", protoreflect.StringKind),
+			watcherIDs,
+		)
+
+		structPlan, diagnostics, ok := NewPlanner().planStruct(message, &ShapeIndex{})
+		require.True(t, ok)
+		require.Empty(t, diagnostics)
+		require.Len(t, structPlan.Fields, 1)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "api_response"}}, structPlan.Fields[0].Tags)
+
+		oneofPlan, diagnostics := NewPlanner().planOneof(oneof, &ShapeIndex{})
+		require.Empty(t, diagnostics)
+		require.Len(t, oneofPlan.Variants, 2)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "http_url"}}, oneofPlan.Variants[0].Tags)
+		assert.Equal(t, []StructTagPlan{{Key: "json", Value: "subscriber_ids"}}, oneofPlan.Variants[1].Tags)
 	})
 
 	t.Run("omits oneof variants", func(t *testing.T) {

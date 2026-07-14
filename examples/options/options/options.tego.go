@@ -18,28 +18,28 @@ const (
 )
 
 type LookupAccountRequest struct {
-	AccountID string
+	AccountID string `json:"accountId"`
 }
 
 type LookupAccountResponse struct {
-	Account UserAccount
+	Account UserAccount `json:"account"`
 }
 
 // UserAccount is the hand-facing account shape.
 type UserAccount struct {
 	// ID is the stable account identifier.
-	ID          string `validate:"required" json:"id,omitempty"`
-	DisplayName string `json:"display_name,omitempty"`
-	Email       *string
-	Role        AccessRole
+	ID          string     `validate:"required" json:"id,omitempty"`
+	DisplayName string     `json:"display_name,omitempty"`
+	Email       *string    `json:"email"`
+	Role        AccessRole `json:"role"`
 }
 
 type AccountPatch struct {
-	DisplayName omittable.Value[string]
-	Email       omittable.Value[*string]
-	Role        omittable.Value[AccessRole]
-	Metadata    omittable.Value[tego.Struct]
-	ActorID     string
+	DisplayName omittable.Value[string]      `json:"display_name"`
+	Email       omittable.Value[*string]     `json:"email"`
+	Role        omittable.Value[AccessRole]  `json:"role"`
+	Metadata    omittable.Value[tego.Struct] `json:"metadata"`
+	ActorID     string                       `json:"actor_id"`
 }
 
 type AccountMetrics struct {
@@ -49,7 +49,7 @@ type AccountMetrics struct {
 }
 
 type LegacyCounter struct {
-	Count int64
+	Count int64 `json:"count"`
 }
 
 func LookupAccountRequestFromProto(source *optionspbv1.LookupAccountRequest) LookupAccountRequest {

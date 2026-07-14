@@ -22,6 +22,36 @@ message FileOptions {
   // omit acknowledges this file as a Tego file without generating any output. When true,
   // go_package and output_path must not be set, and every declaration must plan no output.
   bool omit = 3;
+  // messages is used to specify options that apply to messages declared in this file.
+  FileMessagesOptions messages = 4;
+}
+
+message FileMessagesOptions {
+  // fields is used to specify options that apply to fields on every message declared in this file.
+  FileMessageFieldsOptions fields = 1;
+}
+
+message FileMessageFieldsOptions {
+  // json_tags generates JSON struct tags for fields using the selected casing style.
+  CasingStyle json_tags = 1;
+}
+
+enum CasingStyle {
+  // unspecified disables automatic casing at the configured scope.
+  CASING_STYLE_UNSPECIFIED = 0;
+  // camel_case formats names as lower camel case, such as apiUrl.
+  CASING_STYLE_CAMEL_CASE = 1;
+  // kebab_case formats names with lowercase words separated by hyphens, such as api-url.
+  CASING_STYLE_KEBAB_CASE = 2;
+  // snake_case formats names with lowercase words separated by underscores, such as api_url.
+  CASING_STYLE_SNAKE_CASE = 3;
+  // screaming_snake_case formats names with uppercase words separated by underscores, such as
+  // API_URL.
+  CASING_STYLE_SCREAMING_SNAKE_CASE = 4;
+  // pascal_case formats names as conventional upper camel case, such as ApiUrl.
+  CASING_STYLE_PASCAL_CASE = 5;
+  // go_case formats names like Tego's generated Go fields, preserving initialisms, such as APIURL.
+  CASING_STYLE_GO_CASE = 6;
 }
 
 extend google.protobuf.EnumOptions {
@@ -105,6 +135,10 @@ message MessageFieldsOptions {
   // preserve_integer_width indicates that 64-bit integer fields on this message should generate as
   // Go int64 or uint64 fields instead of the default int or uint fields.
   bool preserve_integer_width = 2;
+  // json_tags generates JSON struct tags for fields on this message using the selected casing
+  // style. When set, this overrides the file-level default; explicitly setting unspecified
+  // disables a file-level default for this message.
+  CasingStyle json_tags = 3;
 }
 
 extend google.protobuf.FieldOptions {

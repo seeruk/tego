@@ -36,6 +36,7 @@ func (p *Planner) planOneofStructField(oneof *ProtoOneof) FieldPlan {
 	return FieldPlan{
 		ProtoName: oneof.FullName,
 		Name:      name,
+		Tags:      oneofStructTags(oneof),
 		Type: TypePlan{
 			Kind: TypeKindOneof,
 			Ref:  plannedOneofRef(oneof),
@@ -53,6 +54,8 @@ func (p *Planner) planOneofStructField(oneof *ProtoOneof) FieldPlan {
 func (p *Planner) planOneofVariant(field *ProtoField, si *ShapeIndex) (OneofVariantPlan, []Diagnostic) {
 	name := plannedOneofVariantName(field)
 	typ, diagnostics := p.planOneofVariantType(field, si)
+	tags, tagDiagnostics := structTags(field)
+	diagnostics = append(diagnostics, tagDiagnostics...)
 
 	return OneofVariantPlan{
 		ProtoName: field.FullName,
@@ -66,6 +69,7 @@ func (p *Planner) planOneofVariant(field *ProtoField, si *ShapeIndex) (OneofVari
 			string(field.Name),
 			name,
 		),
+		Tags: tags,
 	}, diagnostics
 }
 

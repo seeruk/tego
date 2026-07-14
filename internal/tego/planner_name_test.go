@@ -72,3 +72,25 @@ func TestPlannerNames(t *testing.T) {
 		assert.Equal(t, "HTTP", plannedFieldName(c))
 	})
 }
+
+func TestCasingStyleName(t *testing.T) {
+	tests := map[string]struct {
+		style tegopb.CasingStyle
+		want  string
+	}{
+		"camel case":           {tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE, "apiUrlWatcherIdsVideo1080P"},
+		"kebab case":           {tegopb.CasingStyle_CASING_STYLE_KEBAB_CASE, "api-url-watcher-ids-video-1080p"},
+		"snake case":           {tegopb.CasingStyle_CASING_STYLE_SNAKE_CASE, "api_url_watcher_ids_video_1080p"},
+		"screaming snake case": {tegopb.CasingStyle_CASING_STYLE_SCREAMING_SNAKE_CASE, "API_URL_WATCHER_IDS_VIDEO_1080P"},
+		"pascal case":          {tegopb.CasingStyle_CASING_STYLE_PASCAL_CASE, "ApiUrlWatcherIdsVideo1080P"},
+		"go case":              {tegopb.CasingStyle_CASING_STYLE_GO_CASE, "APIURLWatcherIDsVideo1080P"},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tt.want, casingStyleName("api_url_watcher_ids_video_1080p", tt.style))
+		})
+	}
+
+	assert.Empty(t, casingStyleName("", tegopb.CasingStyle_CASING_STYLE_CAMEL_CASE))
+}
