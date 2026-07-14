@@ -77,13 +77,14 @@ interfaces.
 
 - [Generated Go package](#generated-go-package)
 - [Types and mappings](#types-and-mappings)
-- [JSON struct tags](#json-struct-tags)
 - [Shapes](#shapes)
 - [Custom types](#custom-types)
 - [Presence and patches](#presence-and-patches)
-- [Facade services](#facade-services)
+- [Service facades](#service-facades)
 - [Transport adapters](#transport-adapters)
 - [Adapter hooks](#adapter-hooks)
+- [Error mapping](#error-mapping)
+- [JSON struct tags](#json-struct-tags)
 
 ### Generated Go Package
 
@@ -156,37 +157,6 @@ With the option enabled, `int64`, `sint64`, and `sfixed64` generate as `int64`, 
 Tego does not unwrap protobuf value wrapper messages such as `google.protobuf.StringValue` into
 scalar pointers. They are treated as ordinary protobuf message pointer types. You should use Tego's 
 `nullable`, `omittable`, or nullable-shape modelling for presence and null semantics.
-
-### JSON Struct Tags
-
-Tego can automatically add JSON struct tags to every generated field in a file:
-
-```protobuf
-option (tego.file).messages.fields.json_tags = CASING_STYLE_CAMEL_CASE;
-```
-
-Or to the fields of one message:
-
-```protobuf
-message Ticket {
-  option (tego.message).fields.json_tags = CASING_STYLE_SNAKE_CASE;
-
-  string ticket_id = 1;
-  string display_name = 2;
-}
-```
-
-This generates `json:"ticket_id"` and `json:"display_name"` without adding `omitempty` or
-`omitzero`. The available styles are `CASING_STYLE_CAMEL_CASE` (`apiUrl`),
-`CASING_STYLE_KEBAB_CASE` (`api-url`), `CASING_STYLE_SNAKE_CASE` (`api_url`),
-`CASING_STYLE_SCREAMING_SNAKE_CASE` (`API_URL`), `CASING_STYLE_PASCAL_CASE` (`ApiUrl`), and
-`CASING_STYLE_GO_CASE` (`APIURL`).
-
-A message setting overrides the file default. Explicitly setting
-`CASING_STYLE_UNSPECIFIED` on a message disables an inherited file default. Field-level
-`(tego.field).json_tag` and `tags` entries keyed `json` take precedence, so they can supply a custom
-name or modifiers for individual fields. Automatic names use `(tego.field).name` when it is set and
-otherwise use the protobuf field name.
 
 ### Shapes
 
@@ -439,6 +409,37 @@ path, handler := books.NewBookServiceConnectHandler(
 See [examples/error-mapping](examples/error-mapping) for sentinel errors with `errors.Is` and
 structured errors with `errors.AsType`. Generated facade clients can use the same option to map 
 native transport errors back to domain errors before returning them to your code.
+
+### JSON Struct Tags
+
+Tego can automatically add JSON struct tags to every generated field in a file:
+
+```protobuf
+option (tego.file).messages.fields.json_tags = CASING_STYLE_CAMEL_CASE;
+```
+
+Or to the fields of one message:
+
+```protobuf
+message Ticket {
+  option (tego.message).fields.json_tags = CASING_STYLE_SNAKE_CASE;
+
+  string ticket_id = 1;
+  string display_name = 2;
+}
+```
+
+This generates `json:"ticket_id"` and `json:"display_name"` without adding `omitempty` or
+`omitzero`. The available styles are `CASING_STYLE_CAMEL_CASE` (`apiUrl`),
+`CASING_STYLE_KEBAB_CASE` (`api-url`), `CASING_STYLE_SNAKE_CASE` (`api_url`),
+`CASING_STYLE_SCREAMING_SNAKE_CASE` (`API_URL`), `CASING_STYLE_PASCAL_CASE` (`ApiUrl`), and
+`CASING_STYLE_GO_CASE` (`APIURL`).
+
+A message setting overrides the file default. Explicitly setting
+`CASING_STYLE_UNSPECIFIED` on a message disables an inherited file default. Field-level
+`(tego.field).json_tag` and `tags` entries keyed `json` take precedence, so they can supply a custom
+name or modifiers for individual fields. Automatic names use `(tego.field).name` when it is set and
+otherwise use the protobuf field name.
 
 ## Examples
 
