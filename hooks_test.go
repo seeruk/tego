@@ -99,10 +99,10 @@ func TestInterfaceHookHelpers(t *testing.T) {
 	}
 
 	var hooks InterfaceHooks
-	AddPreRequestMappingHook(&hooks, beforeRequest, anotherPreRequest)
-	AddPostRequestMappingHook(&hooks, afterRequest)
-	AddPreResponseMappingHook(&hooks, beforeResponse)
-	AddPostResponseMappingHook(&hooks, afterResponse)
+	hooks.AddPreRequestMappingHook(beforeRequest, anotherPreRequest)
+	hooks.AddPostRequestMappingHook(afterRequest)
+	hooks.AddPreResponseMappingHook(beforeResponse)
+	hooks.AddPostResponseMappingHook(afterResponse)
 
 	assert.Len(t, hooks.PreRequestMapping, 2)
 	assert.Len(t, hooks.PostRequestMapping, 1)
@@ -138,19 +138,19 @@ func TestInterfaceHookHelpers(t *testing.T) {
 		return nil
 	}
 
-	SetPreRequestMappingHooks(&hooks, replacementPreRequest)
-	SetPostRequestMappingHooks(&hooks, replacementPostRequest)
-	SetPreResponseMappingHooks(&hooks, replacementPreResponse)
-	SetPostResponseMappingHooks(&hooks, replacementPostResponse)
+	hooks.SetPreRequestMappingHooks(replacementPreRequest)
+	hooks.SetPostRequestMappingHooks(replacementPostRequest)
+	hooks.SetPreResponseMappingHooks(replacementPreResponse)
+	hooks.SetPostResponseMappingHooks(replacementPostResponse)
 	assert.Len(t, hooks.PreRequestMapping, 1)
 	assert.Len(t, hooks.PostRequestMapping, 1)
 	assert.Len(t, hooks.PreResponseMapping, 1)
 	assert.Len(t, hooks.PostResponseMapping, 1)
 
-	SetPreRequestMappingHooks[hookValidator](&hooks)
-	SetPostRequestMappingHooks[hookValidator](&hooks)
-	SetPreResponseMappingHooks[hookValidator](&hooks)
-	SetPostResponseMappingHooks[hookValidator](&hooks)
+	hooks.SetPreRequestMappingHooks[hookValidator]()
+	hooks.SetPostRequestMappingHooks[hookValidator]()
+	hooks.SetPreResponseMappingHooks[hookValidator]()
+	hooks.SetPostResponseMappingHooks[hookValidator]()
 	assert.Empty(t, hooks.PreRequestMapping)
 	assert.Empty(t, hooks.PostRequestMapping)
 	assert.Empty(t, hooks.PreResponseMapping)

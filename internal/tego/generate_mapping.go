@@ -218,7 +218,7 @@ func renderedNonAddressableValue(expr string) renderedValue {
 	return renderedValue{Expr: expr}
 }
 
-// Tego targets Go 1.26+, where range variables are per-iteration values, so
+// Tego targets Go 1.27+, where range variables are per-iteration values, so
 // generated identifiers like membersKey and aliasesItem can be safely addressed.
 func isAddressableExpr(expr string) bool {
 	parsed, err := parser.ParseExpr(expr)

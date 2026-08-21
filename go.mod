@@ -1,26 +1,25 @@
 module github.com/seeruk/tego
 
-go 1.26.4
+go 1.27
 
 require (
 	connectrpc.com/connect v1.20.0
 	github.com/danielgtaylor/casing v1.0.0
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/seeruk/go-containers v0.1.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tinylib/msgp v1.6.4
 	golang.org/x/tools v0.47.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11
 )
 
-require github.com/philhofer/fwd v1.2.0 // indirect
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/stretchr/testify v1.11.1
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect

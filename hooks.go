@@ -50,79 +50,71 @@ func MergeInterfaceHooks(hooks ...InterfaceHooks) InterfaceHooks {
 }
 
 // AddPreRequestMappingHook appends hooks for protobuf requests before request mapping.
-func AddPreRequestMappingHook[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) AddPreRequestMappingHook[I any](
 	hooks ...func(context.Context, RPCInfo, I) (context.Context, error),
 ) {
 	for _, hook := range hooks {
-		target.PreRequestMapping = append(target.PreRequestMapping, PreRequestMappingInterfaceHook(hook))
+		ih.PreRequestMapping = append(ih.PreRequestMapping, PreRequestMappingInterfaceHook(hook))
 	}
 }
 
 // SetPreRequestMappingHooks replaces hooks for protobuf requests before request mapping.
-func SetPreRequestMappingHooks[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) SetPreRequestMappingHooks[I any](
 	hooks ...func(context.Context, RPCInfo, I) (context.Context, error),
 ) {
-	target.PreRequestMapping = nil
-	AddPreRequestMappingHook(target, hooks...)
+	ih.PreRequestMapping = nil
+	ih.AddPreRequestMappingHook(hooks...)
 }
 
 // AddPostRequestMappingHook appends hooks for Tego requests after request mapping.
-func AddPostRequestMappingHook[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) AddPostRequestMappingHook[I any](
 	hooks ...func(context.Context, RPCInfo, I) (context.Context, error),
 ) {
 	for _, hook := range hooks {
-		target.PostRequestMapping = append(target.PostRequestMapping, PostRequestMappingInterfaceHook(hook))
+		ih.PostRequestMapping = append(ih.PostRequestMapping, PostRequestMappingInterfaceHook(hook))
 	}
 }
 
 // SetPostRequestMappingHooks replaces hooks for Tego requests after request mapping.
-func SetPostRequestMappingHooks[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) SetPostRequestMappingHooks[I any](
 	hooks ...func(context.Context, RPCInfo, I) (context.Context, error),
 ) {
-	target.PostRequestMapping = nil
-	AddPostRequestMappingHook(target, hooks...)
+	ih.PostRequestMapping = nil
+	ih.AddPostRequestMappingHook(hooks...)
 }
 
 // AddPreResponseMappingHook appends hooks for Tego responses before response mapping.
-func AddPreResponseMappingHook[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) AddPreResponseMappingHook[I any](
 	hooks ...func(context.Context, RPCInfo, I) error,
 ) {
 	for _, hook := range hooks {
-		target.PreResponseMapping = append(target.PreResponseMapping, PreResponseMappingInterfaceHook(hook))
+		ih.PreResponseMapping = append(ih.PreResponseMapping, PreResponseMappingInterfaceHook(hook))
 	}
 }
 
 // SetPreResponseMappingHooks replaces hooks for Tego responses before response mapping.
-func SetPreResponseMappingHooks[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) SetPreResponseMappingHooks[I any](
 	hooks ...func(context.Context, RPCInfo, I) error,
 ) {
-	target.PreResponseMapping = nil
-	AddPreResponseMappingHook(target, hooks...)
+	ih.PreResponseMapping = nil
+	ih.AddPreResponseMappingHook(hooks...)
 }
 
 // AddPostResponseMappingHook appends hooks for protobuf responses after response mapping.
-func AddPostResponseMappingHook[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) AddPostResponseMappingHook[I any](
 	hooks ...func(context.Context, RPCInfo, I) error,
 ) {
 	for _, hook := range hooks {
-		target.PostResponseMapping = append(target.PostResponseMapping, PostResponseMappingInterfaceHook(hook))
+		ih.PostResponseMapping = append(ih.PostResponseMapping, PostResponseMappingInterfaceHook(hook))
 	}
 }
 
 // SetPostResponseMappingHooks replaces hooks for protobuf responses after response mapping.
-func SetPostResponseMappingHooks[I any](
-	target *InterfaceHooks,
+func (ih *InterfaceHooks) SetPostResponseMappingHooks[I any](
 	hooks ...func(context.Context, RPCInfo, I) error,
 ) {
-	target.PostResponseMapping = nil
-	AddPostResponseMappingHook(target, hooks...)
+	ih.PostResponseMapping = nil
+	ih.AddPostResponseMappingHook(hooks...)
 }
 
 // PreRequestMappingAnyHook adapts a hook that applies to every protobuf request before request mapping.
